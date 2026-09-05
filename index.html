@@ -17,14 +17,16 @@
 <style>
   :root{
     --bg:#FAF6EB; --ink:#3B3A19; --gold:#CEB991; --warn:#C0553B; --card:#FFFFFF;
-    --muted:#8A876A; --line:#E8E1CF; --soft:#F3EDDD; --gold-soft:#F1E9D6;
-    --shadow:0 1px 3px rgba(0,0,0,.06);
+    --muted:#8A876A; --line:#ECE5D3; --soft:#F4EFE2; --gold-soft:#F1E9D6;
+    --c:#8FAF86; --c-soft:#E9F0E4; --p:#D98E6B; --p-soft:#F8E6DC; --f:#DDB85A; --f-soft:#F8EFD2; --fb:#9DAEBE; --fb-soft:#E6ECF1;
+    --shadow:0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(59,58,25,.05);
   }
   @media (prefers-color-scheme: dark){
     :root{
       --bg:#1C1B14; --ink:#EDE8D6; --gold:#CEB991; --warn:#D4735B; --card:#26251C;
       --muted:#A39F86; --line:#3A382B; --soft:#302E22; --gold-soft:#3A3526;
-      --shadow:0 1px 3px rgba(0,0,0,.35);
+      --c:#9FBF95; --c-soft:#2A3327; --p:#E29A78; --p-soft:#3D2C24; --f:#E5C46A; --f-soft:#3B3422; --fb:#A9BACB; --fb-soft:#2A3138;
+      --shadow:0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
     }
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
@@ -32,163 +34,207 @@
   body{font-family:-apple-system,"PingFang HK",sans-serif; font-size:16px; line-height:1.45; padding-bottom:env(safe-area-inset-bottom)}
   button,input,select,textarea{font:inherit; color:inherit}
   button{cursor:pointer; border:0; background:none; padding:0}
-  .app{max-width:480px; margin:0 auto; padding:10px 14px 96px}
+  .app{max-width:480px; margin:0 auto; padding:14px 16px 104px}
+  .num{font-variant-numeric:tabular-nums; letter-spacing:-.02em}
 
   /* header */
-  .top{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0 10px}
-  .top h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.02em}
+  .top{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 0 12px}
+  .top h1{font-size:22px; margin:0; font-weight:800; letter-spacing:-.01em}
+  .top .r{display:flex; align-items:center; gap:8px}
   .sync{font-size:12px; color:var(--muted); white-space:nowrap}
   .sync.err{color:var(--warn)}
-  .sync.ok{color:var(--muted)}
-  .gear{width:34px; height:34px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; font-size:16px}
-  .datenav{display:flex; align-items:center; justify-content:center; gap:6px; margin:0 0 12px}
-  .datenav button{width:40px; height:36px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); font-size:18px}
-  .datenav .d{min-width:170px; text-align:center; font-weight:700; font-size:15px; padding:6px 10px; border-radius:10px; background:var(--card); box-shadow:var(--shadow)}
-  .datenav .d small{display:block; font-weight:500; color:var(--muted); font-size:11px}
-  .offline{display:none; background:var(--warn); color:#fff; font-size:13px; padding:8px 12px; border-radius:12px; margin-bottom:10px; text-align:center}
+  .gear{width:36px; height:36px; border-radius:50%; background:var(--card); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; font-size:16px}
+  .offline{display:none; background:var(--warn); color:#fff; font-size:13px; padding:9px 12px; border-radius:14px; margin-bottom:12px; text-align:center}
   .offline.show{display:block}
 
+  /* week strip */
+  .datenav{margin:0 0 14px}
+  .wk-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+  .wk-top .d{font-size:15px; font-weight:700}
+  .wk-top .d small{font-weight:500; color:var(--muted); margin-left:6px; font-size:12px}
+  .wk-top .arrows button{width:32px; height:32px; border-radius:50%; background:var(--card); box-shadow:var(--shadow); font-size:16px; margin-left:6px}
+  .week{display:grid; grid-template-columns:repeat(7,1fr); gap:6px}
+  .week button{background:var(--card); border-radius:14px; padding:8px 0 7px; box-shadow:var(--shadow); display:flex; flex-direction:column; align-items:center; gap:1px; position:relative}
+  .week button span{font-size:11px; color:var(--muted)}
+  .week button b{font-size:16px; font-weight:800}
+  .week button i{position:absolute; top:6px; right:8px; width:5px; height:5px; border-radius:50%; background:var(--gold)}
+  .week button.on{background:var(--ink); color:var(--bg)}
+  .week button.on span{color:var(--bg); opacity:.7}
+  .week button.on i{background:var(--gold)}
+  .week button.today:not(.on) b{color:var(--p)}
+
   /* cards */
-  .card{background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:14px; margin-bottom:12px}
-  .card h2{font-size:14px; margin:0 0 8px; font-weight:700; color:var(--muted); letter-spacing:.04em}
+  .card{background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:16px; margin-bottom:14px}
+  .card h2{font-size:15px; margin:0; font-weight:800}
+  .sech{display:flex; align-items:baseline; justify-content:space-between; margin:4px 2px 10px}
+  .sech h2{font-size:17px; margin:0; font-weight:800}
+  .sech span{font-size:13px; color:var(--muted)}
 
-  /* summary */
-  .kcal-row{display:flex; align-items:baseline; justify-content:space-between}
-  .kcal-big{font-size:32px; font-weight:800; letter-spacing:-.01em}
-  .kcal-big small{font-size:14px; font-weight:500; color:var(--muted); margin-left:4px}
-  .kcal-target{font-size:13px; color:var(--muted)}
-  .kcal-target.over{color:var(--warn); font-weight:700}
-  .bar{height:10px; border-radius:6px; background:var(--soft); overflow:hidden; margin:10px 0 12px}
-  .bar i{display:block; height:100%; background:var(--gold); border-radius:6px; width:0}
-  .bar.over i{background:var(--warn)}
-  .macros{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
-  .macro{background:var(--soft); border-radius:12px; padding:8px 6px; text-align:center}
-  .macro b{display:block; font-size:16px}
-  .macro span{display:block; font-size:11px; color:var(--muted)}
-  .macro .t{font-size:10px; color:var(--muted)}
-  .macro.over b{color:var(--warn)}
+  /* budget */
+  .bh{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+  .bh .edit{font-size:12px; color:var(--muted); background:var(--soft); border-radius:999px; padding:5px 10px}
+  .bgrid{display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:center}
+  .ringbox{display:flex; flex-direction:column; align-items:center}
+  .ring{position:relative; width:150px; height:150px}
+  .ring svg{width:150px; height:150px; transform:rotate(-90deg)}
+  .ring .trk{fill:none; stroke:var(--soft); stroke-width:12}
+  .ring .val{fill:none; stroke:var(--gold); stroke-width:12; stroke-linecap:round; transition:stroke-dasharray .4s}
+  .ring.over .val{stroke:var(--warn)}
+  .ring .c{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
+  .ring .c small{font-size:12px; color:var(--muted)}
+  .ring .c b{font-size:30px; font-weight:800; line-height:1.05}
+  .ring .c em{font-style:normal; font-size:12px; color:var(--muted)}
+  .ring.over .c b{color:var(--warn)}
+  .goal{font-size:12px; color:var(--muted); margin-top:8px}
+  .mrows{display:flex; flex-direction:column; gap:10px}
+  .mrow{display:flex; align-items:center; gap:10px}
+  .mrow .t{flex:1}
+  .mrow .t b{font-size:17px; font-weight:800}
+  .mrow .t b small{font-size:12px; color:var(--muted); font-weight:500; margin-left:2px}
+  .mrow .t span{display:block; font-size:12px; color:var(--muted); margin-top:-2px}
+  .mring{position:relative; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px}
+  .mring svg{position:absolute; inset:0; width:42px; height:42px; transform:rotate(-90deg)}
+  .mring .trk{fill:none; stroke-width:4}
+  .mring .val{fill:none; stroke-width:4; stroke-linecap:round}
+  .mrow.c .mring{background:var(--c-soft)} .mrow.c .trk{stroke:var(--c-soft)} .mrow.c .val{stroke:var(--c)}
+  .mrow.p .mring{background:var(--p-soft)} .mrow.p .trk{stroke:var(--p-soft)} .mrow.p .val{stroke:var(--p)}
+  .mrow.f .mring{background:var(--f-soft)} .mrow.f .trk{stroke:var(--f-soft)} .mrow.f .val{stroke:var(--f)}
+  .mrow.fb .mring{background:var(--fb-soft)} .mrow.fb .trk{stroke:var(--fb-soft)} .mrow.fb .val{stroke:var(--fb)}
+  .mrow.over .t b{color:var(--warn)}
 
-  /* slots */
-  .slot-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px}
-  .slot-head h3{margin:0; font-size:16px}
-  .slot-head .k{font-size:13px; color:var(--muted); margin-left:8px; font-weight:500}
-  .addbtn{background:var(--gold); color:#3B3A19; font-weight:800; width:38px; height:38px; border-radius:12px; font-size:22px; line-height:1}
-  .items{margin:0; padding:0; list-style:none}
-  .items li{display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--line)}
-  .items li:first-child{border-top:0}
+  /* meals */
+  .meal{padding:14px 16px}
+  .mh{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px}
+  .mt{display:flex; align-items:center; gap:10px}
+  .memo{width:40px; height:40px; border-radius:14px; background:var(--soft); display:flex; align-items:center; justify-content:center; font-size:20px}
+  .mt b{font-size:16px; font-weight:800; display:block}
+  .mt span{font-size:12px; color:var(--muted)}
+  .addbtn{width:40px; height:40px; border-radius:50%; background:var(--ink); color:var(--bg); font-size:22px; font-weight:800; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(59,58,25,.18)}
+  .items{margin:8px 0 0; padding:0; list-style:none}
+  .items li{display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--line)}
+  .items li:first-child{border-top:1px solid var(--line)}
+  .thumb{width:44px; height:44px; border-radius:14px; background:var(--soft); display:flex; align-items:center; justify-content:center; font-size:22px; flex:none}
   .items .n{flex:1; min-width:0}
-  .items .n b{font-weight:600}
+  .items .n b{font-weight:700; font-size:15px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .items .n span{display:block; font-size:12px; color:var(--muted)}
-  .items .kc{font-weight:700; font-size:15px; white-space:nowrap}
-  .x{width:32px; height:32px; border-radius:9px; color:var(--muted); font-size:16px; background:var(--soft)}
-  .x.confirm{background:var(--warn); color:#fff; width:auto; padding:0 10px; font-size:13px; font-weight:700}
-  .items .sub{margin:2px 0 4px 10px; padding:0; list-style:none; border-left:2px solid var(--line)}
+  .items .kc{font-weight:800; font-size:17px; white-space:nowrap}
+  .items .kc small{font-size:11px; color:var(--muted); font-weight:500; margin-left:2px}
+  .x{width:30px; height:30px; border-radius:50%; color:var(--muted); font-size:14px; background:var(--soft); flex:none}
+  .x.confirm{background:var(--warn); color:#fff; width:auto; padding:0 10px; font-size:12px; font-weight:700; border-radius:999px}
+  .items .sub{margin:4px 0 2px 54px; padding:0; list-style:none; border-left:2px solid var(--line)}
   .items .sub li{display:flex; justify-content:space-between; gap:8px; padding:2px 0 2px 8px; border:0; font-size:12px; color:var(--muted)}
   .items .n.tap{cursor:pointer}
-  .empty{color:var(--muted); font-size:13px; padding:6px 0}
-  .note-in{width:100%; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--bg); font-size:14px; margin-top:8px}
+  .empty{color:var(--muted); font-size:13px; padding:8px 0 2px}
+  .note-in{width:100%; border:0; border-radius:12px; padding:9px 12px; background:var(--soft); font-size:14px; margin-top:10px}
+  .savebtn{font-size:12px; color:var(--muted); padding:8px 0 0}
 
   /* tabbar */
-  .tabbar{position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; background:var(--card); border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom); z-index:20}
-  .tabbar .in{display:flex; width:100%; max-width:480px}
-  .tabbar button{flex:1; padding:10px 0 8px; font-size:12px; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px}
-  .tabbar button i{font-style:normal; font-size:20px}
+  .tabbar{position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; background:var(--card); border-top:1px solid var(--line); padding:6px 0 calc(6px + env(safe-area-inset-bottom)); z-index:20}
+  .tabbar .in{display:flex; width:100%; max-width:480px; padding:0 12px}
+  .tabbar button{flex:1; padding:6px 0; font-size:11px; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px; border-radius:16px}
+  .tabbar button i{font-style:normal; font-size:20px; width:44px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:14px}
   .tabbar button.on{color:var(--ink); font-weight:700}
-  .tabbar button.on i{filter:none}
+  .tabbar button.on i{background:var(--gold-soft)}
 
   /* sheet */
-  .veil{position:fixed; inset:0; background:rgba(40,35,20,.35); display:none; z-index:30}
+  .veil{position:fixed; inset:0; background:rgba(40,35,20,.4); display:none; z-index:30}
   .veil.show{display:block}
-  .sheet{position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:480px; background:var(--bg); border-radius:20px 20px 0 0; box-shadow:0 -4px 24px rgba(0,0,0,.15); max-height:88vh; overflow:auto; padding:12px 14px calc(20px + env(safe-area-inset-bottom)); display:none; z-index:40}
+  .sheet{position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:480px; background:var(--bg); border-radius:24px 24px 0 0; box-shadow:0 -6px 30px rgba(0,0,0,.18); max-height:90vh; overflow:auto; padding:14px 16px calc(24px + env(safe-area-inset-bottom)); display:none; z-index:40}
   .sheet.show{display:block}
   .sheet .hd{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
-  .sheet .hd h2{margin:0; font-size:17px}
-  .close{width:34px; height:34px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); font-size:16px}
-  .sec{margin:12px 0 6px; font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.06em}
+  .sheet .hd h2{margin:0; font-size:19px; font-weight:800}
+  .close{width:36px; height:36px; border-radius:50%; background:var(--card); box-shadow:var(--shadow); font-size:15px}
+  .sec{margin:14px 0 8px; font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.04em}
   .quick{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
-  .quick button{background:var(--card); box-shadow:var(--shadow); border-radius:14px; padding:12px 12px; text-align:left; min-height:60px}
-  .quick button b{display:block; font-size:15px}
-  .quick button span{display:block; font-size:12px; color:var(--muted); margin-top:2px}
+  .quick button{background:var(--card); box-shadow:var(--shadow); border-radius:16px; padding:12px; text-align:left; min-height:62px; display:flex; gap:10px; align-items:center}
+  .quick button .thumb{width:36px; height:36px; font-size:18px; border-radius:12px}
+  .quick button b{display:block; font-size:14px; font-weight:700; line-height:1.25}
+  .quick button span{display:block; font-size:11px; color:var(--muted); margin-top:2px}
   .sets{display:flex; flex-direction:column; gap:8px}
-  .sets .sb{display:flex; align-items:center; gap:8px; background:var(--ink); color:var(--bg); border-radius:14px; padding:12px 14px}
+  .sets .sb{display:flex; align-items:center; gap:8px; background:var(--ink); color:var(--bg); border-radius:18px; padding:12px 14px}
   .sets .sb .t{flex:1; text-align:left}
-  .sets .sb b{display:block; font-size:16px}
+  .sets .sb b{display:block; font-size:16px; font-weight:800}
   .sets .sb span{font-size:12px; opacity:.75}
   .sets .sb .x{background:rgba(255,255,255,.15); color:var(--bg)}
-  .savebtn{font-size:12px; color:var(--muted); padding:6px 0 0; text-decoration:underline}
-  .nl textarea{width:100%; min-height:64px; border:1px solid var(--line); border-radius:12px; padding:10px 12px; background:var(--card); font-size:16px; resize:vertical}
-  .nlrow{background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:10px 12px; margin-top:6px}
+  .rep{display:flex; gap:8px}
+  .rep button{flex:1; background:var(--gold-soft); border-radius:14px; padding:11px; font-size:14px; font-weight:600}
+  .nl textarea{width:100%; min-height:64px; border:0; border-radius:16px; padding:12px 14px; background:var(--card); box-shadow:var(--shadow); font-size:16px; resize:vertical}
+  .nlrow{background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:10px 12px; margin-top:6px}
   .nlrow .h{display:flex; justify-content:space-between; gap:8px; align-items:center}
-  .nlrow .h b{font-weight:600}
+  .nlrow .h b{font-weight:700}
   .nlrow .h span{font-size:12px; color:var(--muted)}
-  .nlrow .kc{font-weight:700; white-space:nowrap}
+  .nlrow .kc{font-weight:800; white-space:nowrap}
   .nlrow.bad{border-left:3px solid var(--warn)}
   .nlrow .portions{display:flex; padding:8px 0 0}
   .nlrow .g{display:flex; gap:6px; margin-top:8px; align-items:center}
-  .nlrow .g input{width:90px; border:1px solid var(--line); border-radius:10px; padding:8px; background:var(--bg); font-size:15px}
+  .nlrow .g input{width:90px; border:0; border-radius:10px; padding:8px; background:var(--soft); font-size:15px}
   .nlrow .g button{background:var(--soft); border-radius:10px; padding:8px 12px; font-weight:600}
-  .rep{display:flex; gap:8px}
-  .rep button{flex:1; background:var(--gold-soft); border-radius:12px; padding:10px; font-size:14px; font-weight:600}
-  .search{width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 12px; background:var(--card); font-size:16px}
+  .search{width:100%; border:0; border-radius:16px; padding:12px 14px; background:var(--card); box-shadow:var(--shadow); font-size:16px}
   .flist{margin:8px 0 0; padding:0; list-style:none}
-  .flist li{background:var(--card); border-radius:12px; box-shadow:var(--shadow); margin-bottom:6px; overflow:hidden}
-  .flist .row{display:flex; align-items:center; justify-content:space-between; padding:11px 12px; width:100%; text-align:left}
-  .flist .row b{font-weight:600}
+  .flist li{background:var(--card); border-radius:16px; box-shadow:var(--shadow); margin-bottom:6px; overflow:hidden}
+  .flist .row{display:flex; align-items:center; gap:10px; padding:10px 12px; width:100%; text-align:left}
+  .flist .row .thumb{width:36px; height:36px; font-size:18px; border-radius:12px}
+  .flist .row .nm{flex:1}
+  .flist .row b{font-weight:700; display:block}
   .flist .row span{font-size:12px; color:var(--muted)}
   .flist .cat{font-size:11px; color:var(--muted); padding:8px 2px 2px; font-weight:700}
   .portions{display:none; gap:8px; padding:0 10px 10px}
   .flist li.open .portions{display:flex}
-  .portions button{flex:1; background:var(--gold); color:#3B3A19; border-radius:12px; padding:12px 4px; font-weight:800; font-size:15px}
+  .portions button{flex:1; background:var(--gold); color:#3B3A19; border-radius:14px; padding:12px 4px; font-weight:800; font-size:15px}
   .portions button small{display:block; font-weight:500; font-size:11px; opacity:.85}
   .src{font-size:11px; color:var(--muted); padding:0 12px 10px; display:none; word-break:break-all}
   .flist li.open .src{display:block}
 
   /* forms */
-  .frm label{display:block; font-size:12px; color:var(--muted); margin:10px 0 4px}
-  .frm input,.frm select,.frm textarea{width:100%; border:1px solid var(--line); border-radius:12px; padding:10px 12px; background:var(--card); font-size:16px}
+  .frm label{display:block; font-size:12px; color:var(--muted); margin:12px 0 4px}
+  .frm input,.frm select,.frm textarea{width:100%; border:0; border-radius:14px; padding:11px 12px; background:var(--card); box-shadow:var(--shadow); font-size:16px}
   .frm .g2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
   .frm .g3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px}
   .frm .g5{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
   .frm .g5 input{padding:8px 6px; font-size:14px}
-  .btn{width:100%; background:var(--gold); color:#3B3A19; font-weight:800; border-radius:14px; padding:14px; font-size:16px; margin-top:14px}
+  .btn{width:100%; background:var(--ink); color:var(--bg); font-weight:800; border-radius:18px; padding:15px; font-size:16px; margin-top:14px}
   .btn.ghost{background:var(--card); color:var(--ink); box-shadow:var(--shadow); font-weight:600}
   .btn.warn{background:var(--warn); color:#fff}
   .chips{display:flex; flex-wrap:wrap; gap:8px}
   .chips button{background:var(--card); box-shadow:var(--shadow); border-radius:999px; padding:9px 14px; font-size:14px; font-weight:600}
-  .chips button.on{background:var(--gold); color:#3B3A19}
+  .chips button.on{background:var(--ink); color:var(--bg)}
   .setrow{display:grid; grid-template-columns:2fr 1fr 1fr 34px; gap:6px; margin-top:6px; align-items:center}
   .setrow input{padding:8px 8px; font-size:14px}
-  .setrow .x{height:38px}
-  .hint{font-size:12px; color:var(--muted); margin-top:6px}
+  .setrow .x{height:34px; width:34px}
+  .hint{font-size:12px; color:var(--muted); margin-top:8px}
 
   /* workouts */
-  .wk{display:flex; align-items:flex-start; gap:8px; padding:10px 0; border-top:1px solid var(--line)}
-  .wk:first-child{border-top:0}
+  .wk{display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px solid var(--line)}
+  .wk:first-of-type{border-top:0}
   .wk .n{flex:1}
-  .wk .n b{font-size:15px}
+  .wk .n b{font-size:15px; font-weight:700}
   .wk .n .m{font-size:13px; color:var(--muted)}
   .wk .n .sets{font-size:13px; margin-top:4px}
   .wk .n .sets div{padding:1px 0}
 
   /* trends */
-  .chart{display:flex; align-items:flex-end; gap:3px; height:120px; padding-top:6px; position:relative}
+  .chart{display:flex; align-items:flex-end; gap:4px; height:130px; padding-top:10px; position:relative}
   .chart .c{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%}
-  .chart .b{width:100%; background:var(--gold); border-radius:4px 4px 0 0; min-height:2px}
+  .chart .b{width:100%; background:var(--gold); border-radius:6px; min-height:3px}
   .chart .b.over{background:var(--warn)}
-  .chart .b.wk{background:var(--ink); opacity:.7}
+  .chart .b.p{background:var(--p)}
+  .chart .b.wk{background:var(--c)}
   .chart .v{font-size:9px; color:var(--muted); margin-bottom:2px}
   .chart .l{font-size:9px; color:var(--muted); margin-top:4px}
-  .tline{position:absolute; left:0; right:0; border-top:1px dashed var(--warn); opacity:.7}
+  .tline{position:absolute; left:0; right:0; border-top:1.5px dashed var(--warn); opacity:.6}
   .tline span{position:absolute; right:0; top:-14px; font-size:10px; color:var(--warn)}
-  .stat{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px}
-  .stat div{background:var(--soft); border-radius:12px; padding:8px; text-align:center}
-  .stat b{display:block; font-size:16px}
+  .stat{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px}
+  .stat div{background:var(--soft); border-radius:16px; padding:10px 8px; text-align:center}
+  .stat b{display:block; font-size:18px; font-weight:800}
   .stat span{font-size:11px; color:var(--muted)}
+
+  /* gate */
   .gate{position:fixed; inset:0; background:var(--bg); z-index:50; display:none; align-items:center; justify-content:center; padding:20px}
   .gate.show{display:flex}
-  .gate .box{width:100%; max-width:320px; background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:20px}
-  .gate h2{margin:0 0 6px; font-size:18px}
+  .gate .box{width:100%; max-width:320px; background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:22px}
+  .gate h2{margin:0 0 6px; font-size:20px; font-weight:800}
   .gate p{margin:0 0 12px; font-size:13px; color:var(--muted)}
+  .gate .search{background:var(--soft); box-shadow:none}
 </style>
 </head>
 <body>
@@ -204,17 +250,16 @@
 
 <div class="app">
   <div class="top">
-    <h1 id="title">🍽 今日</h1>
-    <div style="display:flex;align-items:center;gap:8px">
+    <h1 id="title">今日</h1>
+    <div class="r">
       <span class="sync" id="sync">載緊…</span>
       <button class="gear" id="gearBtn" title="設定">⚙︎</button>
     </div>
   </div>
   <div class="offline" id="offline">離線，資料未同步</div>
   <div class="datenav" id="datenav">
-    <button id="prevD">‹</button>
-    <div class="d" id="dateLbl"></div>
-    <button id="nextD">›</button>
+    <div class="wk-top"><div class="d" id="dateLbl"></div><div class="arrows"><button id="prevD">‹</button><button id="nextD">›</button></div></div>
+    <div class="week" id="week"></div>
   </div>
   <div id="view"></div>
 </div>
@@ -258,7 +303,14 @@
     var p=s.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]);
     var w=['日','一','二','三','四','五','六'][d.getDay()];
     var t=today(); var rel = s===t?'今日':(s===shiftDate(t,-1)?'昨日':(s===shiftDate(t,1)?'明日':''));
-    return '<span>'+(+p[1])+'月'+(+p[2])+'日（'+w+'）</span><small>'+(rel||'&nbsp;')+'</small>';
+    return (+p[1])+'月'+(+p[2])+'日 星期'+w+(rel?'<small>'+rel+'</small>':'');
+  }
+  function weekStrip(){
+    var p=curDate.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]); var dow=(d.getDay()+6)%7; // 一=0
+    var mon=shiftDate(curDate,-dow), t=today(), h='', names=['一','二','三','四','五','六','日'];
+    for(var i=0;i<7;i++){ var ds=shiftDate(mon,i); var has=state.meals.some(function(m){return m.date===ds&&m.items.length;})||state.workouts.some(function(w){return w.date===ds;});
+      h+='<button data-act="goday" data-d="'+ds+'" class="'+(ds===curDate?'on':'')+(ds===t?' today':'')+'"><span>'+names[i]+'</span><b>'+(+ds.slice(8))+'</b>'+(has?'<i></i>':'')+'</button>'; }
+    return h;
   }
   function slotByHour(){ var h=new Date().getHours(); return h<10?'早':h<15?'午':h<20?'晚':'宵'; }
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -484,49 +536,60 @@
     if(!state) return;
     var nav=$('datenav'); nav.style.display = tab==='trend'?'none':'flex';
     $('dateLbl').innerHTML=dateLabel(curDate);
-    $('title').textContent = tab==='today'?'🍽 今日':tab==='workout'?'🏋️ 運動':'📊 趨勢';
+    $('week').innerHTML=weekStrip();
+    $('title').textContent = tab==='today'?'飲食記錄':tab==='workout'?'運動':'趨勢';
     document.querySelectorAll('.tabbar button').forEach(function(b){ b.className = b.getAttribute('data-tab')===tab?'on':''; });
     var v=$('view');
     if(tab==='today') v.innerHTML=renderToday();
     else if(tab==='workout') v.innerHTML=renderWorkout();
     else v.innerHTML=renderTrend();
   }
+  var CAT_EMOJI={'飯麵':'🍚','肉類':'🍗','蛋奶豆':'🥚','蔬菜':'🥦','水果':'🍎','油脂堅果':'🫒','飲品':'☕','自訂':'🍽'};
+  var SLOT_EMOJI={'早':'🌅','午':'☀️','晚':'🌙','宵':'🌃'};
+  function thumbOf(it){ if(it.parts) return '🍱'; var f=foodById(it.foodId); return f?(CAT_EMOJI[f.cat]||'🍽'):'🍽'; }
+  function ringSvg(pct, cls){
+    var r=54, c=2*Math.PI*r, v=Math.max(0,Math.min(1,pct))*c;
+    return '<svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="'+r+'"/><circle class="val" cx="60" cy="60" r="'+r+'" stroke-dasharray="'+v.toFixed(1)+' '+c.toFixed(1)+'"/></svg>';
+  }
+  function miniRing(pct){
+    var r=19, c=2*Math.PI*r, v=Math.max(0,Math.min(1,pct))*c;
+    return '<svg viewBox="0 0 42 42"><circle class="trk" cx="21" cy="21" r="'+r+'"/><circle class="val" cx="21" cy="21" r="'+r+'" stroke-dasharray="'+v.toFixed(1)+' '+c.toFixed(1)+'"/></svg>';
+  }
+  function mrow(label, val, target, cls, emoji){
+    var over=target&&val>target;
+    return '<div class="mrow '+cls+(over?' over':'')+'"><div class="mring">'+(target?miniRing(val/target):'')+'<span>'+emoji+'</span></div><div class="t"><b class="num">'+r0(val)+(target?' <small>/ '+target+'g</small>':'<small>g</small>')+'</b><span>'+label+'</span></div></div>';
+  }
   function renderToday(){
     var t=totals(dayItems(curDate)), s=state.settings, h='';
-    var target=+s.dailyKcal||0, pct=target?Math.min(100, t.kcal/target*100):0, over=target&&t.kcal>target;
-    h+='<div class="card">';
-    h+='<div class="kcal-row"><div class="kcal-big">'+r0(t.kcal).toLocaleString()+'<small>kcal</small></div>';
-    h+='<div class="kcal-target'+(over?' over':'')+'">'+(target?(over?'超出 '+r0(t.kcal-target):'目標 '+target.toLocaleString()+'·餘 '+r0(target-t.kcal)):'未設目標（⚙︎）')+'</div></div>';
-    h+='<div class="bar'+(over?' over':'')+'"><i style="width:'+pct+'%"></i></div>';
-    var pT=+s.proteinTarget||0;
-    h+='<div class="macros">';
-    h+='<div class="macro"><b>'+r0(t.protein)+'<small>g</small></b><span>蛋白</span>'+(pT?'<span class="t">/ '+pT+'g</span>':'')+'</div>';
-    h+='<div class="macro"><b>'+r0(t.carb)+'<small>g</small></b><span>碳水</span></div>';
-    h+='<div class="macro"><b>'+r0(t.fat)+'<small>g</small></b><span>脂肪</span></div>';
-    h+='<div class="macro"><b>'+r0(t.fiber)+'<small>g</small></b><span>纖維</span></div>';
+    var target=+s.dailyKcal||0, over=target&&t.kcal>target, pct=target?t.kcal/target:0;
+    h+='<div class="card budget"><div class="bh"><h2>每日預算</h2><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
+    h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'">'+ringSvg(target?pct:0)+'<div class="c">';
+    if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-t.kcal)).toLocaleString()+'</b><em>kcal</em>'; }
+    else { h+='<small>已食</small><b class="num">'+r0(t.kcal).toLocaleString()+'</b><em>kcal</em>'; }
+    h+='</div></div><div class="goal">'+(target?'已食 '+r0(t.kcal).toLocaleString()+' · 目標 '+target.toLocaleString():'未設目標 · 撳「✎ 目標」')+'</div></div>';
+    h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div></div>';
+    h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
     SLOTS.forEach(function(slot){
       var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
-      h+='<div class="card"><div class="slot-head"><h3>'+slot+'餐'+(m&&m.time?' <span class="k">'+esc(m.time)+'</span>':'')+'<span class="k">'+(items.length?r0(st.kcal)+' kcal':'')+'</span></h3>';
+      h+='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">'+SLOT_EMOJI[slot]+'</div><div><b>'+slot+(slot==='宵'?'夜':'餐')+'</b><span>'+(m&&m.time?esc(m.time):'')+(items.length?(m&&m.time?' · ':'')+r0(st.kcal)+' kcal · 蛋白 '+r0(st.protein)+'g':'未記')+'</span></div></div>';
       h+='<button class="addbtn" data-act="add" data-slot="'+slot+'">＋</button></div>';
-      if(!items.length) h+='<div class="empty">未記</div>';
-      else{
+      if(items.length){
         h+='<ul class="items">';
         items.forEach(function(it, idx){
           var cid=m.id+':'+idx, conf=confirmId===cid;
           if(it.parts){
             var open=expandedId===cid;
-            h+='<li><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?'':' · 撳睇明細')+'</span>';
-            if(open){ h+='<ul class="sub">'; it.parts.forEach(function(p){ h+='<li><span>'+esc(p.name)+' '+p.grams+'g</span><span>'+p.kcal+'</span></li>'; }); h+='</ul>'; }
-            h+='</div>';
+            h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?'':' · 撳睇明細')+'</span></div>';
           } else
-          h+='<li><div class="n"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+'</span></div>';
-          h+='<div class="kc">'+it.kcal+'</div>';
+          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+'</span></div>';
+          h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
           h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
+          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p){ h+='<li><span>'+esc(p.name)+' '+p.grams+'g</span><span>'+p.kcal+'</span></li>'; }); h+='</ul></li>'; }
         });
         h+='</ul>';
         h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
-        h+='<button class="savebtn" data-act="mealset-save" data-meal="'+m.id+'">儲呢餐做套餐（以後一撳加齊）</button>';
+        h+='<button class="savebtn" data-act="mealset-save" data-meal="'+m.id+'">儲呢餐做套餐 ›</button>';
       }
       h+='</div>';
     });
@@ -534,7 +597,7 @@
   }
   function renderWorkout(){
     var ws=state.workouts.filter(function(w){ return w.date===curDate; }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
-    var h='<div class="card"><div class="slot-head"><h3>運動<span class="k">'+(ws.length?ws.reduce(function(a,w){return a+(+w.minutes||0);},0)+' 分鐘':'')+'</span></h3><button class="addbtn" data-act="addwk">＋</button></div>';
+    var h='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">🏋️</div><div><b>運動</b><span>'+(ws.length?ws.reduce(function(a,w){return a+(+w.minutes||0);},0)+' 分鐘 · '+ws.length+' 項':'未記')+'</span></div></div><button class="addbtn" data-act="addwk">＋</button></div>';
     if(!ws.length) h+='<div class="empty">未記</div>';
     ws.forEach(function(w){
       var conf=confirmId===w.id;
@@ -556,7 +619,7 @@
       if(targetV) h+='<div class="tline" style="bottom:'+(targetV/mx*100)+'%"><span>'+targetV+unit+'</span></div>';
       vals.forEach(function(v,i){
         var over=targetV&&v>targetV&&cls==='kc';
-        h+='<div class="c"><div class="v">'+(v?r0(v):'')+'</div><div class="b'+(over?' over':'')+(cls==='wk'?' wk':'')+'" style="height:'+(v/mx*100)+'%"></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
+        h+='<div class="c"><div class="v">'+(v?r0(v):'')+'</div><div class="b'+(over?' over':'')+(cls==='wk'?' wk':'')+(cls==='p'?' p':'')+'" style="height:'+(v/mx*100)+'%"></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
       });
       return h+'</div>';
     }
@@ -589,7 +652,7 @@
     order.forEach(function(c){
       h+='<li style="background:none;box-shadow:none"><div class="cat">'+esc(c)+'</div></li>';
       cats[c].forEach(function(f){
-        h+='<li data-food="'+esc(f.id)+'"><button class="row" data-act="openfood"><b>'+esc(f.name)+'</b><span>'+f.per100g.kcal+' kcal/100g</span></button>';
+        h+='<li data-food="'+esc(f.id)+'"><button class="row" data-act="openfood"><div class="thumb">'+(CAT_EMOJI[f.cat]||'🍽')+'</div><div class="nm"><b>'+esc(f.name)+'</b><span>'+f.per100g.kcal+' kcal/100g · 蛋白 '+f.per100g.protein+'g</span></div></button>';
         h+='<div class="portions">';
         f.portions.forEach(function(p){ h+='<button data-act="pick" data-grams="'+p.grams+'" data-label="'+esc(p.label)+'">'+esc(p.label)+'<small>'+p.grams+'g · '+r0(f.per100g.kcal*p.grams/100)+' kcal</small></button>'; });
         h+='</div><div class="src">來源：'+esc(f.source||'')+'</div></li>';
@@ -614,7 +677,7 @@
     h+='<div class="sec">常食（一撳即加·用上次份量）</div><div class="quick">';
     quickFoods().forEach(function(f){
       var lp=state.settings.lastPortion[f.id]||{label:f.portions[1].label, grams:f.portions[1].grams};
-      h+='<button data-act="quick" data-food="'+esc(f.id)+'"><b>'+esc(f.name)+'</b><span>'+esc(lp.label)+' '+lp.grams+'g · '+r0(f.per100g.kcal*lp.grams/100)+' kcal</span></button>';
+      h+='<button data-act="quick" data-food="'+esc(f.id)+'"><div class="thumb">'+(CAT_EMOJI[f.cat]||'🍽')+'</div><div><b>'+esc(f.name)+'</b><span>'+esc(lp.label)+' '+lp.grams+'g · '+r0(f.per100g.kcal*lp.grams/100)+' kcal</span></div></button>';
     });
     h+='</div>';
     var y=getMeal(shiftDate(curDate,-1), slot, false), w=getMeal(shiftDate(curDate,-7), slot, false);
@@ -682,7 +745,8 @@
   }
   function openSettings(){
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
-    h+='<div class="g3"><div><label>每日 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>蛋白質目標 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
+    h+='<div class="g2"><div><label>每日 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
+    h+='<div class="g3"><div><label>蛋白質 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>碳水 g（可留空）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（可留空）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
     h+='<div class="hint">食物庫：'+BUILTIN.length+' 樣內建（每樣有來源）＋ '+state.foods.filter(function(f){return f.custom;}).length+' 樣自訂。撳食物名可睇來源。</div>';
@@ -691,7 +755,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
@@ -702,6 +766,8 @@
     var act=b.getAttribute('data-act');
     if(act==='add') openAdd(b.getAttribute('data-slot'));
     else if(act==='close') closeSheet();
+    else if(act==='goday'){ curDate=b.getAttribute('data-d'); render(); }
+    else if(act==='settings') openSettings();
     else if(act==='backadd') openAdd(addSlot);
     else if(act==='openfood'){ var li=b.closest('li'); var was=li.classList.contains('open'); document.querySelectorAll('.flist li.open').forEach(function(x){x.classList.remove('open');}); if(!was) li.classList.add('open'); }
     else if(act==='pick'){ var f=foodById(b.closest('li').getAttribute('data-food')); if(f){ addItem(addSlot, f, parseFloat(b.getAttribute('data-grams')), b.getAttribute('data-label')); closeSheet(); } }
@@ -740,8 +806,8 @@
     var el=e.target.closest('[data-act="note"]'); if(!el) return;
     var m=state.meals.filter(function(x){return x.id===el.getAttribute('data-meal');})[0]; if(m){ m.note=el.value.trim(); markDirty(); }
   });
-  $('prevD').addEventListener('click', function(){ curDate=shiftDate(curDate,-1); render(); });
-  $('nextD').addEventListener('click', function(){ curDate=shiftDate(curDate,1); render(); });
+  $('prevD').addEventListener('click', function(){ curDate=shiftDate(curDate,-7); render(); });
+  $('nextD').addEventListener('click', function(){ curDate=shiftDate(curDate,7); render(); });
   $('dateLbl').addEventListener('click', function(){ curDate=today(); render(); });
   $('gearBtn').addEventListener('click', function(){ if(state) openSettings(); });
   document.querySelectorAll('.tabbar button').forEach(function(b){ b.addEventListener('click', function(){ tab=b.getAttribute('data-tab'); render(); }); });
