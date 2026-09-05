@@ -577,7 +577,7 @@
     h+='</div></div><div class="goal">'+(target?'目標 '+target.toLocaleString()+' kcal（以淨攝取計）':'未設目標 · 撳「✎ 目標」')+'</div></div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div>';
-    h+='<div class="net"><div><b class="num">'+r0(t.kcal).toLocaleString()+'</b><span>攝取 kcal</span></div><div><b class="num">'+(burn?'−'+r0(burn).toLocaleString():'0')+'</b><span>運動消耗（手動入）</span></div><div class="n'+(over?' over':'')+'"><b class="num">'+r0(net).toLocaleString()+'</b><span>淨攝取</span></div></div>';
+    h+='<div class="net"><div><b class="num">'+r0(t.kcal).toLocaleString()+'</b><span>攝取 kcal</span></div><div><b class="num">'+(burn?'−'+r0(burn).toLocaleString():'0')+'</b><span>運動消耗</span></div><div class="n'+(over?' over':'')+'"><b class="num">'+r0(net).toLocaleString()+'</b><span>淨攝取</span></div></div>';
     h+='</div>';
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
     SLOTS.forEach(function(slot){
