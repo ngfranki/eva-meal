@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>飲食記錄</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="飲食記錄">
+<meta name="theme-color" content="#FAF6EB">
+<style>
+  :root{
+    --bg:#FAF6EB; --ink:#3B3A19; --gold:#CEB991; --warn:#C0553B; --card:#FFFFFF;
+    --muted:#8A876A; --line:#E8E1CF; --soft:#F3EDDD; --gold-soft:#F1E9D6;
+    --shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1C1B14; --ink:#EDE8D6; --gold:#CEB991; --warn:#D4735B; --card:#26251C;
+      --muted:#A39F86; --line:#3A382B; --soft:#302E22; --gold-soft:#3A3526;
+      --shadow:0 1px 3px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; background:var(--bg); color:var(--ink)}
+  body{font-family:-apple-system,"PingFang HK",sans-serif; font-size:16px; line-height:1.45; padding-bottom:env(safe-area-inset-bottom)}
+  button,input,select,textarea{font:inherit; color:inherit}
+  button{cursor:pointer; border:0; background:none; padding:0}
+  .app{max-width:480px; margin:0 auto; padding:10px 14px 96px}
+
+  /* header */
+  .top{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0 10px}
+  .top h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.02em}
+  .sync{font-size:12px; color:var(--muted); white-space:nowrap}
+  .sync.err{color:var(--warn)}
+  .sync.ok{color:var(--muted)}
+  .gear{width:34px; height:34px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; font-size:16px}
+  .datenav{display:flex; align-items:center; justify-content:center; gap:6px; margin:0 0 12px}
+  .datenav button{width:40px; height:36px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); font-size:18px}
+  .datenav .d{min-width:170px; text-align:center; font-weight:700; font-size:15px; padding:6px 10px; border-radius:10px; background:var(--card); box-shadow:var(--shadow)}
+  .datenav .d small{display:block; font-weight:500; color:var(--muted); font-size:11px}
+  .offline{display:none; background:var(--warn); color:#fff; font-size:13px; padding:8px 12px; border-radius:12px; margin-bottom:10px; text-align:center}
+  .offline.show{display:block}
+
+  /* cards */
+  .card{background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:14px; margin-bottom:12px}
+  .card h2{font-size:14px; margin:0 0 8px; font-weight:700; color:var(--muted); letter-spacing:.04em}
+
+  /* summary */
+  .kcal-row{display:flex; align-items:baseline; justify-content:space-between}
+  .kcal-big{font-size:32px; font-weight:800; letter-spacing:-.01em}
+  .kcal-big small{font-size:14px; font-weight:500; color:var(--muted); margin-left:4px}
+  .kcal-target{font-size:13px; color:var(--muted)}
+  .kcal-target.over{color:var(--warn); font-weight:700}
+  .bar{height:10px; border-radius:6px; background:var(--soft); overflow:hidden; margin:10px 0 12px}
+  .bar i{display:block; height:100%; background:var(--gold); border-radius:6px; width:0}
+  .bar.over i{background:var(--warn)}
+  .macros{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .macro{background:var(--soft); border-radius:12px; padding:8px 6px; text-align:center}
+  .macro b{display:block; font-size:16px}
+  .macro span{display:block; font-size:11px; color:var(--muted)}
+  .macro .t{font-size:10px; color:var(--muted)}
+  .macro.over b{color:var(--warn)}
+
+  /* slots */
+  .slot-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px}
+  .slot-head h3{margin:0; font-size:16px}
+  .slot-head .k{font-size:13px; color:var(--muted); margin-left:8px; font-weight:500}
+  .addbtn{background:var(--gold); color:#3B3A19; font-weight:800; width:38px; height:38px; border-radius:12px; font-size:22px; line-height:1}
+  .items{margin:0; padding:0; list-style:none}
+  .items li{display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--line)}
+  .items li:first-child{border-top:0}
+  .items .n{flex:1; min-width:0}
+  .items .n b{font-weight:600}
+  .items .n span{display:block; font-size:12px; color:var(--muted)}
+  .items .kc{font-weight:700; font-size:15px; white-space:nowrap}
+  .x{width:32px; height:32px; border-radius:9px; color:var(--muted); font-size:16px; background:var(--soft)}
+  .x.confirm{background:var(--warn); color:#fff; width:auto; padding:0 10px; font-size:13px; font-weight:700}
+  .empty{color:var(--muted); font-size:13px; padding:6px 0}
+  .note-in{width:100%; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--bg); font-size:14px; margin-top:8px}
+
+  /* tabbar */
+  .tabbar{position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; background:var(--card); border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom); z-index:20}
+  .tabbar .in{display:flex; width:100%; max-width:480px}
+  .tabbar button{flex:1; padding:10px 0 8px; font-size:12px; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px}
+  .tabbar button i{font-style:normal; font-size:20px}
+  .tabbar button.on{color:var(--ink); font-weight:700}
+  .tabbar button.on i{filter:none}
+
+  /* sheet */
+  .veil{position:fixed; inset:0; background:rgba(40,35,20,.35); display:none; z-index:30}
+  .veil.show{display:block}
+  .sheet{position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:480px; background:var(--bg); border-radius:20px 20px 0 0; box-shadow:0 -4px 24px rgba(0,0,0,.15); max-height:88vh; overflow:auto; padding:12px 14px calc(20px + env(safe-area-inset-bottom)); display:none; z-index:40}
+  .sheet.show{display:block}
+  .sheet .hd{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
+  .sheet .hd h2{margin:0; font-size:17px}
+  .close{width:34px; height:34px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); font-size:16px}
+  .sec{margin:12px 0 6px; font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.06em}
+  .quick{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
+  .quick button{background:var(--card); box-shadow:var(--shadow); border-radius:14px; padding:12px 12px; text-align:left; min-height:60px}
+  .quick button b{display:block; font-size:15px}
+  .quick button span{display:block; font-size:12px; color:var(--muted); margin-top:2px}
+  .rep{display:flex; gap:8px}
+  .rep button{flex:1; background:var(--gold-soft); border-radius:12px; padding:10px; font-size:14px; font-weight:600}
+  .search{width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 12px; background:var(--card); font-size:16px}
+  .flist{margin:8px 0 0; padding:0; list-style:none}
+  .flist li{background:var(--card); border-radius:12px; box-shadow:var(--shadow); margin-bottom:6px; overflow:hidden}
+  .flist .row{display:flex; align-items:center; justify-content:space-between; padding:11px 12px; width:100%; text-align:left}
+  .flist .row b{font-weight:600}
+  .flist .row span{font-size:12px; color:var(--muted)}
+  .flist .cat{font-size:11px; color:var(--muted); padding:8px 2px 2px; font-weight:700}
+  .portions{display:none; gap:8px; padding:0 10px 10px}
+  .flist li.open .portions{display:flex}
+  .portions button{flex:1; background:var(--gold); color:#3B3A19; border-radius:12px; padding:12px 4px; font-weight:800; font-size:15px}
+  .portions button small{display:block; font-weight:500; font-size:11px; opacity:.85}
+  .src{font-size:11px; color:var(--muted); padding:0 12px 10px; display:none; word-break:break-all}
+  .flist li.open .src{display:block}
+
+  /* forms */
+  .frm label{display:block; font-size:12px; color:var(--muted); margin:10px 0 4px}
+  .frm input,.frm select,.frm textarea{width:100%; border:1px solid var(--line); border-radius:12px; padding:10px 12px; background:var(--card); font-size:16px}
+  .frm .g2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .frm .g3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px}
+  .frm .g5{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
+  .frm .g5 input{padding:8px 6px; font-size:14px}
+  .btn{width:100%; background:var(--gold); color:#3B3A19; font-weight:800; border-radius:14px; padding:14px; font-size:16px; margin-top:14px}
+  .btn.ghost{background:var(--card); color:var(--ink); box-shadow:var(--shadow); font-weight:600}
+  .btn.warn{background:var(--warn); color:#fff}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chips button{background:var(--card); box-shadow:var(--shadow); border-radius:999px; padding:9px 14px; font-size:14px; font-weight:600}
+  .chips button.on{background:var(--gold); color:#3B3A19}
+  .setrow{display:grid; grid-template-columns:2fr 1fr 1fr 34px; gap:6px; margin-top:6px; align-items:center}
+  .setrow input{padding:8px 8px; font-size:14px}
+  .setrow .x{height:38px}
+  .hint{font-size:12px; color:var(--muted); margin-top:6px}
+
+  /* workouts */
+  .wk{display:flex; align-items:flex-start; gap:8px; padding:10px 0; border-top:1px solid var(--line)}
+  .wk:first-child{border-top:0}
+  .wk .n{flex:1}
+  .wk .n b{font-size:15px}
+  .wk .n .m{font-size:13px; color:var(--muted)}
+  .wk .n .sets{font-size:13px; margin-top:4px}
+  .wk .n .sets div{padding:1px 0}
+
+  /* trends */
+  .chart{display:flex; align-items:flex-end; gap:3px; height:120px; padding-top:6px; position:relative}
+  .chart .c{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%}
+  .chart .b{width:100%; background:var(--gold); border-radius:4px 4px 0 0; min-height:2px}
+  .chart .b.over{background:var(--warn)}
+  .chart .b.wk{background:var(--ink); opacity:.7}
+  .chart .v{font-size:9px; color:var(--muted); margin-bottom:2px}
+  .chart .l{font-size:9px; color:var(--muted); margin-top:4px}
+  .tline{position:absolute; left:0; right:0; border-top:1px dashed var(--warn); opacity:.7}
+  .tline span{position:absolute; right:0; top:-14px; font-size:10px; color:var(--warn)}
+  .stat{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px}
+  .stat div{background:var(--soft); border-radius:12px; padding:8px; text-align:center}
+  .stat b{display:block; font-size:16px}
+  .stat span{font-size:11px; color:var(--muted)}
+  .gate{position:fixed; inset:0; background:var(--bg); z-index:50; display:none; align-items:center; justify-content:center; padding:20px}
+  .gate.show{display:flex}
+  .gate .box{width:100%; max-width:320px; background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:20px}
+  .gate h2{margin:0 0 6px; font-size:18px}
+  .gate p{margin:0 0 12px; font-size:13px; color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="box">
+    <h2>飲食記錄</h2>
+    <p>輸入暗號先入到</p>
+    <input class="search" id="gateKey" type="password" autocomplete="off" placeholder="暗號">
+    <button class="btn" id="gateGo">進入</button>
+    <div class="hint" id="gateMsg"></div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="top">
+    <h1 id="title">🍽 今日</h1>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="sync" id="sync">載緊…</span>
+      <button class="gear" id="gearBtn" title="設定">⚙︎</button>
+    </div>
+  </div>
+  <div class="offline" id="offline">離線，資料未同步</div>
+  <div class="datenav" id="datenav">
+    <button id="prevD">‹</button>
+    <div class="d" id="dateLbl"></div>
+    <button id="nextD">›</button>
+  </div>
+  <div id="view"></div>
+</div>
+
+<div class="tabbar"><div class="in">
+  <button data-tab="today" class="on"><i>🍽</i>今日</button>
+  <button data-tab="workout"><i>🏋️</i>運動</button>
+  <button data-tab="trend"><i>📊</i>趨勢</button>
+</div></div>
+
+<div class="veil" id="veil"></div>
+<div class="sheet" id="sheet"></div>
+
+<script id="builtinFoods" type="application/json">[{"id":"rice_white","name":"白飯（熟）","cat":"飯麵","per100g":{"kcal":130,"protein":2.69,"carb":28.2,"fat":0.28,"fiber":0.4},"portions":[{"label":"半碗","grams":100},{"label":"一碗","grams":200},{"label":"大碗","grams":300}],"source":"USDA FoodData Central FDC 168878（SR Legacy·NDB 20045）：Rice, white, long-grain, regular, enriched, cooked","custom":false},{"id":"rice_brown","name":"糙米飯（熟）","cat":"飯麵","per100g":{"kcal":123,"protein":2.74,"carb":25.6,"fat":0.97,"fiber":1.6},"portions":[{"label":"半碗","grams":100},{"label":"一碗","grams":200},{"label":"大碗","grams":300}],"source":"USDA FoodData Central FDC 169704（SR Legacy·NDB 20037）：Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)","custom":false},{"id":"rice_noodle","name":"米粉（熟）","cat":"飯麵","per100g":{"kcal":108,"protein":1.79,"carb":24.0,"fat":0.2,"fiber":1.0},"portions":[{"label":"半碗","grams":100},{"label":"一碗","grams":200},{"label":"大碗","grams":300}],"source":"USDA FoodData Central FDC 168914（SR Legacy·NDB 20134）：Rice noodles, cooked","custom":false},{"id":"udon","name":"烏冬（熟）","cat":"飯麵","per100g":{"kcal":95,"protein":2.6,"carb":21.6,"fat":0.4,"fiber":1.3},"portions":[{"label":"半份","grams":125},{"label":"一份","grams":250},{"label":"大份","grams":375}],"source":"日本文部科學省 食品成分データベース｜日本食品標準成分表（八訂）増補2023年｜食品番号 01039 うどん／ゆで（每100g：95kcal·蛋白2.6·脂0.4·碳21.6·纖維(1.3)＝成分表推算值）","custom":false},{"id":"instant_noodle","name":"即食麵（乾麵餅連湯包）","cat":"飯麵","per100g":{"kcal":440,"protein":10.2,"carb":60.3,"fat":17.6,"fiber":2.9},"portions":[{"label":"半包","grams":50},{"label":"一包","grams":100},{"label":"包半","grams":150}],"source":"USDA FoodData Central FDC 171177（SR Legacy·NDB 6583）：Soup, ramen noodle, any flavor, dry｜以乾重計；煮熟後重量會變，請按乾麵餅克數記","custom":false},{"id":"white_bread","name":"方包（白）","cat":"飯麵","per100g":{"kcal":266,"protein":8.85,"carb":49.4,"fat":3.33,"fiber":2.7},"portions":[{"label":"一片","grams":30},{"label":"兩片","grams":60},{"label":"三片","grams":90}],"source":"USDA FoodData Central FDC 174924（SR Legacy·NDB 18069）：Bread, white, commercially prepared (includes soft bread crumbs)","custom":false},{"id":"oats","name":"麥皮（水煮·熟）","cat":"飯麵","per100g":{"kcal":71,"protein":2.54,"carb":12.0,"fat":1.52,"fiber":1.7},"portions":[{"label":"半碗","grams":120},{"label":"一碗","grams":240},{"label":"大碗","grams":360}],"source":"USDA FoodData Central FDC 173905（SR Legacy·NDB 8121）：Cereals, oats, regular and quick, unenriched, cooked with water (includes boiling and microwaving), without salt","custom":false},{"id":"sweet_potato","name":"番薯（焗·肉）","cat":"飯麵","per100g":{"kcal":90,"protein":2.01,"carb":20.7,"fat":0.15,"fiber":3.3},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":220}],"source":"USDA FoodData Central FDC 168483（SR Legacy·NDB 11508）：Sweet potato, cooked, baked in skin, flesh, without salt","custom":false},{"id":"chicken_breast","name":"雞胸（熟·去皮）","cat":"肉類","per100g":{"kcal":165,"protein":31.0,"carb":0.0,"fat":3.57,"fiber":0.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"USDA FoodData Central FDC 171477（SR Legacy·NDB 5064）：Chicken, broilers or fryers, breast, meat only, cooked, roasted","custom":false},{"id":"chicken_thigh","name":"雞髀（熟·去皮去骨）","cat":"肉類","per100g":{"kcal":179,"protein":24.8,"carb":0.0,"fat":8.15,"fiber":0.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"USDA FoodData Central FDC 172388（SR Legacy·NDB 5098）：Chicken, broilers or fryers, thigh, meat only, cooked, roasted","custom":false},{"id":"pork_lean","name":"瘦豬肉（柳梅·熟）","cat":"肉類","per100g":{"kcal":143,"protein":26.2,"carb":0.0,"fat":3.51,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"USDA FoodData Central FDC 168250（SR Legacy·NDB 10061）：Pork, fresh, loin, tenderloin, separable lean only, cooked, roasted","custom":false},{"id":"beef_tenderloin","name":"牛柳（熟·淨瘦肉）","cat":"肉類","per100g":{"kcal":198,"protein":30.7,"carb":0.0,"fat":8.32,"fiber":0.0},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":220}],"source":"USDA FoodData Central FDC 170641（SR Legacy·NDB 13442）：Beef, loin, tenderloin steak, boneless, separable lean only, trimmed to 0\" fat, all grades, cooked, grilled","custom":false},{"id":"salmon","name":"三文魚（熟）","cat":"肉類","per100g":{"kcal":206,"protein":22.1,"carb":0.0,"fat":12.4,"fiber":0.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"USDA FoodData Central FDC 175168（SR Legacy·NDB 15237）：Fish, salmon, Atlantic, farmed, cooked, dry heat","custom":false},{"id":"grass_carp","name":"鯇魚（生·可食部）","cat":"肉類","per100g":{"kcal":113,"protein":16.6,"carb":0,"fat":5.2,"fiber":0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"香港食物安全中心 營養資料查詢系統｜草魚[白鯇，草包魚]（Grass carp）｜食物編號 0512001211020｜資料來源：中國疾病預防控制中心營養與食品安全所 CFC2002Ed2｜每100g可食部：113kcal·蛋白16.6·脂5.2·碳0（纖維標 NA，魚類按 0 計）","custom":false},{"id":"shrimp","name":"蝦（熟）","cat":"肉類","per100g":{"kcal":119,"protein":22.8,"carb":1.52,"fat":1.7,"fiber":0.0},"portions":[{"label":"5隻","grams":50},{"label":"10隻","grams":100},{"label":"15隻","grams":150}],"source":"USDA FoodData Central FDC 171971（SR Legacy·NDB 15151）：Crustaceans, shrimp, mixed species, cooked, moist heat (may contain additives to retain moisture)","custom":false},{"id":"egg","name":"雞蛋（烚·全蛋）","cat":"蛋奶豆","per100g":{"kcal":155,"protein":12.6,"carb":1.12,"fat":10.6,"fiber":0.0},"portions":[{"label":"1隻","grams":50},{"label":"2隻","grams":100},{"label":"3隻","grams":150}],"source":"USDA FoodData Central FDC 173424（SR Legacy·NDB 1129）：Egg, whole, cooked, hard-boiled","custom":false},{"id":"tofu_firm","name":"硬豆腐","cat":"蛋奶豆","per100g":{"kcal":144,"protein":17.3,"carb":2.78,"fat":8.72,"fiber":2.3},"portions":[{"label":"細","grams":100},{"label":"中","grams":200},{"label":"大","grams":300}],"source":"USDA FoodData Central FDC 172475（SR Legacy·NDB 16426）：Tofu, raw, firm, prepared with calcium sulfate","custom":false},{"id":"soymilk","name":"無糖豆漿","cat":"蛋奶豆","per100g":{"kcal":33,"protein":2.86,"carb":1.74,"fat":1.61,"fiber":0.5},"portions":[{"label":"細杯","grams":200},{"label":"一盒","grams":250},{"label":"大杯","grams":350}],"source":"USDA FoodData Central FDC 175215（SR Legacy·NDB 16222）：Soymilk (all flavors), unsweetened, with added calcium, vitamins A and D","custom":false},{"id":"milk_whole","name":"全脂牛奶","cat":"蛋奶豆","per100g":{"kcal":61,"protein":3.15,"carb":4.8,"fat":3.25,"fiber":0.0},"portions":[{"label":"半杯","grams":125},{"label":"一杯","grams":250},{"label":"大杯","grams":350}],"source":"USDA FoodData Central FDC 171265（SR Legacy·NDB 1077）：Milk, whole, 3.25% milkfat, with added vitamin D","custom":false},{"id":"milk_lowfat","name":"低脂牛奶（2%）","cat":"蛋奶豆","per100g":{"kcal":50,"protein":3.3,"carb":4.8,"fat":1.98,"fiber":0.0},"portions":[{"label":"半杯","grams":125},{"label":"一杯","grams":250},{"label":"大杯","grams":350}],"source":"USDA FoodData Central FDC 171267（SR Legacy·NDB 1079）：Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D","custom":false},{"id":"greek_yogurt_nonfat","name":"希臘乳酪（脫脂·原味）","cat":"蛋奶豆","per100g":{"kcal":61,"protein":10.3,"carb":3.64,"fat":0.37,"fiber":0},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":200}],"source":"USDA FoodData Central FDC 330137（SR Legacy·NDB 1256）：Yogurt, Greek, plain, nonfat｜Foundation 數據無纖維欄，乳製品按 0 計","custom":false},{"id":"greek_yogurt_whole","name":"希臘乳酪（全脂·原味）","cat":"蛋奶豆","per100g":{"kcal":97,"protein":9.0,"carb":3.98,"fat":5.0,"fiber":0.0},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":200}],"source":"USDA FoodData Central FDC 171304（SR Legacy·NDB 1293）：Yogurt, Greek, plain, whole milk","custom":false},{"id":"broccoli","name":"西蘭花（灼）","cat":"蔬菜","per100g":{"kcal":35,"protein":2.38,"carb":7.18,"fat":0.41,"fiber":3.3},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"USDA FoodData Central FDC 169967（SR Legacy·NDB 11091）：Broccoli, cooked, boiled, drained, without salt","custom":false},{"id":"choy_sum","name":"菜心（灼·不加油）","cat":"蔬菜","per100g":{"kcal":13,"protein":2.1,"carb":0.17,"fat":0.4,"fiber":1.6},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"香港食物安全中心 營養資料查詢系統｜灼菜心(不加油)｜食物編號 10030200305｜資料來源：食物安全中心食物研究化驗所 FRL｜每100g可食部：13kcal·蛋白2.1·碳0.17·脂0.4·纖維1.6","custom":false},{"id":"pak_choi","name":"白菜（灼）","cat":"蔬菜","per100g":{"kcal":12,"protein":1.56,"carb":1.78,"fat":0.16,"fiber":1.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"USDA FoodData Central FDC 170391（SR Legacy·NDB 11117）：Cabbage, chinese (pak-choi), cooked, boiled, drained, without salt","custom":false},{"id":"tomato","name":"番茄（生）","cat":"蔬菜","per100g":{"kcal":18,"protein":0.88,"carb":3.89,"fat":0.2,"fiber":1.2},"portions":[{"label":"半個","grams":60},{"label":"一個","grams":120},{"label":"兩個","grams":240}],"source":"USDA FoodData Central FDC 170457（SR Legacy·NDB 11529）：Tomatoes, red, ripe, raw, year round average","custom":false},{"id":"cucumber","name":"青瓜（連皮·生）","cat":"蔬菜","per100g":{"kcal":15,"protein":0.65,"carb":3.63,"fat":0.11,"fiber":0.5},"portions":[{"label":"半條","grams":100},{"label":"一條","grams":200},{"label":"兩條","grams":400}],"source":"USDA FoodData Central FDC 168409（SR Legacy·NDB 11205）：Cucumber, with peel, raw","custom":false},{"id":"mushroom","name":"白蘑菇（生）","cat":"蔬菜","per100g":{"kcal":22,"protein":3.09,"carb":3.26,"fat":0.34,"fiber":1.0},"portions":[{"label":"細","grams":50},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"USDA FoodData Central FDC 169251（SR Legacy·NDB 11260）：Mushrooms, white, raw","custom":false},{"id":"apple","name":"蘋果（連皮）","cat":"水果","per100g":{"kcal":52,"protein":0.26,"carb":13.8,"fat":0.17,"fiber":2.4},"portions":[{"label":"細","grams":130},{"label":"中","grams":180},{"label":"大","grams":240}],"source":"USDA FoodData Central FDC 171688（SR Legacy·NDB 9003）：Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)","custom":false},{"id":"banana","name":"香蕉","cat":"水果","per100g":{"kcal":89,"protein":1.09,"carb":22.8,"fat":0.33,"fiber":2.6},"portions":[{"label":"細","grams":90},{"label":"中","grams":120},{"label":"大","grams":150}],"source":"USDA FoodData Central FDC 173944（SR Legacy·NDB 9040）：Bananas, raw","custom":false},{"id":"orange","name":"橙","cat":"水果","per100g":{"kcal":47,"protein":0.94,"carb":11.8,"fat":0.12,"fiber":2.4},"portions":[{"label":"細","grams":120},{"label":"中","grams":150},{"label":"大","grams":200}],"source":"USDA FoodData Central FDC 169097（SR Legacy·NDB 9200）：Oranges, raw, all commercial varieties","custom":false},{"id":"blueberry","name":"藍莓","cat":"水果","per100g":{"kcal":57,"protein":0.74,"carb":14.5,"fat":0.33,"fiber":2.4},"portions":[{"label":"少","grams":50},{"label":"一杯","grams":150},{"label":"多","grams":200}],"source":"USDA FoodData Central FDC 171711（SR Legacy·NDB 9050）：Blueberries, raw","custom":false},{"id":"olive_oil","name":"橄欖油","cat":"油脂堅果","per100g":{"kcal":884,"protein":0.0,"carb":0.0,"fat":100,"fiber":0.0},"portions":[{"label":"1茶匙","grams":4.5},{"label":"1湯匙","grams":13.5},{"label":"2湯匙","grams":27}],"source":"USDA FoodData Central FDC 171413（SR Legacy·NDB 4053）：Oil, olive, salad or cooking","custom":false},{"id":"peanut_butter","name":"花生醬（幼滑）","cat":"油脂堅果","per100g":{"kcal":598,"protein":22.2,"carb":22.3,"fat":51.4,"fiber":5.0},"portions":[{"label":"1茶匙","grams":8},{"label":"1湯匙","grams":16},{"label":"2湯匙","grams":32}],"source":"USDA FoodData Central FDC 174266（SR Legacy·NDB 16098）：Peanut butter, smooth style, with salt (Includes foods for USDA's Food Distribution Program)","custom":false},{"id":"almond","name":"杏仁","cat":"油脂堅果","per100g":{"kcal":579,"protein":21.2,"carb":21.6,"fat":49.9,"fiber":12.5},"portions":[{"label":"10粒","grams":12},{"label":"一把","grams":28},{"label":"兩把","grams":56}],"source":"USDA FoodData Central FDC 170567（SR Legacy·NDB 12061）：Nuts, almonds","custom":false},{"id":"coffee_black","name":"黑咖啡","cat":"飲品","per100g":{"kcal":1,"protein":0.12,"carb":0.0,"fat":0.02,"fiber":0.0},"portions":[{"label":"細杯","grams":240},{"label":"中杯","grams":350},{"label":"大杯","grams":470}],"source":"USDA FoodData Central FDC 171890（SR Legacy·NDB 14209）：Beverages, coffee, brewed, prepared with tap water","custom":false},{"id":"tea_black","name":"無糖茶（紅茶）","cat":"飲品","per100g":{"kcal":1,"protein":0.0,"carb":0.3,"fat":0.0,"fiber":0.0},"portions":[{"label":"細杯","grams":240},{"label":"中杯","grams":350},{"label":"大杯","grams":470}],"source":"USDA FoodData Central FDC 173227（SR Legacy·NDB 14355）：Beverages, tea, black, brewed, prepared with tap water","custom":false},{"id":"tea_green","name":"無糖綠茶","cat":"飲品","per100g":{"kcal":1,"protein":0.22,"carb":0.0,"fat":0.0,"fiber":0.0},"portions":[{"label":"細杯","grams":240},{"label":"中杯","grams":350},{"label":"大杯","grams":470}],"source":"USDA FoodData Central FDC 171917（SR Legacy·NDB 14278）：Beverages, tea, green, brewed, regular","custom":false}]</script>
+<script>
+(function(){
+  'use strict';
+  var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
+  var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
+  var TABLE = 'meal_log';
+  var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
+  var SLOTS = ['早','午','晚','宵'];
+  var DEFAULT_TYPES = ['跑步機','負重','伸展','其他'];
+  var DEFAULT_QUICK = ['rice_white','egg','chicken_breast','choy_sum','coffee_black','banana','greek_yogurt_nonfat','oats'];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var KEY = '';
+  try{ KEY = localStorage.getItem('mealKey') || ''; }catch(e){}
+
+  var state = null, lastUpdated = null, dirty = false, persistTimer = null, retryTimer = null;
+  var tab = 'today', curDate = today(), offline = false;
+  var confirmId = null, confirmTimer = null;
+
+  // ---------- date helpers ----------
+  function pad(n){ return (n<10?'0':'')+n; }
+  function fmtDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function today(){ return fmtDate(new Date()); }
+  function nowTime(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function shiftDate(s, n){ var p=s.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]); d.setDate(d.getDate()+n); return fmtDate(d); }
+  function dateLabel(s){
+    var p=s.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]);
+    var w=['日','一','二','三','四','五','六'][d.getDay()];
+    var t=today(); var rel = s===t?'今日':(s===shiftDate(t,-1)?'昨日':(s===shiftDate(t,1)?'明日':''));
+    return '<span>'+(+p[1])+'月'+(+p[2])+'日（'+w+'）</span><small>'+(rel||'&nbsp;')+'</small>';
+  }
+  function slotByHour(){ var h=new Date().getHours(); return h<10?'早':h<15?'午':h<20?'晚':'宵'; }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function r0(x){ return Math.round(x); }
+  function r1(x){ return Math.round(x*10)/10; }
+
+  // ---------- state ----------
+  function defaultState(){
+    return { meals:[], workouts:[], foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
+      settings:{ dailyKcal:null, proteinTarget:null, weightKg:null, workoutTypes:DEFAULT_TYPES.slice(), lastPortion:{}, updatedAt:null },
+      meta:{ lastSync:null } };
+  }
+  function applyState(row){
+    var s = row.state || {};
+    if(!s || typeof s!=='object' || !Array.isArray(s.meals)){ s = Object.assign(defaultState(), s||{}); }
+    if(!Array.isArray(s.meals)) s.meals=[];
+    if(!Array.isArray(s.workouts)) s.workouts=[];
+    if(!Array.isArray(s.foods)) s.foods=[];
+    if(!s.settings) s.settings={};
+    if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
+    if(!s.settings.lastPortion) s.settings.lastPortion={};
+    if(!s.meta) s.meta={};
+    // 內建食物以源碼為準（來源／數字修正會自動推過去），自訂食物保留
+    var custom = s.foods.filter(function(f){ return f.custom; });
+    s.foods = BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }).concat(custom);
+    state = s; lastUpdated = row.updated_at || null;
+  }
+  function cacheSave(){ try{ localStorage.setItem('mealCache', JSON.stringify({state:state, updated_at:lastUpdated})); }catch(e){} }
+  function cacheLoad(){ try{ var s=localStorage.getItem('mealCache'); return s?JSON.parse(s):null; }catch(e){ return null; } }
+
+  function setSync(cls, txt){ var el=$('sync'); el.className='sync '+(cls||''); el.textContent=txt; }
+  function setOffline(on){ offline=on; $('offline').className='offline'+(on?' show':''); }
+
+  function hdr(){ return {apikey:SBK, Authorization:'Bearer '+SBK, 'x-client-info':KEY, 'Content-Type':'application/json'}; }
+
+  function fetchRow(cb){
+    var done=false, ctrl=null; try{ ctrl=new AbortController(); }catch(e){}
+    var t=setTimeout(function(){ if(done) return; done=true; try{ctrl&&ctrl.abort();}catch(e){} cb(null,false); }, 12000);
+    fetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=state,updated_at', {headers:hdr(), signal:ctrl?ctrl.signal:undefined})
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(rows){ if(done) return; done=true; clearTimeout(t); cb(rows&&rows[0]?rows[0]:null, true); })
+      .catch(function(){ if(done) return; done=true; clearTimeout(t); cb(null,false); });
+  }
+
+  function markDirty(){
+    dirty=true; state.settings.updatedAt=new Date().toISOString(); cacheSave(); render();
+    setSync('', '儲緊…');
+    if(persistTimer) clearTimeout(persistTimer);
+    persistTimer=setTimeout(persist, 600);
+  }
+  function persist(){
+    if(!state || !KEY) return;
+    var ts=new Date().toISOString(); state.meta.lastSync=ts;
+    fetch(SB+'/rest/v1/'+TABLE+'?on_conflict=id', {method:'POST',
+      headers:Object.assign(hdr(),{Prefer:'resolution=merge-duplicates,return=representation'}),
+      body:JSON.stringify([{id:'main', state:state, updated_at:ts}])})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      dirty=false; if(rows&&rows[0]) lastUpdated=rows[0].updated_at; cacheSave(); setOffline(false);
+      setSync('ok','已儲低 '+nowTime());
+    })
+    .catch(function(){ setOffline(true); setSync('err','離線，資料未同步'); setTimeout(persist, 8000); });
+  }
+  function refreshIfChanged(){
+    if(!state || dirty || !KEY) return;
+    fetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=updated_at', {headers:hdr()})
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(rows){
+        setOffline(false);
+        if(rows&&rows[0]&&rows[0].updated_at!==lastUpdated){
+          fetchRow(function(row,reached){ if(row&&!dirty){ applyState(row); cacheSave(); render(); setSync('ok','已同步 '+nowTime()); } });
+        }
+      }).catch(function(){ setOffline(true); setSync('err','離線，資料未同步'); });
+  }
+
+  function boot(){
+    if(!KEY){ showGate(''); return; }
+    if(!state){
+      var c=cacheLoad();
+      if(c&&c.state){ applyState(c); render(); setSync('','上次嘅資料·更新緊…'); }
+      else setSync('','載緊資料…');
+    }
+    fetchRow(function(row, reached){
+      if(!row){
+        if(!reached){
+          // 連唔到 Supabase：用 cache／空 state 照開，標離線
+          if(!state){ applyState({state:defaultState(), updated_at:null}); render(); }
+          setOffline(true); setSync('err','離線，資料未同步');
+          if(retryTimer) clearTimeout(retryTimer); retryTimer=setTimeout(boot, 10000);
+          return;
+        }
+        // 接通但冇資料 ＝ 暗號唔啱（RLS 閂住）
+        try{ localStorage.removeItem('mealKey'); }catch(e){}
+        KEY=''; showGate('暗號唔啱，再入一次'); return;
+      }
+      applyState(row); cacheSave(); setOffline(false); setSync('ok','已同步'); render();
+      if(!row.state || !Array.isArray(row.state.meals)){ markDirty(); } // 第一次：寫入初始結構
+    });
+  }
+
+  // ---------- gate ----------
+  function showGate(msg){ $('gate').className='gate show'; $('gateMsg').textContent=msg||''; setTimeout(function(){ try{$('gateKey').focus();}catch(e){} },50); }
+  function gateGo(){
+    var k=($('gateKey').value||'').trim(); if(!k) return;
+    KEY=k; try{ localStorage.setItem('mealKey',KEY); }catch(e){}
+    $('gate').className='gate'; $('gateKey').value=''; boot();
+  }
+  $('gateGo').addEventListener('click', gateGo);
+  $('gateKey').addEventListener('keydown', function(e){ if(e.key==='Enter') gateGo(); });
+
+  // ---------- food calc ----------
+  function foodById(id){ for(var i=0;i<state.foods.length;i++) if(state.foods[i].id===id) return state.foods[i]; return null; }
+  function makeItem(f, grams){
+    var k=grams/100, p=f.per100g;
+    return { foodId:f.id, name:f.name, grams:grams, kcal:r0(p.kcal*k), protein:r1(p.protein*k), carb:r1(p.carb*k), fat:r1(p.fat*k), fiber:r1(p.fiber*k) };
+  }
+  function mealsOn(date){ return state.meals.filter(function(m){ return m.date===date; }); }
+  function totals(items){
+    var t={kcal:0,protein:0,carb:0,fat:0,fiber:0};
+    items.forEach(function(i){ t.kcal+=i.kcal||0; t.protein+=i.protein||0; t.carb+=i.carb||0; t.fat+=i.fat||0; t.fiber+=i.fiber||0; });
+    return t;
+  }
+  function dayItems(date){ var a=[]; mealsOn(date).forEach(function(m){ a=a.concat(m.items||[]); }); return a; }
+  function getMeal(date, slot, create){
+    var ms=mealsOn(date).filter(function(m){ return m.slot===slot; });
+    if(ms.length) return ms[0];
+    if(!create) return null;
+    var m={id:uid(), date:date, time:nowTime(), slot:slot, items:[], note:''};
+    state.meals.push(m); return m;
+  }
+  function addItem(slot, f, grams, portionLabel){
+    var m=getMeal(curDate, slot, true);
+    m.items.push(makeItem(f, grams));
+    if(!m.time) m.time=nowTime();
+    state.settings.lastPortion[f.id]={label:portionLabel, grams:grams};
+    markDirty();
+  }
+  function quickFoods(){
+    var since=shiftDate(today(),-30), cnt={};
+    state.meals.forEach(function(m){ if(m.date>=since) (m.items||[]).forEach(function(i){ cnt[i.foodId]=(cnt[i.foodId]||0)+1; }); });
+    var ids=Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]; });
+    DEFAULT_QUICK.forEach(function(id){ if(ids.indexOf(id)<0) ids.push(id); });
+    return ids.map(foodById).filter(Boolean).slice(0,8);
+  }
+
+  // ---------- render ----------
+  function render(){
+    if(!state) return;
+    var nav=$('datenav'); nav.style.display = tab==='trend'?'none':'flex';
+    $('dateLbl').innerHTML=dateLabel(curDate);
+    $('title').textContent = tab==='today'?'🍽 今日':tab==='workout'?'🏋️ 運動':'📊 趨勢';
+    document.querySelectorAll('.tabbar button').forEach(function(b){ b.className = b.getAttribute('data-tab')===tab?'on':''; });
+    var v=$('view');
+    if(tab==='today') v.innerHTML=renderToday();
+    else if(tab==='workout') v.innerHTML=renderWorkout();
+    else v.innerHTML=renderTrend();
+  }
+  function renderToday(){
+    var t=totals(dayItems(curDate)), s=state.settings, h='';
+    var target=+s.dailyKcal||0, pct=target?Math.min(100, t.kcal/target*100):0, over=target&&t.kcal>target;
+    h+='<div class="card">';
+    h+='<div class="kcal-row"><div class="kcal-big">'+r0(t.kcal).toLocaleString()+'<small>kcal</small></div>';
+    h+='<div class="kcal-target'+(over?' over':'')+'">'+(target?(over?'超出 '+r0(t.kcal-target):'目標 '+target.toLocaleString()+'·餘 '+r0(target-t.kcal)):'未設目標（⚙︎）')+'</div></div>';
+    h+='<div class="bar'+(over?' over':'')+'"><i style="width:'+pct+'%"></i></div>';
+    var pT=+s.proteinTarget||0;
+    h+='<div class="macros">';
+    h+='<div class="macro"><b>'+r0(t.protein)+'<small>g</small></b><span>蛋白</span>'+(pT?'<span class="t">/ '+pT+'g</span>':'')+'</div>';
+    h+='<div class="macro"><b>'+r0(t.carb)+'<small>g</small></b><span>碳水</span></div>';
+    h+='<div class="macro"><b>'+r0(t.fat)+'<small>g</small></b><span>脂肪</span></div>';
+    h+='<div class="macro"><b>'+r0(t.fiber)+'<small>g</small></b><span>纖維</span></div>';
+    h+='</div></div>';
+    SLOTS.forEach(function(slot){
+      var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
+      h+='<div class="card"><div class="slot-head"><h3>'+slot+'餐'+(m&&m.time?' <span class="k">'+esc(m.time)+'</span>':'')+'<span class="k">'+(items.length?r0(st.kcal)+' kcal':'')+'</span></h3>';
+      h+='<button class="addbtn" data-act="add" data-slot="'+slot+'">＋</button></div>';
+      if(!items.length) h+='<div class="empty">未記</div>';
+      else{
+        h+='<ul class="items">';
+        items.forEach(function(it, idx){
+          var cid=m.id+':'+idx, conf=confirmId===cid;
+          h+='<li><div class="n"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+'</span></div>';
+          h+='<div class="kc">'+it.kcal+'</div>';
+          h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
+        });
+        h+='</ul>';
+        h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
+      }
+      h+='</div>';
+    });
+    return h;
+  }
+  function renderWorkout(){
+    var ws=state.workouts.filter(function(w){ return w.date===curDate; }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
+    var h='<div class="card"><div class="slot-head"><h3>運動<span class="k">'+(ws.length?ws.reduce(function(a,w){return a+(+w.minutes||0);},0)+' 分鐘':'')+'</span></h3><button class="addbtn" data-act="addwk">＋</button></div>';
+    if(!ws.length) h+='<div class="empty">未記</div>';
+    ws.forEach(function(w){
+      var conf=confirmId===w.id;
+      h+='<div class="wk"><div class="n"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘</span>';
+      if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ h+='<div>'+esc(s.exercise||'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+(s.reps||'—')+'</div>'; }); h+='</div>'; }
+      if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
+      h+='</div><button class="x'+(conf?' confirm':'')+'" data-act="delwk" data-id="'+w.id+'">'+(conf?'確定刪除':'✕')+'</button></div>';
+    });
+    h+='</div>';
+    return h;
+  }
+  function renderTrend(){
+    var days=[], t=today(); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
+    var s=state.settings, target=+s.dailyKcal||0, pT=+s.proteinTarget||0;
+    var kc=days.map(function(d){ return totals(dayItems(d)); });
+    var wk=days.map(function(d){ return state.workouts.filter(function(w){return w.date===d;}).reduce(function(a,w){return a+(+w.minutes||0);},0); });
+    function chart(vals, cls, targetV, unit){
+      var mx=Math.max.apply(null, vals.concat([targetV||0, 1]))*1.1, h='<div class="chart">';
+      if(targetV) h+='<div class="tline" style="bottom:'+(targetV/mx*100)+'%"><span>'+targetV+unit+'</span></div>';
+      vals.forEach(function(v,i){
+        var over=targetV&&v>targetV&&cls==='kc';
+        h+='<div class="c"><div class="v">'+(v?r0(v):'')+'</div><div class="b'+(over?' over':'')+(cls==='wk'?' wk':'')+'" style="height:'+(v/mx*100)+'%"></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
+      });
+      return h+'</div>';
+    }
+    var logged=kc.filter(function(x){return x.kcal>0;});
+    var avgK=logged.length?r0(logged.reduce(function(a,x){return a+x.kcal;},0)/logged.length):0;
+    var avgP=logged.length?r0(logged.reduce(function(a,x){return a+x.protein;},0)/logged.length):0;
+    var wkTot=wk.reduce(function(a,b){return a+b;},0), wkDays=wk.filter(function(x){return x>0;}).length;
+    var h='<div class="card"><h2>近 14 日 kcal</h2>'+chart(kc.map(function(x){return x.kcal;}),'kc',target,'')+
+      '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均 kcal</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
+    h+='<div class="card"><h2>近 14 日 蛋白質（g）</h2>'+chart(kc.map(function(x){return x.protein;}),'p',pT,'g')+
+      '<div class="stat"><div><b>'+avgP+'g</b><span>有記錄日均</span></div><div><b>'+(pT?pT+'g':'—')+'</b><span>目標</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg（⚙︎）</span></div></div></div>';
+    h+='<div class="card"><h2>近 14 日 運動分鐘</h2>'+chart(wk,'wk',0,'')+
+      '<div class="stat"><div><b>'+wkTot+'</b><span>總分鐘</span></div><div><b>'+wkDays+'</b><span>有運動日數</span></div><div><b>'+(wkDays?r0(wkTot/wkDays):0)+'</b><span>每次平均</span></div></div></div>';
+    return h;
+  }
+
+  // ---------- sheets ----------
+  function openSheet(html){ $('sheet').innerHTML=html; $('sheet').className='sheet show'; $('veil').className='veil show'; }
+  function closeSheet(){ $('sheet').className='sheet'; $('veil').className='veil'; $('sheet').innerHTML=''; }
+  $('veil').addEventListener('click', closeSheet);
+
+  var addSlot='早', q='';
+  function foodRows(){
+    var qq=q.trim().toLowerCase(), cats={}, order=[];
+    state.foods.forEach(function(f){
+      if(qq && f.name.toLowerCase().indexOf(qq)<0 && (f.id||'').indexOf(qq)<0) return;
+      var c=f.custom?'自訂':(f.cat||'其他'); if(!cats[c]){ cats[c]=[]; order.push(c); } cats[c].push(f);
+    });
+    var h='<ul class="flist">';
+    order.forEach(function(c){
+      h+='<li style="background:none;box-shadow:none"><div class="cat">'+esc(c)+'</div></li>';
+      cats[c].forEach(function(f){
+        h+='<li data-food="'+esc(f.id)+'"><button class="row" data-act="openfood"><b>'+esc(f.name)+'</b><span>'+f.per100g.kcal+' kcal/100g</span></button>';
+        h+='<div class="portions">';
+        f.portions.forEach(function(p){ h+='<button data-act="pick" data-grams="'+p.grams+'" data-label="'+esc(p.label)+'">'+esc(p.label)+'<small>'+p.grams+'g · '+r0(f.per100g.kcal*p.grams/100)+' kcal</small></button>'; });
+        h+='</div><div class="src">來源：'+esc(f.source||'')+'</div></li>';
+      });
+    });
+    if(order.length===0) h+='<li style="background:none;box-shadow:none"><div class="empty">搵唔到「'+esc(q)+'」— 可以用下面「＋ 自訂食物」加</div></li>';
+    return h+'</ul>';
+  }
+  function openAdd(slot){
+    addSlot=slot; q='';
+    var h='<div class="hd"><h2>加入 '+slot+'餐</h2><button class="close" data-act="close">✕</button></div>';
+    h+='<div class="sec">常食（一撳即加·用上次份量）</div><div class="quick">';
+    quickFoods().forEach(function(f){
+      var lp=state.settings.lastPortion[f.id]||{label:f.portions[1].label, grams:f.portions[1].grams};
+      h+='<button data-act="quick" data-food="'+esc(f.id)+'"><b>'+esc(f.name)+'</b><span>'+esc(lp.label)+' '+lp.grams+'g · '+r0(f.per100g.kcal*lp.grams/100)+' kcal</span></button>';
+    });
+    h+='</div>';
+    var y=getMeal(shiftDate(curDate,-1), slot, false), w=getMeal(shiftDate(curDate,-7), slot, false);
+    if((y&&y.items.length)||(w&&w.items.length)){
+      h+='<div class="sec">重複</div><div class="rep">';
+      if(y&&y.items.length) h+='<button data-act="copy" data-from="'+shiftDate(curDate,-1)+'">複製昨日'+slot+'餐（'+y.items.length+' 項·'+r0(totals(y.items).kcal)+' kcal）</button>';
+      if(w&&w.items.length) h+='<button data-act="copy" data-from="'+shiftDate(curDate,-7)+'">複製上星期'+slot+'餐（'+w.items.length+' 項·'+r0(totals(w.items).kcal)+' kcal）</button>';
+      h+='</div>';
+    }
+    h+='<div class="sec">搵食物</div><input class="search" id="q" placeholder="打「雞」即出雞胸／雞髀…" autocomplete="off">';
+    h+='<div id="flist">'+foodRows()+'</div>';
+    h+='<button class="btn ghost" data-act="customfood">＋ 自訂食物</button>';
+    openSheet(h);
+    $('q').addEventListener('input', function(e){ q=e.target.value; $('flist').innerHTML=foodRows(); });
+  }
+  function openCustomFood(){
+    var h='<div class="hd"><h2>自訂食物</h2><button class="close" data-act="backadd">‹ 返回</button></div><div class="frm">';
+    h+='<label>名稱</label><input id="cf_name" placeholder="例：媽媽蒸水蛋">';
+    h+='<label>每 100g 營養值（kcal／蛋白 g／碳水 g／脂肪 g／纖維 g）</label>';
+    h+='<div class="g5"><input id="cf_k" type="number" inputmode="decimal" placeholder="kcal"><input id="cf_p" type="number" inputmode="decimal" placeholder="蛋白"><input id="cf_c" type="number" inputmode="decimal" placeholder="碳水"><input id="cf_f" type="number" inputmode="decimal" placeholder="脂肪"><input id="cf_fb" type="number" inputmode="decimal" placeholder="纖維"></div>';
+    h+='<label>三個份量（名稱＋克數）</label>';
+    for(var i=0;i<3;i++){ h+='<div class="g2" style="margin-bottom:6px"><input id="cf_l'+i+'" placeholder="'+['半','一','大'][i]+'"><input id="cf_g'+i+'" type="number" inputmode="decimal" placeholder="克數"></div>'; }
+    h+='<label>來源（必填：包裝標籤／資料庫名＋編號）</label><input id="cf_src" placeholder="例：食品包裝標籤（XX牌）">';
+    h+='<button class="btn" data-act="savefood">儲存並加入食物庫</button><div class="hint">🔴 冇來源唔准入——查唔到寧願唔加。</div></div>';
+    openSheet(h);
+  }
+  function saveCustomFood(){
+    var name=($('cf_name').value||'').trim(), src=($('cf_src').value||'').trim();
+    var vals=['cf_k','cf_p','cf_c','cf_f','cf_fb'].map(function(id){ return parseFloat($(id).value); });
+    if(!name){ alert('要有名稱'); return; }
+    if(vals.some(function(v){ return isNaN(v); })){ alert('五個營養值要全部填（冇就填 0）'); return; }
+    if(!src){ alert('來源必填'); return; }
+    var ports=[]; for(var i=0;i<3;i++){ var l=($('cf_l'+i).value||'').trim(), g=parseFloat($('cf_g'+i).value); if(l&&!isNaN(g)&&g>0) ports.push({label:l,grams:g}); }
+    if(ports.length<1){ alert('至少一個份量'); return; }
+    state.foods.push({id:'c_'+uid(), name:name, cat:'自訂', per100g:{kcal:vals[0],protein:vals[1],carb:vals[2],fat:vals[3],fiber:vals[4]}, portions:ports, source:src, custom:true});
+    markDirty(); openAdd(addSlot);
+  }
+  function openWorkout(){
+    var types=state.settings.workoutTypes, h='<div class="hd"><h2>記運動</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
+    h+='<label>項目</label><div class="chips" id="wtypes">';
+    types.forEach(function(t,i){ h+='<button data-act="wtype" data-t="'+esc(t)+'" class="'+(i===0?'on':'')+'">'+esc(t)+'</button>'; });
+    h+='<button data-act="wtype-add">＋</button></div>';
+    h+='<div class="g2"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30"></div><div><label>時間</label><input id="w_time" type="time" value="'+nowTime()+'"></div></div>';
+    h+='<label>負重組數（可留空）</label><div id="sets"></div><button class="btn ghost" data-act="addset" style="margin-top:8px;padding:10px">＋ 加一組</button>';
+    h+='<label>備註</label><input id="w_note" placeholder="例：斜坡 8%·腰有少少緊">';
+    h+='<button class="btn" data-act="savewk">儲存</button></div>';
+    openSheet(h); addSetRow();
+  }
+  function addSetRow(prev){
+    var d=document.createElement('div'); d.className='setrow';
+    d.innerHTML='<input class="s_ex" placeholder="動作" value="'+esc(prev?prev.ex:'')+'"><input class="s_kg" type="number" inputmode="decimal" placeholder="kg" value="'+esc(prev?prev.kg:'')+'"><input class="s_rp" type="number" inputmode="numeric" placeholder="次" value="'+esc(prev?prev.rp:'')+'"><button class="x" data-act="rmset">✕</button>';
+    $('sets').appendChild(d);
+  }
+  function saveWorkout(){
+    var tb=document.querySelector('#wtypes button.on'); var type=tb?tb.getAttribute('data-t'):'其他';
+    var mins=parseInt($('w_min').value,10); if(isNaN(mins)||mins<=0){ alert('填時長（分鐘）'); return; }
+    var sets=[]; document.querySelectorAll('#sets .setrow').forEach(function(r){
+      var ex=r.querySelector('.s_ex').value.trim(), kg=r.querySelector('.s_kg').value, rp=r.querySelector('.s_rp').value;
+      if(ex||kg||rp) sets.push({exercise:ex, weightKg:kg===''?null:parseFloat(kg), reps:rp===''?null:parseInt(rp,10)});
+    });
+    state.workouts.push({id:uid(), date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, sets:sets, note:($('w_note').value||'').trim()});
+    markDirty(); closeSheet();
+  }
+  function openSettings(){
+    var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
+    h+='<div class="g3"><div><label>每日 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>蛋白質目標 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
+    h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
+    h+='<button class="btn" data-act="savesettings">儲存</button>';
+    h+='<div class="hint">食物庫：'+BUILTIN.length+' 樣內建（每樣有來源）＋ '+state.foods.filter(function(f){return f.custom;}).length+' 樣自訂。撳食物名可睇來源。</div>';
+    h+='<button class="btn ghost" data-act="logout">登出（清除本機暗號）</button></div>';
+    openSheet(h);
+  }
+  function saveSettings(){
+    var s=state.settings;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null;
+    var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
+    markDirty(); closeSheet();
+  }
+
+  // ---------- events ----------
+  document.addEventListener('click', function(e){
+    var b=e.target.closest('[data-act]'); if(!b) return;
+    var act=b.getAttribute('data-act');
+    if(act==='add') openAdd(b.getAttribute('data-slot'));
+    else if(act==='close') closeSheet();
+    else if(act==='backadd') openAdd(addSlot);
+    else if(act==='openfood'){ var li=b.closest('li'); var was=li.classList.contains('open'); document.querySelectorAll('.flist li.open').forEach(function(x){x.classList.remove('open');}); if(!was) li.classList.add('open'); }
+    else if(act==='pick'){ var f=foodById(b.closest('li').getAttribute('data-food')); if(f){ addItem(addSlot, f, parseFloat(b.getAttribute('data-grams')), b.getAttribute('data-label')); closeSheet(); } }
+    else if(act==='quick'){ var f2=foodById(b.getAttribute('data-food')); if(f2){ var lp=state.settings.lastPortion[f2.id]||{label:f2.portions[1].label, grams:f2.portions[1].grams}; addItem(addSlot, f2, lp.grams, lp.label); closeSheet(); } }
+    else if(act==='copy'){ var src=getMeal(b.getAttribute('data-from'), addSlot, false); if(src){ var m=getMeal(curDate, addSlot, true); src.items.forEach(function(it){ m.items.push(JSON.parse(JSON.stringify(it))); }); markDirty(); } closeSheet(); }
+    else if(act==='customfood') openCustomFood();
+    else if(act==='savefood') saveCustomFood();
+    else if(act==='del'){
+      var mid=b.getAttribute('data-meal'), idx=+b.getAttribute('data-idx'), cid=mid+':'+idx;
+      if(confirmId===cid){ var mm=state.meals.filter(function(x){return x.id===mid;})[0]; if(mm){ mm.items.splice(idx,1); if(!mm.items.length&&!mm.note) state.meals=state.meals.filter(function(x){return x.id!==mid;}); } confirmId=null; markDirty(); }
+      else { confirmId=cid; render(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; render(); },3000); }
+    }
+    else if(act==='addwk') openWorkout();
+    else if(act==='wtype'){ document.querySelectorAll('#wtypes button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); }
+    else if(act==='wtype-add'){ var nt=prompt('新項目名稱'); if(nt&&nt.trim()){ state.settings.workoutTypes.push(nt.trim()); markDirty(); openWorkout(); document.querySelectorAll('#wtypes button').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-t')===nt.trim()); }); } }
+    else if(act==='addset'){ var rows=document.querySelectorAll('#sets .setrow'); var last=rows[rows.length-1]; addSetRow(last?{ex:last.querySelector('.s_ex').value, kg:last.querySelector('.s_kg').value, rp:last.querySelector('.s_rp').value}:null); }
+    else if(act==='rmset'){ b.closest('.setrow').remove(); }
+    else if(act==='savewk') saveWorkout();
+    else if(act==='delwk'){
+      var wid=b.getAttribute('data-id');
+      if(confirmId===wid){ state.workouts=state.workouts.filter(function(w){return w.id!==wid;}); confirmId=null; markDirty(); }
+      else { confirmId=wid; render(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; render(); },3000); }
+    }
+    else if(act==='savesettings') saveSettings();
+    else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
+  });
+  document.addEventListener('change', function(e){
+    var el=e.target.closest('[data-act="note"]'); if(!el) return;
+    var m=state.meals.filter(function(x){return x.id===el.getAttribute('data-meal');})[0]; if(m){ m.note=el.value.trim(); markDirty(); }
+  });
+  $('prevD').addEventListener('click', function(){ curDate=shiftDate(curDate,-1); render(); });
+  $('nextD').addEventListener('click', function(){ curDate=shiftDate(curDate,1); render(); });
+  $('dateLbl').addEventListener('click', function(){ curDate=today(); render(); });
+  $('gearBtn').addEventListener('click', function(){ if(state) openSettings(); });
+  document.querySelectorAll('.tabbar button').forEach(function(b){ b.addEventListener('click', function(){ tab=b.getAttribute('data-tab'); render(); }); });
+  $('sync').addEventListener('click', function(){ if(retryTimer) clearTimeout(retryTimer); boot(); });
+
+  boot();
+  setInterval(refreshIfChanged, 5000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden){ if(curDate!==today() && tab!=='trend'){ /* 保持用戶揀嘅日子 */ } refreshIfChanged(); } });
+})();
+</script>
+</body>
+</html>
