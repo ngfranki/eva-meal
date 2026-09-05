@@ -82,6 +82,9 @@
   .items .kc{font-weight:700; font-size:15px; white-space:nowrap}
   .x{width:32px; height:32px; border-radius:9px; color:var(--muted); font-size:16px; background:var(--soft)}
   .x.confirm{background:var(--warn); color:#fff; width:auto; padding:0 10px; font-size:13px; font-weight:700}
+  .items .sub{margin:2px 0 4px 10px; padding:0; list-style:none; border-left:2px solid var(--line)}
+  .items .sub li{display:flex; justify-content:space-between; gap:8px; padding:2px 0 2px 8px; border:0; font-size:12px; color:var(--muted)}
+  .items .n.tap{cursor:pointer}
   .empty{color:var(--muted); font-size:13px; padding:6px 0}
   .note-in{width:100%; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--bg); font-size:14px; margin-top:8px}
 
@@ -232,7 +235,7 @@
 
   var state = null, lastUpdated = null, dirty = false, persistTimer = null, retryTimer = null;
   var tab = 'today', curDate = today(), offline = false;
-  var confirmId = null, confirmTimer = null;
+  var confirmId = null, confirmTimer = null, expandedId = null;
 
   // ---------- date helpers ----------
   function pad(n){ return (n<10?'0':'')+n; }
@@ -388,9 +391,13 @@
     var out=[]; (st.items||[]).forEach(function(x){ var f=foodById(x.foodId); if(f) out.push(makeItem(f, x.grams)); });
     return out;
   }
+  function bundleFromSet(st){
+    var parts=setItems(st), t=totals(parts), g=0; parts.forEach(function(x){ g+=x.grams; });
+    return { foodId:'set:'+st.id, setId:st.id, name:st.name, grams:r0(g), kcal:r0(t.kcal), protein:r1(t.protein), carb:r1(t.carb), fat:r1(t.fat), fiber:r1(t.fiber), parts:parts };
+  }
   function quickFoods(){
     var since=shiftDate(today(),-30), cnt={};
-    state.meals.forEach(function(m){ if(m.date>=since) (m.items||[]).forEach(function(i){ cnt[i.foodId]=(cnt[i.foodId]||0)+1; }); });
+    state.meals.forEach(function(m){ if(m.date>=since) (m.items||[]).forEach(function(i){ (i.parts||[i]).forEach(function(x){ cnt[x.foodId]=(cnt[x.foodId]||0)+1; }); }); });
     var ids=Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]; });
     DEFAULT_QUICK.forEach(function(id){ if(ids.indexOf(id)<0) ids.push(id); });
     return ids.map(foodById).filter(Boolean).slice(0,8);
@@ -431,6 +438,12 @@
         h+='<ul class="items">';
         items.forEach(function(it, idx){
           var cid=m.id+':'+idx, conf=confirmId===cid;
+          if(it.parts){
+            var open=expandedId===cid;
+            h+='<li><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?'':' · 撳睇明細')+'</span>';
+            if(open){ h+='<ul class="sub">'; it.parts.forEach(function(p){ h+='<li><span>'+esc(p.name)+' '+p.grams+'g</span><span>'+p.kcal+'</span></li>'; }); h+='</ul>'; }
+            h+='</div>';
+          } else
           h+='<li><div class="n"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+'</span></div>';
           h+='<div class="kc">'+it.kcal+'</div>';
           h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
@@ -616,9 +629,10 @@
     else if(act==='pick'){ var f=foodById(b.closest('li').getAttribute('data-food')); if(f){ addItem(addSlot, f, parseFloat(b.getAttribute('data-grams')), b.getAttribute('data-label')); closeSheet(); } }
     else if(act==='quick'){ var f2=foodById(b.getAttribute('data-food')); if(f2){ var lp=state.settings.lastPortion[f2.id]||{label:f2.portions[1].label, grams:f2.portions[1].grams}; addItem(addSlot, f2, lp.grams, lp.label); closeSheet(); } }
     else if(act==='copy'){ var src=getMeal(b.getAttribute('data-from'), addSlot, false); if(src){ var m=getMeal(curDate, addSlot, true); src.items.forEach(function(it){ m.items.push(JSON.parse(JSON.stringify(it))); }); markDirty(); } closeSheet(); }
-    else if(act==='mealset-add'){ var st=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st){ var mm2=getMeal(curDate, addSlot, true); setItems(st).forEach(function(it){ mm2.items.push(it); }); if(!mm2.time) mm2.time=nowTime(); markDirty(); } closeSheet(); }
+    else if(act==='mealset-add'){ var st=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st){ var mm2=getMeal(curDate, addSlot, true); mm2.items.push(bundleFromSet(st)); if(!mm2.time) mm2.time=nowTime(); markDirty(); } closeSheet(); }
     else if(act==='mealset-del'){ var sid='set:'+b.getAttribute('data-set'); if(confirmId===sid){ state.sets=state.sets.filter(function(x){return x.id!==b.getAttribute('data-set');}); confirmId=null; markDirty(); openAdd(addSlot); } else { confirmId=sid; openAdd(addSlot); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; },3000); } }
-    else if(act==='mealset-save'){ var mm3=state.meals.filter(function(x){return x.id===b.getAttribute('data-meal');})[0]; if(mm3&&mm3.items.length){ var nm=prompt('套餐名稱', '我的'+mm3.slot+'餐'); if(nm&&nm.trim()){ state.sets.push({id:'set_'+uid(), name:nm.trim(), slot:mm3.slot, items:mm3.items.map(function(it){ return {foodId:it.foodId, grams:it.grams}; })}); markDirty(); } } }
+    else if(act==='mealset-save'){ var mm3=state.meals.filter(function(x){return x.id===b.getAttribute('data-meal');})[0]; if(mm3&&mm3.items.length){ var nm=prompt('套餐名稱', '我的'+mm3.slot+'餐'); if(nm&&nm.trim()){ state.sets.push({id:'set_'+uid(), name:nm.trim(), slot:mm3.slot, items:[].concat.apply([], mm3.items.map(function(it){ return (it.parts||[it]).map(function(x){ return {foodId:x.foodId, grams:x.grams}; }); }))}); markDirty(); } } }
+    else if(act==='toggleparts'){ var c2=b.getAttribute('data-cid'); expandedId = expandedId===c2?null:c2; render(); }
     else if(act==='customfood') openCustomFood();
     else if(act==='savefood') saveCustomFood();
     else if(act==='del'){
