@@ -106,6 +106,13 @@
   .quick button{background:var(--card); box-shadow:var(--shadow); border-radius:14px; padding:12px 12px; text-align:left; min-height:60px}
   .quick button b{display:block; font-size:15px}
   .quick button span{display:block; font-size:12px; color:var(--muted); margin-top:2px}
+  .sets{display:flex; flex-direction:column; gap:8px}
+  .sets .sb{display:flex; align-items:center; gap:8px; background:var(--ink); color:var(--bg); border-radius:14px; padding:12px 14px}
+  .sets .sb .t{flex:1; text-align:left}
+  .sets .sb b{display:block; font-size:16px}
+  .sets .sb span{font-size:12px; opacity:.75}
+  .sets .sb .x{background:rgba(255,255,255,.15); color:var(--bg)}
+  .savebtn{font-size:12px; color:var(--muted); padding:6px 0 0; text-decoration:underline}
   .rep{display:flex; gap:8px}
   .rep button{flex:1; background:var(--gold-soft); border-radius:12px; padding:10px; font-size:14px; font-weight:600}
   .search{width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 12px; background:var(--card); font-size:16px}
@@ -247,7 +254,7 @@
 
   // ---------- state ----------
   function defaultState(){
-    return { meals:[], workouts:[], foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
+    return { meals:[], workouts:[], sets:[], foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
       settings:{ dailyKcal:null, proteinTarget:null, weightKg:null, workoutTypes:DEFAULT_TYPES.slice(), lastPortion:{}, updatedAt:null },
       meta:{ lastSync:null } };
   }
@@ -257,6 +264,7 @@
     if(!Array.isArray(s.meals)) s.meals=[];
     if(!Array.isArray(s.workouts)) s.workouts=[];
     if(!Array.isArray(s.foods)) s.foods=[];
+    if(!Array.isArray(s.sets)) s.sets=[];
     if(!s.settings) s.settings={};
     if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
     if(!s.settings.lastPortion) s.settings.lastPortion={};
@@ -376,6 +384,10 @@
     state.settings.lastPortion[f.id]={label:portionLabel, grams:grams};
     markDirty();
   }
+  function setItems(st){
+    var out=[]; (st.items||[]).forEach(function(x){ var f=foodById(x.foodId); if(f) out.push(makeItem(f, x.grams)); });
+    return out;
+  }
   function quickFoods(){
     var since=shiftDate(today(),-30), cnt={};
     state.meals.forEach(function(m){ if(m.date>=since) (m.items||[]).forEach(function(i){ cnt[i.foodId]=(cnt[i.foodId]||0)+1; }); });
@@ -425,6 +437,7 @@
         });
         h+='</ul>';
         h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
+        h+='<button class="savebtn" data-act="mealset-save" data-meal="'+m.id+'">儲呢餐做套餐（以後一撳加齊）</button>';
       }
       h+='</div>';
     });
@@ -499,6 +512,16 @@
   function openAdd(slot){
     addSlot=slot; q='';
     var h='<div class="hd"><h2>加入 '+slot+'餐</h2><button class="close" data-act="close">✕</button></div>';
+    var sets=state.sets.filter(function(x){ return !x.slot || x.slot===slot; });
+    if(sets.length){
+      h+='<div class="sec">套餐（一撳加齊）</div><div class="sets">';
+      sets.forEach(function(st){
+        var its=setItems(st), tt=totals(its), conf=confirmId==='set:'+st.id;
+        h+='<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+'</b><span>'+its.length+' 項 · '+r0(tt.kcal)+' kcal · 蛋白 '+r0(tt.protein)+'g</span></button>';
+        h+='<button class="x'+(conf?' confirm':'')+'" data-act="mealset-del" data-set="'+esc(st.id)+'">'+(conf?'確定刪除':'✕')+'</button></div>';
+      });
+      h+='</div>';
+    }
     h+='<div class="sec">常食（一撳即加·用上次份量）</div><div class="quick">';
     quickFoods().forEach(function(f){
       var lp=state.settings.lastPortion[f.id]||{label:f.portions[1].label, grams:f.portions[1].grams};
@@ -593,6 +616,9 @@
     else if(act==='pick'){ var f=foodById(b.closest('li').getAttribute('data-food')); if(f){ addItem(addSlot, f, parseFloat(b.getAttribute('data-grams')), b.getAttribute('data-label')); closeSheet(); } }
     else if(act==='quick'){ var f2=foodById(b.getAttribute('data-food')); if(f2){ var lp=state.settings.lastPortion[f2.id]||{label:f2.portions[1].label, grams:f2.portions[1].grams}; addItem(addSlot, f2, lp.grams, lp.label); closeSheet(); } }
     else if(act==='copy'){ var src=getMeal(b.getAttribute('data-from'), addSlot, false); if(src){ var m=getMeal(curDate, addSlot, true); src.items.forEach(function(it){ m.items.push(JSON.parse(JSON.stringify(it))); }); markDirty(); } closeSheet(); }
+    else if(act==='mealset-add'){ var st=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st){ var mm2=getMeal(curDate, addSlot, true); setItems(st).forEach(function(it){ mm2.items.push(it); }); if(!mm2.time) mm2.time=nowTime(); markDirty(); } closeSheet(); }
+    else if(act==='mealset-del'){ var sid='set:'+b.getAttribute('data-set'); if(confirmId===sid){ state.sets=state.sets.filter(function(x){return x.id!==b.getAttribute('data-set');}); confirmId=null; markDirty(); openAdd(addSlot); } else { confirmId=sid; openAdd(addSlot); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; },3000); } }
+    else if(act==='mealset-save'){ var mm3=state.meals.filter(function(x){return x.id===b.getAttribute('data-meal');})[0]; if(mm3&&mm3.items.length){ var nm=prompt('套餐名稱', '我的'+mm3.slot+'餐'); if(nm&&nm.trim()){ state.sets.push({id:'set_'+uid(), name:nm.trim(), slot:mm3.slot, items:mm3.items.map(function(it){ return {foodId:it.foodId, grams:it.grams}; })}); markDirty(); } } }
     else if(act==='customfood') openCustomFood();
     else if(act==='savefood') saveCustomFood();
     else if(act==='del'){
