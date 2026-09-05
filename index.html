@@ -534,7 +534,7 @@
   // ---------- render ----------
   function render(){
     if(!state) return;
-    var nav=$('datenav'); nav.style.display = tab==='trend'?'none':'flex';
+    var nav=$('datenav'); nav.style.display = tab==='trend'?'none':'';
     $('dateLbl').innerHTML=dateLabel(curDate);
     $('week').innerHTML=weekStrip();
     $('title').textContent = tab==='today'?'飲食記錄':tab==='workout'?'運動':'趨勢';
@@ -549,11 +549,11 @@
   function thumbOf(it){ if(it.parts) return '🍱'; var f=foodById(it.foodId); return f?(CAT_EMOJI[f.cat]||'🍽'):'🍽'; }
   function ringSvg(pct, cls){
     var r=54, c=2*Math.PI*r, v=Math.max(0,Math.min(1,pct))*c;
-    return '<svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="'+r+'"/><circle class="val" cx="60" cy="60" r="'+r+'" stroke-dasharray="'+v.toFixed(1)+' '+c.toFixed(1)+'"/></svg>';
+    return '<svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="'+r+'"/>'+(v>0?'<circle class="val" cx="60" cy="60" r="'+r+'" stroke-dasharray="'+v.toFixed(1)+' '+c.toFixed(1)+'"/>':'')+'</svg>';
   }
   function miniRing(pct){
     var r=19, c=2*Math.PI*r, v=Math.max(0,Math.min(1,pct))*c;
-    return '<svg viewBox="0 0 42 42"><circle class="trk" cx="21" cy="21" r="'+r+'"/><circle class="val" cx="21" cy="21" r="'+r+'" stroke-dasharray="'+v.toFixed(1)+' '+c.toFixed(1)+'"/></svg>';
+    return '<svg viewBox="0 0 42 42"><circle class="trk" cx="21" cy="21" r="'+r+'"/>'+(v>0?'<circle class="val" cx="21" cy="21" r="'+r+'" stroke-dasharray="'+v.toFixed(1)+' '+c.toFixed(1)+'"/>':'')+'</svg>';
   }
   function mrow(label, val, target, cls, emoji){
     var over=target&&val>target;
