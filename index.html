@@ -102,6 +102,12 @@
   .mrow.fb .mring{background:var(--fb-soft)} .mrow.fb .trk{stroke:var(--fb-soft)} .mrow.fb .val{stroke:var(--fb)}
   .mrow.over .t b{color:var(--warn)}
 
+  .net{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:14px}
+  .net div{background:var(--soft); border-radius:14px; padding:9px 6px; text-align:center}
+  .net b{display:block; font-size:17px; font-weight:800}
+  .net span{font-size:11px; color:var(--muted)}
+  .net div.n{background:var(--gold-soft)}
+  .net div.n.over{background:var(--warn); color:#fff} .net div.n.over span{color:#fff; opacity:.85}
   /* meals */
   .meal{padding:14px 16px}
   .mh{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px}
@@ -435,6 +441,7 @@
     items.forEach(function(i){ t.kcal+=i.kcal||0; t.protein+=i.protein||0; t.carb+=i.carb||0; t.fat+=i.fat||0; t.fiber+=i.fiber||0; });
     return t;
   }
+  function dayBurn(date){ return state.workouts.filter(function(w){return w.date===date;}).reduce(function(a,w){return a+(+w.kcal||0);},0); }
   function dayItems(date){ var a=[]; mealsOn(date).forEach(function(m){ a=a.concat(m.items||[]); }); return a; }
   function getMeal(date, slot, create){
     var ms=mealsOn(date).filter(function(m){ return m.slot===slot; });
@@ -561,14 +568,17 @@
   }
   function renderToday(){
     var t=totals(dayItems(curDate)), s=state.settings, h='';
-    var target=+s.dailyKcal||0, over=target&&t.kcal>target, pct=target?t.kcal/target:0;
+    var burn=dayBurn(curDate), net=t.kcal-burn;
+    var target=+s.dailyKcal||0, over=target&&net>target, pct=target?net/target:0;
     h+='<div class="card budget"><div class="bh"><h2>每日預算</h2><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
     h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'">'+ringSvg(target?pct:0)+'<div class="c">';
-    if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-t.kcal)).toLocaleString()+'</b><em>kcal</em>'; }
-    else { h+='<small>已食</small><b class="num">'+r0(t.kcal).toLocaleString()+'</b><em>kcal</em>'; }
-    h+='</div></div><div class="goal">'+(target?'已食 '+r0(t.kcal).toLocaleString()+' · 目標 '+target.toLocaleString():'未設目標 · 撳「✎ 目標」')+'</div></div>';
+    if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-net)).toLocaleString()+'</b><em>kcal</em>'; }
+    else { h+='<small>淨攝取</small><b class="num">'+r0(net).toLocaleString()+'</b><em>kcal</em>'; }
+    h+='</div></div><div class="goal">'+(target?'目標 '+target.toLocaleString()+' kcal（以淨攝取計）':'未設目標 · 撳「✎ 目標」')+'</div></div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
-    h+='</div></div>';
+    h+='</div>';
+    h+='<div class="net"><div><b class="num">'+r0(t.kcal).toLocaleString()+'</b><span>攝取 kcal</span></div><div><b class="num">'+(burn?'−'+r0(burn).toLocaleString():'0')+'</b><span>運動消耗（手動入）</span></div><div class="n'+(over?' over':'')+'"><b class="num">'+r0(net).toLocaleString()+'</b><span>淨攝取</span></div></div>';
+    h+='</div>';
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
     SLOTS.forEach(function(slot){
       var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
@@ -597,11 +607,11 @@
   }
   function renderWorkout(){
     var ws=state.workouts.filter(function(w){ return w.date===curDate; }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
-    var h='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">🏋️</div><div><b>運動</b><span>'+(ws.length?ws.reduce(function(a,w){return a+(+w.minutes||0);},0)+' 分鐘 · '+ws.length+' 項':'未記')+'</span></div></div><button class="addbtn" data-act="addwk">＋</button></div>';
+    var h='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">🏋️</div><div><b>運動</b><span>'+(ws.length?ws.reduce(function(a,w){return a+(+w.minutes||0);},0)+' 分鐘 · 消耗 '+dayBurn(curDate)+' kcal':'未記')+'</span></div></div><button class="addbtn" data-act="addwk">＋</button></div>';
     if(!ws.length) h+='<div class="empty">未記</div>';
     ws.forEach(function(w){
       var conf=confirmId===w.id;
-      h+='<div class="wk"><div class="n"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘</span>';
+      h+='<div class="wk"><div class="n"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal':'')+'</span>';
       if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ h+='<div>'+esc(s.exercise||'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+(s.reps||'—')+'</div>'; }); h+='</div>'; }
       if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
       h+='</div><button class="x'+(conf?' confirm':'')+'" data-act="delwk" data-id="'+w.id+'">'+(conf?'確定刪除':'✕')+'</button></div>';
@@ -614,6 +624,7 @@
     var s=state.settings, target=+s.dailyKcal||0, pT=+s.proteinTarget||0;
     var kc=days.map(function(d){ return totals(dayItems(d)); });
     var wk=days.map(function(d){ return state.workouts.filter(function(w){return w.date===d;}).reduce(function(a,w){return a+(+w.minutes||0);},0); });
+    var burnTot=days.reduce(function(a,d){return a+dayBurn(d);},0);
     function chart(vals, cls, targetV, unit){
       var mx=Math.max.apply(null, vals.concat([targetV||0, 1]))*1.1, h='<div class="chart">';
       if(targetV) h+='<div class="tline" style="bottom:'+(targetV/mx*100)+'%"><span>'+targetV+unit+'</span></div>';
@@ -632,7 +643,7 @@
     h+='<div class="card"><h2>近 14 日 蛋白質（g）</h2>'+chart(kc.map(function(x){return x.protein;}),'p',pT,'g')+
       '<div class="stat"><div><b>'+avgP+'g</b><span>有記錄日均</span></div><div><b>'+(pT?pT+'g':'—')+'</b><span>目標</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg（⚙︎）</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 運動分鐘</h2>'+chart(wk,'wk',0,'')+
-      '<div class="stat"><div><b>'+wkTot+'</b><span>總分鐘</span></div><div><b>'+wkDays+'</b><span>有運動日數</span></div><div><b>'+(wkDays?r0(wkTot/wkDays):0)+'</b><span>每次平均</span></div></div></div>';
+      '<div class="stat"><div><b>'+wkTot+'</b><span>總分鐘</span></div><div><b>'+wkDays+'</b><span>有運動日數</span></div><div><b>'+burnTot.toLocaleString()+'</b><span>總消耗 kcal（手動入）</span></div></div></div>';
     return h;
   }
 
@@ -722,7 +733,8 @@
     h+='<label>項目</label><div class="chips" id="wtypes">';
     types.forEach(function(t,i){ h+='<button data-act="wtype" data-t="'+esc(t)+'" class="'+(i===0?'on':'')+'">'+esc(t)+'</button>'; });
     h+='<button data-act="wtype-add">＋</button></div>';
-    h+='<div class="g2"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30"></div><div><label>時間</label><input id="w_time" type="time" value="'+nowTime()+'"></div></div>';
+    h+='<div class="g3"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30"></div><div><label>消耗 kcal</label><input id="w_kcal" type="number" inputmode="numeric" placeholder="手錶顯示"></div><div><label>時間</label><input id="w_time" type="time" value="'+nowTime()+'"></div></div>';
+    h+='<div class="hint">消耗卡數請照 Apple Watch／跑步機顯示嘅數入，app 唔會自己估。</div>';
     h+='<label>負重組數（可留空）</label><div id="sets"></div><button class="btn ghost" data-act="addset" style="margin-top:8px;padding:10px">＋ 加一組</button>';
     h+='<label>備註</label><input id="w_note" placeholder="例：斜坡 8%·腰有少少緊">';
     h+='<button class="btn" data-act="savewk">儲存</button></div>';
@@ -740,7 +752,8 @@
       var ex=r.querySelector('.s_ex').value.trim(), kg=r.querySelector('.s_kg').value, rp=r.querySelector('.s_rp').value;
       if(ex||kg||rp) sets.push({exercise:ex, weightKg:kg===''?null:parseFloat(kg), reps:rp===''?null:parseInt(rp,10)});
     });
-    state.workouts.push({id:uid(), date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, sets:sets, note:($('w_note').value||'').trim()});
+    var wk=parseInt($('w_kcal').value,10); if(isNaN(wk)||wk<0) wk=null;
+    state.workouts.push({id:uid(), date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, sets:sets, note:($('w_note').value||'').trim()});
     markDirty(); closeSheet();
   }
   function openSettings(){
