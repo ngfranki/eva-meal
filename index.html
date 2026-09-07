@@ -106,7 +106,7 @@
   .mrow.over .t b{color:var(--warn)}
 
   .net{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px}
-  .net div.d{background:var(--c-soft)} .net div.d.over{background:var(--warn); color:#fff} .net div.d.over span{color:#fff; opacity:.85}
+  .net div.d{background:var(--gold-soft)} .net div.d.over{background:var(--warn); color:#fff} .net div.d.over span{color:#fff; opacity:.85}
   .ledger{margin-top:12px; background:var(--soft); border-radius:16px; padding:10px 14px}
   .ledger .r{display:flex; align-items:baseline; gap:8px; padding:5px 0; border-top:1px dashed var(--line)}
   .ledger .r:first-child{border-top:0}
@@ -116,7 +116,7 @@
   .ledger .nm{font-weight:800; font-size:17px; min-width:70px; text-align:right}
   .ledger .r.tot{border-top:2px solid var(--ink); margin-top:4px; padding-top:8px}
   .ledger .r.tot .lb{font-weight:800; font-size:15px}
-  .ledger .r.tot .nm{font-size:22px; color:var(--c)}
+  .ledger .r.tot .nm{font-size:22px; color:var(--ink)}
   .ledger .r.tot.over .nm{color:var(--warn)}
   .ledger .r.sub .nm,.ledger .r.sub .lb{color:var(--muted); font-size:13px}
   .steps{display:flex; align-items:center; gap:8px; margin-top:14px; background:var(--soft); border-radius:14px; padding:8px 10px}
@@ -267,11 +267,11 @@
   .chart .b{width:100%; background:var(--gold); border-radius:6px; min-height:3px}
   .chart .b.over{background:var(--warn)}
   .chart .b.p{background:var(--p)}
-  .chart .b.wk{background:var(--c)}
+  .chart .b.wk{background:var(--gold)}
   .chart.neg{height:150px}
   .chart .bar2{position:relative; width:100%; height:100%}
   .chart .bar2 .b{position:absolute; left:0; right:0; border-radius:4px}
-  .chart .bar2 .b.d{background:var(--c)}
+  .chart .bar2 .b.d{background:var(--gold)}
   .chart .zero{position:absolute; left:0; right:0; top:calc(50% + 6px); border-top:1px solid var(--line)}
   .chart .v{font-size:9px; color:var(--muted); margin-bottom:2px}
   .chart .l{font-size:9px; color:var(--muted); margin-top:4px}
@@ -286,17 +286,17 @@
   .ostrip{display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px}
   .ostrip span{background:var(--card); box-shadow:var(--shadow); border-radius:999px; padding:7px 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px}
   .ostrip i{width:8px; height:8px; border-radius:50%; display:inline-block}
-  .ok{background:var(--c)} .mid{background:var(--f)} .bad{background:var(--warn)}
+  .ok{background:var(--gold)} .mid{background:var(--f)} .bad{background:var(--warn)}
   .demo{background:var(--gold-soft); border-radius:14px; padding:9px 12px; font-size:12px; color:var(--muted); margin-bottom:12px; text-align:center}
   .ocard{background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:16px 18px; margin-bottom:12px}
   .ocard .lb{font-size:13px; color:var(--muted); font-weight:700; letter-spacing:.02em; display:flex; justify-content:space-between; align-items:center}
   .ocard .lb .tag{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:var(--soft); color:var(--muted)}
-  .ocard .lb .tag.ok{background:var(--c-soft); color:#3F6B3A} .ocard .lb .tag.mid{background:var(--f-soft); color:#7A5C10} .ocard .lb .tag.bad{background:#F6E0DA; color:var(--warn)}
+  .ocard .lb .tag.ok{background:var(--gold-soft); color:var(--ink)} .ocard .lb .tag.mid{background:var(--f-soft); color:#7A5C10} .ocard .lb .tag.bad{background:#F6E0DA; color:var(--warn)}
   .ocard .big{display:flex; align-items:baseline; gap:8px; margin:6px 0 2px}
   .ocard .big b{font-size:44px; font-weight:800; letter-spacing:-.03em; line-height:1}
   .ocard .big small{font-size:14px; color:var(--muted); font-weight:500}
   .ocard .big .dl{margin-left:auto; font-size:14px; font-weight:700; color:var(--muted)}
-  .ocard .big .dl.up{color:var(--warn)} .ocard .big .dl.dn{color:var(--c)}
+  .ocard .big .dl.up{color:var(--warn)} .ocard .big .dl.dn{color:var(--muted)}
   .ocard .spark{height:34px; margin:8px 0 10px}
   .ocard .spark svg{width:100%; height:34px; overflow:visible}
   .ocard .spark polyline{fill:none; stroke:var(--gold); stroke-width:2; stroke-linejoin:round}
@@ -371,7 +371,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1634';
+  var APP_VER = '20260907-1636';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
