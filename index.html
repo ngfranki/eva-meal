@@ -191,6 +191,26 @@
   .src{font-size:11px; color:var(--muted); padding:0 12px 10px; display:none; word-break:break-all}
   .flist li.open .src{display:block}
 
+  .ring{cursor:pointer}
+  .setgoal{margin-top:8px; background:var(--ink); color:var(--bg); border-radius:999px; padding:8px 14px; font-size:13px; font-weight:700}
+  .grow{display:flex; gap:6px; align-items:center; padding:0 10px 10px}
+  .grow input{width:88px; border:0; border-radius:10px; padding:9px 10px; background:var(--soft); font-size:16px; font-weight:700; text-align:right}
+  .grow .u{font-size:13px; color:var(--muted)}
+  .grow .pk{flex:1; font-size:13px; color:var(--muted); text-align:right}
+  .grow .pk b{font-size:16px; color:var(--ink)}
+  .grow .go{background:var(--ink); color:var(--bg); border-radius:12px; padding:9px 14px; font-weight:800; font-size:15px}
+  .grow .go[disabled]{opacity:.35}
+  .portions button.on{outline:2px solid var(--ink)}
+  .photo{display:flex; gap:8px}
+  .photo button{flex:1; background:var(--card); box-shadow:var(--shadow); border-radius:16px; padding:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px}
+  .photo button.dark{background:var(--ink); color:var(--bg)}
+  .ai{font-size:11px; color:var(--p); font-weight:700}
+  .exchips{display:flex; flex-wrap:wrap; gap:6px}
+  .exchips button{background:var(--card); box-shadow:var(--shadow); border-radius:12px; padding:8px 10px; font-size:13px; text-align:left; line-height:1.2}
+  .exchips button small{display:block; font-size:10px; color:var(--muted); font-weight:500}
+  .exchips button.on{background:var(--ink); color:var(--bg)} .exchips button.on small{color:var(--bg); opacity:.7}
+  .est{background:var(--gold-soft); border-radius:12px; padding:9px 12px; font-size:13px; margin-top:8px; display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .est button{background:var(--ink); color:var(--bg); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700}
   /* forms */
   .frm label{display:block; font-size:12px; color:var(--muted); margin:12px 0 4px}
   .frm input,.frm select,.frm textarea{width:100%; border:0; border-radius:14px; padding:11px 12px; background:var(--card); box-shadow:var(--shadow); font-size:16px}
@@ -288,7 +308,8 @@
   var TABLE = 'meal_log';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
-  var DEFAULT_TYPES = ['跑步機','負重','伸展','其他'];
+  var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
+  var EXERCISES = [['高位下拉','Lat Pulldown（Panatta Super Lat Pulldown Circular）'],['髖外展','Hip Abduction（Life Fitness）'],['髖內收','Hip Adduction（Life Fitness）'],['坐姿划船','Seated Row'],['胸推','Chest Press'],['肩推','Shoulder Press'],['腿推','Leg Press'],['腿伸','Leg Extension'],['腿彎舉','Leg Curl'],['深蹲','Squat'],['硬拉','Deadlift'],['二頭彎舉','Biceps Curl'],['三頭下壓','Triceps Pushdown'],['腹肌機','Abdominal Crunch'],['背伸展','Back Extension']];
   var DEFAULT_QUICK = ['rice_white','egg','chicken_breast','choy_sum','coffee_black','banana','greek_yogurt_nonfat','oats'];
 
   var $ = function(id){ return document.getElementById(id); };
@@ -339,6 +360,8 @@
     if(!Array.isArray(s.sets)) s.sets=[];
     if(!s.settings) s.settings={};
     if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
+    if(s.settings.workoutTypes.indexOf('Sixpad 腹帶')<0) s.settings.workoutTypes.splice(2,0,'Sixpad 腹帶');
+    if(!Array.isArray(s.settings.exercises)) s.settings.exercises=[];
     if(!s.settings.lastPortion) s.settings.lastPortion={};
     if(!s.meta) s.meta={};
     // 內建食物以源碼為準（來源／數字修正會自動推過去），自訂食物保留
@@ -504,6 +527,56 @@
     if(grams!=null && !vague) return {raw:raw, food:f, grams:Math.round(grams*10)/10, how:how, status:'ok'};
     return {raw:raw, food:f, grams:null, status:'pick', reason: vague?'「少少」呢類字唔估，揀份量':(qty!=null?'庫冇「'+(unit||'')+'」嘅重量，揀份量或打克數':'冇寫數量，揀份量')};
   }
+  // ---------- 影相認食物（經 Supabase Edge Function 代理，key 唔喺呢頁） ----------
+  var VISION_URL = SB+'/functions/v1/meal-vision';
+  var photoB64=null, photoNames=[];
+  function resizeImage(file, cb){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){ var mx=1024, w=img.width, h=img.height, k=Math.min(1, mx/Math.max(w,h)); var c=document.createElement('canvas'); c.width=Math.round(w*k); c.height=Math.round(h*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); cb(c.toDataURL('image/jpeg',0.82)); };
+    img.onerror=function(){ cb(null); }; img.src=url;
+  }
+  function visionCall(body, cb){
+    fetch(VISION_URL, {method:'POST', headers:{apikey:SBK, Authorization:'Bearer '+SBK, 'x-client-info':KEY, 'Content-Type':'application/json'}, body:JSON.stringify(body)})
+      .then(function(r){ if(r.status===404) throw new Error('未開通'); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(j){ cb(null,j); }).catch(function(e){ cb(e); });
+  }
+  function photoStage1(){
+    $('photoRes').innerHTML='<div class="nlrow"><div class="h"><b>認食物中…</b><span>AI 睇相</span></div></div>';
+    visionCall({stage:'identify', image:photoB64}, function(err, j){
+      if(err){ $('photoRes').innerHTML='<div class="nlrow bad"><div class="h"><b>'+(err.message==='未開通'?'影相功能未開通':'認唔到')+'</b><span>'+(err.message==='未開通'?'要 Supabase 管理 token 部署 AI 代理（叫 Eva）':esc(err.message))+'</span></div></div>'; return; }
+      photoNames=(j.items||[]).map(function(x){ return String(x.name||x); }).filter(Boolean);
+      var h='<div class="nlrow"><div class="h"><b>相入面係啲咩？</b><span>改名／刪／加，確認先估份量</span></div>';
+      h+='<div id="pnames">'; photoNames.forEach(function(n,i){ h+='<div class="g" style="margin-top:6px"><input style="flex:1;width:auto" value="'+esc(n)+'" data-pn="'+i+'"><button class="x" data-act="photo-rm" data-i="'+i+'">✕</button></div>'; }); h+='</div>';
+      h+='<div class="g"><button data-act="photo-addname">＋ 加一樣</button></div>';
+      h+='<button class="btn" data-act="photo-confirm" style="margin-top:10px;padding:12px">確認，估份量</button></div>';
+      $('photoRes').innerHTML=h;
+    });
+  }
+  function photoStage2(){
+    var names=[].map.call(document.querySelectorAll('#pnames input'), function(i){ return i.value.trim(); }).filter(Boolean);
+    if(!names.length) return;
+    $('photoRes').innerHTML='<div class="nlrow"><div class="h"><b>估份量中…</b><span>'+esc(names.join('、'))+'</span></div></div>';
+    var lib=state.foods.map(function(f){ return {id:f.id, name:f.name, aliases:f.aliases||[]}; });
+    visionCall({stage:'estimate', image:photoB64, names:names, foods:lib}, function(err, j){
+      if(err){ $('photoRes').innerHTML='<div class="nlrow bad"><div class="h"><b>估唔到</b><span>'+esc(err.message)+'</span></div></div>'; return; }
+      nlRows=(j.items||[]).map(function(x){
+        var f=x.foodId?foodById(x.foodId):null; if(!f) f=findFood(String(x.name||''));
+        if(!f) return {raw:String(x.name||''), food:null, grams:null, status:'nofood'};
+        var g=parseFloat(x.grams);
+        if(g>0) return {raw:String(x.name||''), food:f, grams:Math.round(g), how:'AI 估份量', status:'ok'};
+        return {raw:String(x.name||''), food:f, grams:null, status:'pick', reason:'AI 估唔到份量，揀一個'};
+      });
+      renderNl(); $('photoRes').innerHTML=''; $('nlres').scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
+  function previewGrams(fid){
+    var f=foodById(fid); var li=document.querySelector('.flist li[data-food="'+fid+'"]'); if(!f||!li) return;
+    var g=parseFloat(li.querySelector('[data-gin]').value), pk=li.querySelector('[data-pk]'), go=li.querySelector('.go');
+    if(g>0){ var it=makeItem(f,g); pk.innerHTML='<b>'+it.kcal+'</b> kcal · 蛋白 '+it.protein+'g'; go.disabled=false; } else { pk.textContent='揀份量或打克數'; go.disabled=true; }
+  }
+  document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='w_min') updateEst(); if(el&&el.id==='w_kcal') el.removeAttribute('data-est');
+    if(el&&el.hasAttribute&&el.hasAttribute('data-nlg')){ var rr=nlRows[+el.getAttribute('data-nlg')]; var gv=parseFloat(el.value); if(rr&&gv>0){ rr.grams=gv; var row=el.closest('.nlrow'); var it2=makeItem(rr.food,gv); row.querySelector('.kc').textContent=it2.kcal; var tot2=0,ok2=0; nlRows.forEach(function(x){ if(x.status==='ok'){ tot2+=makeItem(x.food,x.grams).kcal; ok2++; } }); var ab=document.querySelector('[data-act="nl-add"]'); if(ab) ab.textContent='加入 '+ok2+' 項（'+tot2+' kcal）'; } return; }
+    if(el&&el.hasAttribute&&el.hasAttribute('data-gin')){ el.removeAttribute('data-label'); var li=el.closest('li'); li.querySelectorAll('.portions button').forEach(function(x){x.classList.remove('on');}); previewGrams(el.getAttribute('data-gin')); } });
   function nlParse(){
     var t=($('nl').value||'').replace(/[及和同加跟與]/g,'，').replace(/[\n;；,、]/g,'，');
     nlRows=t.split('，').map(function(x){return x.trim();}).filter(Boolean).map(parseSeg).filter(Boolean);
@@ -515,7 +588,7 @@
       if(r.status==='nofood'){ h+='<div class="nlrow bad"><div class="h"><b>'+esc(r.raw)+'</b><span>庫入面冇呢樣——用下面「＋自訂食物」加，或者叫 Eva 查來源</span></div></div>'; return; }
       var f=r.food;
       if(r.status==='ok'){ var it=makeItem(f, r.grams); tot+=it.kcal; ok++;
-        h+='<div class="nlrow"><div class="h"><div><b>'+esc(f.name)+'</b><span> '+r.grams+'g'+(r.how?'（'+esc(r.how)+'）':'')+' · 蛋白 '+it.protein+'</span></div><span class="kc">'+it.kcal+'</span></div></div>'; }
+        h+='<div class="nlrow"><div class="h"><div><b>'+esc(f.name)+'</b><span> '+(r.how?esc(r.how)+' · ':'')+'蛋白 '+it.protein+'</span></div><span class="kc">'+it.kcal+'</span></div><div class="g"><input type="number" inputmode="decimal" value="'+r.grams+'" data-nlg="'+i+'"><span class="u">g（可改）</span></div></div>'; }
       else {
         h+='<div class="nlrow bad"><div class="h"><div><b>'+esc(f.name)+'</b><span> '+esc(r.raw)+' — '+esc(r.reason)+'</span></div></div><div class="portions">';
         f.portions.forEach(function(p){ h+='<button data-act="nl-pick" data-i="'+i+'" data-grams="'+p.grams+'">'+esc(p.label)+'<small>'+p.grams+'g · '+r0(f.per100g.kcal*p.grams/100)+' kcal</small></button>'; });
@@ -571,10 +644,10 @@
     var burn=dayBurn(curDate), net=t.kcal-burn;
     var target=+s.dailyKcal||0, over=target&&net>target, pct=target?net/target:0;
     h+='<div class="card budget"><div class="bh"><h2>每日預算</h2><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
-    h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'">'+ringSvg(target?pct:0)+'<div class="c">';
+    h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'" data-act="settings">'+ringSvg(target?pct:0)+'<div class="c">';
     if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-net)).toLocaleString()+'</b><em>kcal</em>'; }
     else { h+='<small>淨攝取</small><b class="num">'+r0(net).toLocaleString()+'</b><em>kcal</em>'; }
-    h+='</div></div><div class="goal">'+(target?'目標 '+target.toLocaleString()+' kcal（以淨攝取計）':'未設目標 · 撳「✎ 目標」')+'</div></div>';
+    h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' kcal（以淨攝取計）</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div>';
     h+='<div class="net"><div><b class="num">'+r0(t.kcal).toLocaleString()+'</b><span>攝取 kcal</span></div><div><b class="num">'+(burn?'−'+r0(burn).toLocaleString():'0')+'</b><span>運動消耗</span></div><div class="n'+(over?' over':'')+'"><b class="num">'+r0(net).toLocaleString()+'</b><span>淨攝取</span></div></div>';
@@ -611,8 +684,8 @@
     if(!ws.length) h+='<div class="empty">未記</div>';
     ws.forEach(function(w){
       var conf=confirmId===w.id;
-      h+='<div class="wk"><div class="n"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal':'')+'</span>';
-      if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ h+='<div>'+esc(s.exercise||'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+(s.reps||'—')+'</div>'; }); h+='</div>'; }
+      h+='<div class="wk"><div class="n"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+'</span>';
+      if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ h+='<div>'+esc(s.exercise||'')+(s.exerciseEn?' <span class="m">'+esc(s.exerciseEn.replace(/（.*?）/,''))+'</span>':'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+(s.reps||'—')+(s.sets?' × '+s.sets+' 組':'')+'</div>'; }); h+='</div>'; }
       if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
       h+='</div><button class="x'+(conf?' confirm':'')+'" data-act="delwk" data-id="'+w.id+'">'+(conf?'確定刪除':'✕')+'</button></div>';
     });
@@ -666,7 +739,8 @@
         h+='<li data-food="'+esc(f.id)+'"><button class="row" data-act="openfood"><div class="thumb">'+(CAT_EMOJI[f.cat]||'🍽')+'</div><div class="nm"><b>'+esc(f.name)+'</b><span>'+f.per100g.kcal+' kcal/100g · 蛋白 '+f.per100g.protein+'g</span></div></button>';
         h+='<div class="portions">';
         f.portions.forEach(function(p){ h+='<button data-act="pick" data-grams="'+p.grams+'" data-label="'+esc(p.label)+'">'+esc(p.label)+'<small>'+p.grams+'g · '+r0(f.per100g.kcal*p.grams/100)+' kcal</small></button>'; });
-        h+='</div><div class="src">來源：'+esc(f.source||'')+'</div></li>';
+        h+='</div><div class="grow"><input type="number" inputmode="decimal" data-gin="'+esc(f.id)+'" placeholder="克數"><span class="u">g</span><span class="pk" data-pk="'+esc(f.id)+'">揀份量或打克數</span><button class="go" data-act="pickg" data-food="'+esc(f.id)+'" disabled>＋</button></div>';
+        h+='<div class="src">來源：'+esc(f.source||'')+'</div></li>';
       });
     });
     if(order.length===0) h+='<li style="background:none;box-shadow:none"><div class="empty">搵唔到「'+esc(q)+'」— 可以用下面「＋ 自訂食物」加</div></li>';
@@ -685,6 +759,7 @@
       });
       h+='</div>';
     }
+    h+='<div class="sec">影相認食物 <span class="ai">AI 估份量 · 數字仍出自食物庫 · 可改</span></div><div class="photo"><button class="dark" data-act="photo"><span>📷</span>影相／揀相</button></div><input type="file" id="photoIn" accept="image/*" capture="environment" hidden><div id="photoRes"></div>';
     h+='<div class="sec">常食（一撳即加·用上次份量）</div><div class="quick">';
     quickFoods().forEach(function(f){
       var lp=state.settings.lastPortion[f.id]||{label:f.portions[1].label, grams:f.portions[1].grams};
@@ -701,10 +776,10 @@
     h+='<div class="sec">打字記錄（例：蛋3隻，蝦7隻，帶子1粒，少少油）</div><div class="nl"><textarea id="nl" placeholder="用逗號分開每樣；數量寫隻／粒／碗／湯匙／g 都得"></textarea>';
     h+='<button class="btn ghost" data-act="nl-parse" style="margin-top:8px;padding:11px">計卡</button><div id="nlres"></div></div>';
     h+='<div class="sec">搵食物</div><input class="search" id="q" placeholder="打「雞」即出雞胸／雞髀…" autocomplete="off">';
-    h+='<div id="flist">'+foodRows()+'</div>';
+    h+='<button class="btn ghost" id="showlist" data-act="showlist" style="margin-top:8px;padding:12px">揀食物（全部 '+state.foods.length+' 樣）›</button><div id="flist" hidden></div>';
     h+='<button class="btn ghost" data-act="customfood">＋ 自訂食物</button>';
     openSheet(h);
-    $('q').addEventListener('input', function(e){ q=e.target.value; $('flist').innerHTML=foodRows(); });
+    $('q').addEventListener('input', function(e){ q=e.target.value; var fl=$('flist'); fl.innerHTML=foodRows(); fl.hidden=false; var sb=$('showlist'); if(sb) sb.hidden=true; });
   }
   function openCustomFood(){
     var h='<div class="hd"><h2>自訂食物</h2><button class="close" data-act="backadd">‹ 返回</button></div><div class="frm">';
@@ -728,32 +803,55 @@
     state.foods.push({id:'c_'+uid(), name:name, cat:'自訂', per100g:{kcal:vals[0],protein:vals[1],carb:vals[2],fat:vals[3],fiber:vals[4]}, portions:ports, source:src, custom:true});
     markDirty(); openAdd(addSlot);
   }
+  var wkType='跑步機', wkEx=null;
   function openWorkout(){
-    var types=state.settings.workoutTypes, h='<div class="hd"><h2>記運動</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
+    var types=state.settings.workoutTypes; wkType=types[0]; wkEx=null;
+    var h='<div class="hd"><h2>記運動</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
     h+='<label>項目</label><div class="chips" id="wtypes">';
     types.forEach(function(t,i){ h+='<button data-act="wtype" data-t="'+esc(t)+'" class="'+(i===0?'on':'')+'">'+esc(t)+'</button>'; });
     h+='<button data-act="wtype-add">＋</button></div>';
-    h+='<div class="g3"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30"></div><div><label>消耗 kcal</label><input id="w_kcal" type="number" inputmode="numeric" placeholder="手錶顯示"></div><div><label>時間</label><input id="w_time" type="time" value="'+nowTime()+'"></div></div>';
-    h+='<div class="hint">消耗卡數請照 Apple Watch／跑步機顯示嘅數入，app 唔會自己估。</div>';
-    h+='<label>負重組數（可留空）</label><div id="sets"></div><button class="btn ghost" data-act="addset" style="margin-top:8px;padding:10px">＋ 加一組</button>';
+    h+='<div id="wkbody"></div>';
     h+='<label>備註</label><input id="w_note" placeholder="例：斜坡 8%·腰有少少緊">';
     h+='<button class="btn" data-act="savewk">儲存</button></div>';
-    openSheet(h); addSetRow();
+    openSheet(h); renderWkBody();
   }
-  function addSetRow(prev){
-    var d=document.createElement('div'); d.className='setrow';
-    d.innerHTML='<input class="s_ex" placeholder="動作" value="'+esc(prev?prev.ex:'')+'"><input class="s_kg" type="number" inputmode="decimal" placeholder="kg" value="'+esc(prev?prev.kg:'')+'"><input class="s_rp" type="number" inputmode="numeric" placeholder="次" value="'+esc(prev?prev.rp:'')+'"><button class="x" data-act="rmset">✕</button>';
-    $('sets').appendChild(d);
+  function allExercises(){ return EXERCISES.concat((state.settings.exercises||[]).map(function(x){ return [x, '']; })); }
+  function renderWkBody(){
+    var el=$('wkbody'); if(!el) return;
+    var keepMin=$('w_min')?$('w_min').value:'', keepK=$('w_kcal')?$('w_kcal').value:'', keepT=$('w_time')?$('w_time').value:nowTime();
+    var h='';
+    if(wkType==='負重'){
+      h+='<label>動作（撳一個）</label><div class="exchips" id="exchips">';
+      allExercises().forEach(function(x){ h+='<button data-act="wex" data-zh="'+esc(x[0])+'" data-en="'+esc(x[1])+'" class="'+(wkEx&&wkEx[0]===x[0]?'on':'')+'">'+esc(x[0])+(x[1]?'<small>'+esc(x[1])+'</small>':'')+'</button>'; });
+      h+='<button data-act="wex-add">＋ 其他</button></div>';
+      h+='<div class="g3"><div><label>重量 kg</label><input id="w_kg" type="number" inputmode="decimal" placeholder="40"></div><div><label>組數</label><input id="w_sets" type="number" inputmode="numeric" placeholder="3"></div><div><label>每組次數</label><input id="w_reps" type="number" inputmode="numeric" placeholder="12"></div></div>';
+    }
+    var defMin = wkType==='Sixpad 腹帶' ? 23 : '';
+    h+='<div class="g3"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30" value="'+esc(keepMin||defMin)+'"></div><div><label>消耗 kcal</label><input id="w_kcal" type="number" inputmode="numeric" placeholder="手錶顯示" value="'+esc(keepK)+'"></div><div><label>時間</label><input id="w_time" type="time" value="'+esc(keepT)+'"></div></div>';
+    if(wkType==='負重'){ h+='<div class="est" id="est"></div>'; }
+    else if(wkType==='Sixpad 腹帶'){ h+='<div class="hint">EMS 腹帶嘅耗能 Eva 查唔到可信研究數，唔估；有手錶數就入，冇就留空當 0。</div>'; }
+    else { h+='<div class="hint">消耗卡數照 Apple Watch／跑步機顯示嘅數入，app 唔會自己估。</div>'; }
+    el.innerHTML=h; updateEst();
+  }
+  function updateEst(){
+    var el=$('est'); if(!el) return;
+    var kg=+state.settings.weightKg||0, mins=parseFloat($('w_min')?$('w_min').value:'');
+    if(!kg){ el.innerHTML='<span>要估消耗先要體重：撳 ⚙︎ 入體重 kg</span>'; return; }
+    if(!(mins>0)){ el.innerHTML='<span>填時長就估到消耗（MET 3.5 × 3.5 × 體重 ÷ 200 × 分鐘）</span>'; return; }
+    var est=r0(3.5*3.5*kg/200*mins);
+    el.innerHTML='<span>估算 <b>'+est+' kcal</b>（Compendium 2011 code 02054·負重多動作 8–15 次＝3.5 MET·體重 '+kg+'kg·'+mins+' 分）</span><button data-act="useest" data-v="'+est+'">用呢個數</button>';
   }
   function saveWorkout(){
-    var tb=document.querySelector('#wtypes button.on'); var type=tb?tb.getAttribute('data-t'):'其他';
+    var type=wkType||'其他';
     var mins=parseInt($('w_min').value,10); if(isNaN(mins)||mins<=0){ alert('填時長（分鐘）'); return; }
-    var sets=[]; document.querySelectorAll('#sets .setrow').forEach(function(r){
-      var ex=r.querySelector('.s_ex').value.trim(), kg=r.querySelector('.s_kg').value, rp=r.querySelector('.s_rp').value;
-      if(ex||kg||rp) sets.push({exercise:ex, weightKg:kg===''?null:parseFloat(kg), reps:rp===''?null:parseInt(rp,10)});
-    });
+    var sets=[];
+    if(type==='負重'){
+      if(!wkEx){ alert('揀一個動作'); return; }
+      var kg=$('w_kg').value, sc=parseInt($('w_sets').value,10), rp=parseInt($('w_reps').value,10);
+      sets.push({exercise:wkEx[0], exerciseEn:wkEx[1]||'', weightKg:kg===''?null:parseFloat(kg), sets:isNaN(sc)?null:sc, reps:isNaN(rp)?null:rp});
+    }
     var wk=parseInt($('w_kcal').value,10); if(isNaN(wk)||wk<0) wk=null;
-    state.workouts.push({id:uid(), date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, sets:sets, note:($('w_note').value||'').trim()});
+    state.workouts.push({id:uid(), date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, kcalSrc:(wk!=null&&$('w_kcal').getAttribute('data-est')==='1')?'MET估':(wk!=null?'手動':null), sets:sets, note:($('w_note').value||'').trim()});
     markDirty(); closeSheet();
   }
   function openSettings(){
@@ -783,12 +881,18 @@
     else if(act==='settings') openSettings();
     else if(act==='backadd') openAdd(addSlot);
     else if(act==='openfood'){ var li=b.closest('li'); var was=li.classList.contains('open'); document.querySelectorAll('.flist li.open').forEach(function(x){x.classList.remove('open');}); if(!was) li.classList.add('open'); }
-    else if(act==='pick'){ var f=foodById(b.closest('li').getAttribute('data-food')); if(f){ addItem(addSlot, f, parseFloat(b.getAttribute('data-grams')), b.getAttribute('data-label')); closeSheet(); } }
+    else if(act==='pick'){ var li0=b.closest('li'); var fid0=li0.getAttribute('data-food'); var gi=li0.querySelector('[data-gin]'); gi.value=b.getAttribute('data-grams'); li0.querySelectorAll('.portions button').forEach(function(x){x.classList.toggle('on', x===b);}); gi.setAttribute('data-label', b.getAttribute('data-label')); previewGrams(fid0); }
+    else if(act==='pickg'){ var fid1=b.getAttribute('data-food'); var f1=foodById(fid1); var li1=b.closest('li'); var g1=parseFloat(li1.querySelector('[data-gin]').value); if(f1&&g1>0){ addItem(addSlot, f1, g1, li1.querySelector('[data-gin]').getAttribute('data-label')||g1+'g'); closeSheet(); } }
+    else if(act==='showlist'){ $('flist').innerHTML=foodRows(); $('flist').hidden=false; b.hidden=true; }
     else if(act==='quick'){ var f2=foodById(b.getAttribute('data-food')); if(f2){ var lp=state.settings.lastPortion[f2.id]||{label:f2.portions[1].label, grams:f2.portions[1].grams}; addItem(addSlot, f2, lp.grams, lp.label); closeSheet(); } }
     else if(act==='copy'){ var src=getMeal(b.getAttribute('data-from'), addSlot, false); if(src){ var m=getMeal(curDate, addSlot, true); src.items.forEach(function(it){ m.items.push(JSON.parse(JSON.stringify(it))); }); markDirty(); } closeSheet(); }
     else if(act==='mealset-add'){ var st=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st){ var mm2=getMeal(curDate, addSlot, true); mm2.items.push(bundleFromSet(st)); if(!mm2.time) mm2.time=nowTime(); markDirty(); } closeSheet(); }
     else if(act==='mealset-del'){ var sid='set:'+b.getAttribute('data-set'); if(confirmId===sid){ state.sets=state.sets.filter(function(x){return x.id!==b.getAttribute('data-set');}); confirmId=null; markDirty(); openAdd(addSlot); } else { confirmId=sid; openAdd(addSlot); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; },3000); } }
     else if(act==='mealset-save'){ var mm3=state.meals.filter(function(x){return x.id===b.getAttribute('data-meal');})[0]; if(mm3&&mm3.items.length){ var nm=prompt('套餐名稱', '我的'+mm3.slot+'餐'); if(nm&&nm.trim()){ state.sets.push({id:'set_'+uid(), name:nm.trim(), slot:mm3.slot, items:[].concat.apply([], mm3.items.map(function(it){ return (it.parts||[it]).map(function(x){ return {foodId:x.foodId, grams:x.grams}; }); }))}); markDirty(); } } }
+    else if(act==='photo'){ $('photoIn').value=''; $('photoIn').click(); }
+    else if(act==='photo-rm'){ b.closest('.g').remove(); }
+    else if(act==='photo-addname'){ var d=document.createElement('div'); d.className='g'; d.style.marginTop='6px'; d.innerHTML='<input style="flex:1;width:auto" placeholder="食物名" data-pn="x"><button class="x" data-act="photo-rm">✕</button>'; $('pnames').appendChild(d); d.querySelector('input').focus(); }
+    else if(act==='photo-confirm') photoStage2();
     else if(act==='nl-parse') nlParse();
     else if(act==='nl-pick'){ var rr=nlRows[+b.getAttribute('data-i')]; rr.grams=parseFloat(b.getAttribute('data-grams')); rr.status='ok'; rr.how='你揀'; renderNl(); }
     else if(act==='nl-pickg'){ var ii=+b.getAttribute('data-i'); var gv=parseFloat($('nlg'+ii).value); if(gv>0){ nlRows[ii].grams=gv; nlRows[ii].status='ok'; nlRows[ii].how='你打'; renderNl(); } }
@@ -802,10 +906,11 @@
       else { confirmId=cid; render(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; render(); },3000); }
     }
     else if(act==='addwk') openWorkout();
-    else if(act==='wtype'){ document.querySelectorAll('#wtypes button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); }
-    else if(act==='wtype-add'){ var nt=prompt('新項目名稱'); if(nt&&nt.trim()){ state.settings.workoutTypes.push(nt.trim()); markDirty(); openWorkout(); document.querySelectorAll('#wtypes button').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-t')===nt.trim()); }); } }
-    else if(act==='addset'){ var rows=document.querySelectorAll('#sets .setrow'); var last=rows[rows.length-1]; addSetRow(last?{ex:last.querySelector('.s_ex').value, kg:last.querySelector('.s_kg').value, rp:last.querySelector('.s_rp').value}:null); }
-    else if(act==='rmset'){ b.closest('.setrow').remove(); }
+    else if(act==='wtype'){ document.querySelectorAll('#wtypes button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); wkType=b.getAttribute('data-t'); renderWkBody(); }
+    else if(act==='wtype-add'){ var nt=prompt('新項目名稱'); if(nt&&nt.trim()){ state.settings.workoutTypes.push(nt.trim()); markDirty(); openWorkout(); wkType=nt.trim(); document.querySelectorAll('#wtypes button').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-t')===wkType); }); renderWkBody(); } }
+    else if(act==='wex'){ wkEx=[b.getAttribute('data-zh'), b.getAttribute('data-en')]; document.querySelectorAll('#exchips button').forEach(function(x){x.classList.toggle('on', x===b);}); }
+    else if(act==='wex-add'){ var ne=prompt('動作名稱（中文，可加英文）'); if(ne&&ne.trim()){ state.settings.exercises.push(ne.trim()); markDirty(); wkEx=[ne.trim(),'']; renderWkBody(); } }
+    else if(act==='useest'){ $('w_kcal').value=b.getAttribute('data-v'); $('w_kcal').setAttribute('data-est','1'); }
     else if(act==='savewk') saveWorkout();
     else if(act==='delwk'){
       var wid=b.getAttribute('data-id');
@@ -816,6 +921,7 @@
     else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
   });
   document.addEventListener('change', function(e){
+    if(e.target&&e.target.id==='photoIn'){ var fl=e.target.files&&e.target.files[0]; if(fl){ resizeImage(fl, function(b64){ if(!b64){ alert('讀唔到張相'); return; } photoB64=b64; photoStage1(); }); } return; }
     var el=e.target.closest('[data-act="note"]'); if(!el) return;
     var m=state.meals.filter(function(x){return x.id===el.getAttribute('data-meal');})[0]; if(m){ m.note=el.value.trim(); markDirty(); }
   });
