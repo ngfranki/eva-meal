@@ -371,7 +371,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1628';
+  var APP_VER = '20260907-1634';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -910,7 +910,8 @@
     var stR=statusOf(d.readiness,b.readiness,false,5,12), stD=statusOf(d.deepMin,b.deepMin,false,15,30), stS=statusOf(d.steps,b.steps,false,0,0)==='ok'?'ok':'mid', stH=statusOf(d.rhr,b.rhr,true,4,8);
     var words=[[stR, d.readiness>=b.readiness-3?'恢復正常':(d.readiness>=b.readiness-10?'恢復一般':'恢復差')],[stD, d.deepMin>=60?'深層夠':'深層瞓少'],[d.steps>=b.steps?'ok':'mid', d.steps>=b.steps?'郁得夠':'郁得少'],[stH, d.rhr<=b.rhr+2?'心率正常':'心率偏高']];
     h+='<div class="ostrip">'+words.map(function(w){return '<span><i class="'+w[0]+'"></i>'+w[1]+'</span>';}).join('')+'</div>';
-    if(od.demo) h+='<div class="demo">示範數據（用你 9 月 7 日 Oura 截圖）· Oura token 接通後自動換真數，每小時更新</div>';
+    if(od.demo) h+='<div class="demo">示範數據 · Oura 接通後自動換真數</div>';
+    else h+='<div class="demo">Oura 最後同步 '+esc((state.oura.lastSync||'').replace('T',' '))+' · 每 15 分鐘自動；Oura app 要先同戒指同步，API 先有新數</div>';
     // 體重
     var wk=state.weights[curDate]||'';
     h+='<div class="wrow"><span style="font-size:20px">⚖️</span><div class="t"><b>體重（每星期磅一次）</b>校準基礎代謝用，唔使日日</div><input type="number" inputmode="decimal" step="0.1" id="weightIn" placeholder="'+(s.weightKg||'75')+'" value="'+wk+'"><span class="u">kg</span></div>';
