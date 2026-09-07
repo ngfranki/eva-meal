@@ -336,7 +336,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1057';
+  var APP_VER = '20260907-1059';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -619,7 +619,7 @@
     var g=parseFloat(li.querySelector('[data-gin]').value), pk=li.querySelector('[data-pk]'), go=li.querySelector('.go');
     if(g>0){ var it=makeItem(f,g); pk.innerHTML='<b>'+it.kcal+'</b> kcal · 蛋白 '+it.protein+'g'; go.disabled=false; } else { pk.textContent='揀份量或打克數'; go.disabled=true; }
   }
-  document.addEventListener('input', function(e){ var el=e.target;
+  document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='editG') updateEditPk();
     if(el&&el.id==='w_sets'&&wkType==='負重'){ var sc=parseInt(el.value,10), mi=$('w_min'); if(mi&&sc>0&&(mi.value===''||mi.getAttribute('data-auto')==='1')){ mi.value=sc*2; mi.setAttribute('data-auto','1'); updateEst(); } }
     if(el&&el.id==='w_min'){ el.removeAttribute('data-auto'); updateEst(); } if(el&&el.id==='w_kcal') el.removeAttribute('data-est');
     if(el&&el.hasAttribute&&el.hasAttribute('data-nlg')){ var rr=nlRows[+el.getAttribute('data-nlg')]; var gv=parseFloat(el.value); if(rr&&gv>0){ rr.grams=gv; var row=el.closest('.nlrow'); var it2=makeItem(rr.food,gv); row.querySelector('.kc').textContent=it2.kcal; var tot2=0,ok2=0; nlRows.forEach(function(x){ if(x.status==='ok'){ tot2+=makeItem(x.food,x.grams).kcal; ok2++; } }); var ab=document.querySelector('[data-act="nl-add"]'); if(ab) ab.textContent='加入 '+ok2+' 項（'+tot2+' kcal）'; } return; }
@@ -731,10 +731,10 @@
             var open=expandedId===cid;
             h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?'':' · 撳睇明細')+'</span></div>';
           } else
-          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+'</span></div>';
+          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+' · 撳改</span></div>';
           h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
           h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
-          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p){ h+='<li><span>'+esc(p.name)+' '+p.grams+'g</span><span>'+p.kcal+'</span></li>'; }); h+='</ul></li>'; }
+          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+p.grams+'g ✎</span><span>'+p.kcal+'</span></li>'; }); h+='</ul></li>'; }
         });
         h+='</ul>';
         h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
@@ -933,6 +933,40 @@
     if(wkEdit){ var ix=state.workouts.findIndex(function(w){return w.id===wkEdit.id;}); if(ix>=0) state.workouts[ix]=rec; else state.workouts.push(rec); } else state.workouts.push(rec);
     wkEdit=null; markDirty(); closeSheet();
   }
+  var editRef=null;
+  function scaleItem(it, grams){
+    var f=foodById(it.foodId); if(f) return makeItem(f, grams);
+    var k=grams/(it.grams||1); return {foodId:it.foodId, name:it.name, grams:grams, kcal:r0(it.kcal*k), protein:r1(it.protein*k), carb:r1(it.carb*k), fat:r1(it.fat*k), fiber:r1(it.fiber*k)};
+  }
+  function openEditItem(mealId, idx, partIdx){
+    var m=state.meals.filter(function(x){return x.id===mealId;})[0]; if(!m) return;
+    var it=m.items[idx]; if(!it) return; var target=(partIdx!=null&&it.parts)?it.parts[partIdx]:it; if(!target) return;
+    editRef={mealId:mealId, idx:idx, part:partIdx};
+    var f=foodById(target.foodId);
+    var h='<div class="hd"><h2>改份量</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
+    h+='<div class="nlrow"><div class="h"><div><b>'+esc(target.name)+'</b><span> 而家 '+target.grams+'g · '+target.kcal+' kcal</span></div></div>';
+    if(f){ h+='<div class="portions" style="display:flex;padding:8px 0 0">'; f.portions.forEach(function(p){ h+='<button data-act="edit-pick" data-grams="'+p.grams+'">'+esc(p.label)+'<small>'+p.grams+'g · '+r0(f.per100g.kcal*p.grams/100)+' kcal</small></button>'; }); h+='</div>'; }
+    h+='<div class="g" style="margin-top:10px"><input type="number" inputmode="decimal" id="editG" value="'+target.grams+'" style="width:110px"><span class="u">g</span><span class="pk" id="editPk" style="flex:1;text-align:right"></span></div></div>';
+    h+='<button class="btn" data-act="edit-save">儲存</button></div>';
+    openSheet(h); updateEditPk();
+  }
+  function updateEditPk(){
+    if(!editRef) return; var m=state.meals.filter(function(x){return x.id===editRef.mealId;})[0]; var it=m.items[editRef.idx]; var target=(editRef.part!=null&&it.parts)?it.parts[editRef.part]:it;
+    var g=parseFloat($('editG').value); var pk=$('editPk'); if(g>0){ var n=scaleItem(target,g); pk.innerHTML='→ <b>'+n.kcal+'</b> kcal · 蛋白 '+n.protein+'g'; } else pk.textContent='';
+  }
+  function saveEditItem(){
+    var g=parseFloat($('editG').value); if(!(g>0)){ alert('填克數'); return; }
+    var m=state.meals.filter(function(x){return x.id===editRef.mealId;})[0]; var it=m.items[editRef.idx];
+    if(editRef.part!=null&&it.parts){
+      it.parts[editRef.part]=scaleItem(it.parts[editRef.part], g);
+      var tt=totals(it.parts), gs=0; it.parts.forEach(function(x){gs+=x.grams;});
+      it.grams=r0(gs); it.kcal=r0(tt.kcal); it.protein=r1(tt.protein); it.carb=r1(tt.carb); it.fat=r1(tt.fat); it.fiber=r1(tt.fiber);
+    } else {
+      m.items[editRef.idx]=scaleItem(it, g);
+      if(it.foodId&&foodById(it.foodId)) state.settings.lastPortion[it.foodId]={label:g+'g', grams:g};
+    }
+    editRef=null; markDirty(); closeSheet();
+  }
   function openSettings(){
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
@@ -996,6 +1030,9 @@
     else if(act==='nl-pick'){ var rr=nlRows[+b.getAttribute('data-i')]; rr.grams=parseFloat(b.getAttribute('data-grams')); rr.status='ok'; rr.how='你揀'; renderNl(); }
     else if(act==='nl-pickg'){ var ii=+b.getAttribute('data-i'); var gv=parseFloat($('nlg'+ii).value); if(gv>0){ nlRows[ii].grams=gv; nlRows[ii].status='ok'; nlRows[ii].how='你打'; renderNl(); } }
     else if(act==='nl-add'){ var mm4=getMeal(curDate, addSlot, true); var n=0; nlRows.forEach(function(r){ if(r.status==='ok'){ mm4.items.push(makeItem(r.food, r.grams)); state.settings.lastPortion[r.food.id]={label:r.grams+'g', grams:r.grams}; n++; } }); if(n){ if(!mm4.time) mm4.time=nowTime(); markDirty(); } nlRows=[]; closeSheet(); }
+    else if(act==='edititem'){ var pa=b.getAttribute('data-part'); openEditItem(b.getAttribute('data-meal'), +b.getAttribute('data-idx'), pa===null?null:+pa); }
+    else if(act==='edit-pick'){ $('editG').value=b.getAttribute('data-grams'); updateEditPk(); }
+    else if(act==='edit-save') saveEditItem();
     else if(act==='toggleparts'){ var c2=b.getAttribute('data-cid'); expandedId = expandedId===c2?null:c2; render(); }
     else if(act==='customfood') openCustomFood();
     else if(act==='savefood') saveCustomFood();
