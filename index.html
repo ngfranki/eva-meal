@@ -336,7 +336,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1105';
+  var APP_VER = '20260907-1215';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -590,7 +590,21 @@
       .then(function(j){ cb(null,j); }).catch(function(e){ cb(e); });
   }
   function photoStage1(){
-    $('photoRes').innerHTML='<div class="nlrow"><div class="h"><b>認食物中…</b><span>AI 睇相</span></div></div>';
+    $('photoRes').innerHTML='<div class="nlrow"><div class="h"><b>AI 睇相中…</b><span>認食物＋估份量，約 10 秒</span></div></div>';
+    var lib=state.foods.map(function(f){ return {id:f.id, name:f.name, aliases:f.aliases||[]}; });
+    visionCall({stage:'full', image:photoB64, foods:lib}, function(err, j){
+      if(err){ $('photoRes').innerHTML='<div class="nlrow bad"><div class="h"><b>'+(err.message==='未開通'?'影相功能未開通':'認唔到')+'</b><span>'+esc(err.message)+'</span></div></div>'; return; }
+      nlRows=(j.items||[]).map(function(x){
+        var f=x.foodId?foodById(x.foodId):null; if(!f) f=findFood(String(x.name||''));
+        if(!f) return {raw:String(x.name||''), food:null, grams:null, status:'nofood'};
+        var g=parseFloat(x.grams);
+        if(g>0) return {raw:String(x.name||''), food:f, grams:Math.round(g), how:'AI 睇相估'+(x.note?'·'+x.note:''), status:'ok'};
+        return {raw:String(x.name||''), food:f, grams:null, status:'pick', reason:'AI 估唔到份量，揀一個'};
+      });
+      $('photoRes').innerHTML=''; renderNl(); $('nlres').scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
+  function photoStage1_old(){
     visionCall({stage:'identify', image:photoB64}, function(err, j){
       if(err){ $('photoRes').innerHTML='<div class="nlrow bad"><div class="h"><b>'+(err.message==='未開通'?'影相功能未開通':'認唔到')+'</b><span>'+(err.message==='未開通'?'要 Supabase 管理 token 部署 AI 代理（叫 Eva）':esc(err.message))+'</span></div></div>'; return; }
       photoNames=(j.items||[]).map(function(x){ return String(x.name||x); }).filter(Boolean);
@@ -636,10 +650,10 @@
   function renderNl(){
     var h='', tot=0, ok=0;
     nlRows.forEach(function(r,i){
-      if(r.status==='nofood'){ h+='<div class="nlrow bad"><div class="h"><b>'+esc(r.raw)+'</b><span>庫入面冇呢樣——用下面「＋自訂食物」加，或者叫 Eva 查來源</span></div></div>'; return; }
+      if(r.status==='nofood'){ h+='<div class="nlrow bad"><div class="h"><b>'+esc(r.raw)+'</b><span>庫入面冇呢樣——用「＋自訂食物」加，或者叫 Eva 查來源</span><button class="x" data-act="nl-rm" data-i="'+i+'">✕</button></div></div>'; return; }
       var f=r.food;
       if(r.status==='ok'){ var it=makeItem(f, r.grams); tot+=it.kcal; ok++;
-        h+='<div class="nlrow"><div class="h"><div><b>'+esc(f.name)+'</b><span> '+(r.how?esc(r.how)+' · ':'')+'蛋白 '+it.protein+'</span></div><span class="kc">'+it.kcal+'</span></div><div class="g"><input type="number" inputmode="decimal" value="'+r.grams+'" data-nlg="'+i+'"><span class="u">g（可改）</span></div></div>'; }
+        h+='<div class="nlrow"><div class="h"><div><b>'+esc(f.name)+'</b><span> '+(r.how?esc(r.how)+' · ':'')+'蛋白 '+it.protein+'</span></div><span class="kc">'+it.kcal+'</span><button class="x" data-act="nl-rm" data-i="'+i+'">✕</button></div><div class="g"><input type="number" inputmode="decimal" value="'+r.grams+'" data-nlg="'+i+'"><span class="u">g（可改）</span></div></div>'; }
       else {
         h+='<div class="nlrow bad"><div class="h"><div><b>'+esc(f.name)+'</b><span> '+esc(r.raw)+' — '+esc(r.reason)+'</span></div></div><div class="portions">';
         f.portions.forEach(function(p){ h+='<button data-act="nl-pick" data-i="'+i+'" data-grams="'+p.grams+'">'+esc(p.label)+'<small>'+p.grams+'g · '+r0(f.per100g.kcal*p.grams/100)+' kcal</small></button>'; });
@@ -837,7 +851,7 @@
       });
       h+='</div>';
     }
-    h+='<div class="sec">影相認食物 <span class="ai">AI 估份量 · 數字仍出自食物庫 · 可改</span></div><div class="photo"><button class="dark" data-act="photo"><span>📷</span>影相／揀相</button></div><input type="file" id="photoIn" accept="image/*" capture="environment" hidden><div id="photoRes"></div>';
+    h+='<div class="sec">影相認食物 <span class="ai">AI 估份量 · 數字仍出自食物庫 · 可改</span></div><div class="photo"><button class="dark" data-act="photo"><span>📷</span>影相</button><button data-act="photo-pick"><span>🖼</span>揀相</button></div><input type="file" id="photoIn" accept="image/*" capture="environment" hidden><input type="file" id="photoPick" accept="image/*" hidden><div id="photoRes"></div>';
     h+='<div class="sec">常食（一撳即加·用上次份量）</div><div class="quick">';
     quickFoods().forEach(function(f){
       var lp=state.settings.lastPortion[f.id]||{label:f.portions[1].label, grams:f.portions[1].grams};
@@ -1014,6 +1028,7 @@
     else if(act==='mealset-del'){ var sid='set:'+b.getAttribute('data-set'); if(confirmId===sid){ state.sets=state.sets.filter(function(x){return x.id!==b.getAttribute('data-set');}); confirmId=null; markDirty(); openAdd(addSlot); } else { confirmId=sid; openAdd(addSlot); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; },3000); } }
     else if(act==='mealset-save'){ var mm3=state.meals.filter(function(x){return x.id===b.getAttribute('data-meal');})[0]; if(mm3&&mm3.items.length){ var nm=prompt('套餐名稱', '我的'+mm3.slot+'餐'); if(nm&&nm.trim()){ state.sets.push({id:'set_'+uid(), name:nm.trim(), slot:mm3.slot, items:[].concat.apply([], mm3.items.map(function(it){ return (it.parts||[it]).map(function(x){ return {foodId:x.foodId, grams:x.grams}; }); }))}); markDirty(); } } }
     else if(act==='photo'){ $('photoIn').value=''; $('photoIn').click(); }
+    else if(act==='photo-pick'){ $('photoPick').value=''; $('photoPick').click(); }
     else if(act==='photo-rm'){ b.closest('.g').remove(); }
     else if(act==='photo-addname'){ var d=document.createElement('div'); d.className='g'; d.style.marginTop='6px'; d.innerHTML='<input style="flex:1;width:auto" placeholder="食物名" data-pn="x"><button class="x" data-act="photo-rm">✕</button>'; $('pnames').appendChild(d); d.querySelector('input').focus(); }
     else if(act==='photo-confirm') photoStage2();
@@ -1033,6 +1048,7 @@
         renderNl();
       });
     }
+    else if(act==='nl-rm'){ nlRows.splice(+b.getAttribute('data-i'),1); renderNl(); }
     else if(act==='nl-parse') nlParse();
     else if(act==='nl-pick'){ var rr=nlRows[+b.getAttribute('data-i')]; rr.grams=parseFloat(b.getAttribute('data-grams')); rr.status='ok'; rr.how='你揀'; renderNl(); }
     else if(act==='nl-pickg'){ var ii=+b.getAttribute('data-i'); var gv=parseFloat($('nlg'+ii).value); if(gv>0){ nlRows[ii].grams=gv; nlRows[ii].status='ok'; nlRows[ii].how='你打'; renderNl(); } }
@@ -1070,7 +1086,7 @@
   document.addEventListener('input', function(e){ if(e.target&&e.target.id==='stepsYIn'){ var d=e.target.getAttribute('data-d'), v2=parseInt(e.target.value,10); if(stepsYTimer) clearTimeout(stepsYTimer); stepsYTimer=setTimeout(function(){ if(!isNaN(v2)&&v2>0){ state.steps[d]=v2; markDirty(); } }, 1200); } });
   document.addEventListener('input', function(e){ if(e.target&&e.target.id==='stepsIn'){ var v=parseInt(e.target.value,10); if(stepsTimer) clearTimeout(stepsTimer); stepsTimer=setTimeout(function(){ if(isNaN(v)||v<=0) delete state.steps[curDate]; else state.steps[curDate]=v; markDirty(); }, 900); } });
   document.addEventListener('change', function(e){
-    if(e.target&&e.target.id==='photoIn'){ var fl=e.target.files&&e.target.files[0]; if(fl){ resizeImage(fl, function(b64){ if(!b64){ alert('讀唔到張相'); return; } photoB64=b64; photoStage1(); }); } return; }
+    if(e.target&&(e.target.id==='photoIn'||e.target.id==='photoPick')){ var fl=e.target.files&&e.target.files[0]; if(fl){ resizeImage(fl, function(b64){ if(!b64){ alert('讀唔到張相'); return; } photoB64=b64; photoStage1(); }); } return; }
     var el=e.target.closest('[data-act="note"]'); if(!el) return;
     var m=state.meals.filter(function(x){return x.id===el.getAttribute('data-meal');})[0]; if(m){ m.note=el.value.trim(); markDirty(); }
   });
