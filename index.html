@@ -686,7 +686,7 @@
     h+='</div>';
     h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'步數 → 自動估消耗')+'</span></div>';
     var yd=shiftDate(curDate,-1);
-    if(curDate===today() && !daySteps(yd) && (dayItems(yd).length||state.workouts.some(function(w){return w.date===yd;}))){
+    if(curDate===today() && !daySteps(yd)){
       h+='<div class="steps y"><span class="ic">🌙</span><input type="number" inputmode="numeric" id="stepsYIn" placeholder="琴日步數" data-d="'+yd+'"><span class="lbl">琴晚忘記填？補返呢度</span></div>';
     }
     var wkB=dayWorkoutBurn(curDate);
