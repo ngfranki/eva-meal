@@ -371,7 +371,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1637';
+  var APP_VER = '20260907-1651';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -545,11 +545,13 @@
   function treadmillSteps(date){ return state.workouts.filter(function(w){return w.date===date&&w.type==='跑步機';}).reduce(function(a,w){ return a+(+w.steps>0? +w.steps : r0((+w.minutes||0)*CADENCE)); },0); }
   function walkSteps(date){ var t=daySteps(date); if(!t) return 0; return Math.max(0, t-treadmillSteps(date)); }
   function dayWorkoutBurn(date){ return state.workouts.filter(function(w){return w.date===date;}).reduce(function(a,w){return a+(+w.kcal||0);},0); }
-  function dayBurn(date){ return dayWorkoutBurn(date)+stepsKcal(walkSteps(date)); }
+  function ouraActive(date){ var d=state.oura&&state.oura.days&&state.oura.days[date]; return (d&&d.activeCal>0)?+d.activeCal:null; }
+  function useOura(date){ return state.settings.activitySource!=='estimate' && ouraActive(date)!=null; }
+  function dayBurn(date){ if(useOura(date)) return ouraActive(date); return dayWorkoutBurn(date)+stepsKcal(walkSteps(date)); }
   // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
   function dayDeficit(date, intake){
     var st=state.settings, burn=dayBurn(date);
-    if(st.deficitMode==='bmr' && +st.bmr>0) return (+st.bmr) + (+st.bmr)*((+st.neatPct||0)/100) + intake*0.10 + burn - intake;
+    if(st.deficitMode==='bmr' && +st.bmr>0) return (+st.bmr) + (useOura(date)?0:(+st.bmr)*((+st.neatPct||0)/100)) + intake*0.10 + burn - intake;
     return (+st.tdee||2300) + burn - intake;
   }
   function dayItems(date){ var a=[]; mealsOn(date).forEach(function(m){ a=a.concat(m.items||[]); }); return a; }
@@ -773,24 +775,30 @@
     h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' − 攝取 '+r0(t.kcal).toLocaleString()+'</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div>';
-    h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?(tmSteps?'扣跑步機 '+tmSteps.toLocaleString()+' 步 → ':'')+'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'戒指總步數 → 自動扣跑步機再估')+'</span></div>';
+    if(oU) h+='<div class="steps"><span class="ic">👟</span><b class="num" style="font-size:18px">'+steps.toLocaleString()+'</b><span class="sk">步 · Oura 自動 · 活動 '+r0(burn)+' kcal（量）</span></div>';
+    else h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?(tmSteps?'扣跑步機 '+tmSteps.toLocaleString()+' 步 → ':'')+'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'戒指總步數 → 自動扣跑步機再估')+'</span></div>';
     var yd=shiftDate(curDate,-1);
     if(curDate===today() && !daySteps(yd)){
       h+='<div class="steps y"><span class="ic">🌙</span><input type="number" inputmode="numeric" id="stepsYIn" placeholder="琴日步數" data-d="'+yd+'"><span class="lbl">琴晚忘記填？補返呢度</span></div>';
     }
     var wkB=dayWorkoutBurn(curDate);
     h+='<div class="ledger">';
+    var oU=useOura(curDate);
     if(modeB){
       h+='<div class="r"><span class="op"></span><span class="lb">基礎代謝 BMR<small>設定可改</small></span><span class="nm num">'+(+s.bmr).toLocaleString()+'</span></div>';
-      h+='<div class="r"><span class="op">＋</span><span class="lb">日常活動（企／家務）<small>BMR × '+(+s.neatPct||0)+'%·估·設定可改</small></span><span class="nm num">'+r0((+s.bmr)*((+s.neatPct||0)/100)).toLocaleString()+'</span></div>';
+      if(!oU) h+='<div class="r"><span class="op">＋</span><span class="lb">日常活動（企／家務）<small>BMR × '+(+s.neatPct||0)+'%·估·設定可改</small></span><span class="nm num">'+r0((+s.bmr)*((+s.neatPct||0)/100)).toLocaleString()+'</span></div>';
       h+='<div class="r"><span class="op">＋</span><span class="lb">食物消化熱<small>攝取 × 10%</small></span><span class="nm num">'+r0(t.kcal*0.1).toLocaleString()+'</span></div>';
     } else
     h+='<div class="r"><span class="op"></span><span class="lb">每日總消耗 TDEE<small>設定可改（已包日常活動）</small></span><span class="nm num">'+tdee.toLocaleString()+'</span></div>';
+    if(oU){
+      h+='<div class="r"><span class="op">＋</span><span class="lb">活動消耗（Oura 量）<small>已包步行 '+(steps?steps.toLocaleString()+' 步':'')+'、跑步機、負重、日常郁動 · '+esc((state.oura.lastSync||'').slice(11,16))+' 更新</small></span><span class="nm num">'+r0(burn).toLocaleString()+'</span></div>';
+    } else {
     h+='<div class="r"><span class="op">＋</span><span class="lb">運動消耗<small>手錶／估算</small></span><span class="nm num">'+r0(wkB).toLocaleString()+'</span></div>';
     h+='<div class="r"><span class="op">＋</span><span class="lb">步行消耗<small>'+(steps?(tmSteps?steps.toLocaleString()+' − 跑步機 '+tmSteps.toLocaleString()+' ＝ '+wSteps.toLocaleString()+' 步':steps.toLocaleString()+' 步')+' × ACSM':'未填步數')+'</small></span><span class="nm num">'+r0(stepK).toLocaleString()+'</span></div>';
+    }
     h+='<div class="r"><span class="op">−</span><span class="lb">食物攝取<small>'+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</small></span><span class="nm num">'+r0(t.kcal).toLocaleString()+'</span></div>';
     h+='<div class="r tot'+(deficit<0?' over':'')+'"><span class="op">＝</span><span class="lb">'+(deficit>=0?'今日赤字':'今日超出')+'</span><span class="nm num">'+r0(Math.abs(deficit)).toLocaleString()+'</span></div>';
-    h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 運動 − 步行）</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
+    h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 活動）'+(oU?' · 運動記錄嘅卡數唔會再加（已喺 Oura 內）':'')+'</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
     h+='</div>';
     h+='</div>';
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
@@ -920,7 +928,7 @@
     h+='<div class="obal"><div><b class="num">'+r0(intake).toLocaleString()+'</b><span>食物攝取（你記嘅）</span></div><div class="o"><b class="num">'+r0(d.activeCal).toLocaleString()+'</b><span>Oura 活動卡（量出嚟）</span></div>';
     h+='<div><b class="num">'+r0(appBurn+(+s.bmr||0)*((+s.neatPct||0)/100)).toLocaleString()+'</b><span>App 估活動（步行＋運動＋日常 10%）</span></div><div class="o"><b class="num">'+(d.totalCal?r0(d.totalCal).toLocaleString():'—')+'</b><span>Oura 全日總消耗（含成日 BMR）</span></div>';
     h+='<div><b class="num">'+(appDef>=0?'−':'+')+r0(Math.abs(appDef)).toLocaleString()+'</b><span>赤字 App 版（BMR '+(+s.bmr||0).toLocaleString()+'）</span></div><div class="o"><b class="num">'+(ouraDef!=null?((ouraDef>=0?'−':'+')+r0(Math.abs(ouraDef)).toLocaleString()):'—')+'</b><span>赤字 Oura 版（BMR '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'）</span></div></div>';
-    var appAct=appBurn+(+s.bmr||0)*((+s.neatPct||0)/100);
+    var appAct=useOura(curDate)?appBurn:appBurn+(+s.bmr||0)*((+s.neatPct||0)/100);
     h+='<div class="ex"><span class="k">解釋</span>活動部分：App（步行＋運動＋日常 10%）'+r0(appAct)+' 對 Oura '+r0(d.activeCal)+'，差 '+r0(Math.abs(appAct-d.activeCal))+'。真正分歧喺基礎代謝：App 用 '+(+s.bmr||0).toLocaleString()+'，Oura 用約 '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'。</div><div class="ex"><span class="k">代表</span>邊個近真，三星期後由磅裁決：累計赤字 ÷ 7,700 ＝ 應該跌幾多 kg。</div></div>';
     // 準備度
     h+=ocard({label:'準備度 Readiness', value:d.readiness, unit:'／100', delta:b.readiness!=null?d.readiness-b.readiness:null, base:b.readiness, st:stR, spark:spark(d.hist&&d.hist.readiness,b.readiness),
@@ -1138,6 +1146,7 @@
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
     var isB=(s.deficitMode==='bmr');
     h+='<div hidden><input id="s_stride" type="number" value="'+(s.strideM||0.8)+'"></div>';
+    h+='<label>活動消耗來源</label><div class="chips" id="asrc"><button data-act="asrc" data-m="oura" class="'+(s.activitySource!=='estimate'?'on':'')+'">Oura 量（建議）</button><button data-act="asrc" data-m="estimate" class="'+(s.activitySource==='estimate'?'on':'')+'">App 自己估（步數＋MET）</button></div><div class="hint">Oura 嘅活動卡已包步行、跑步機、負重同日常郁動；用 Oura 時運動記錄嘅卡數只做記錄，唔另加。Oura 冇數嗰日自動用估算。</div>';
     h+='<label>赤字計法</label><div class="chips" id="dmode"><button data-act="dmode" data-m="tdee" class="'+(isB?'':'on')+'">A · 固定 TDEE</button><button data-act="dmode" data-m="bmr" class="'+(isB?'on':'')+'">B · BMR 拆件（Eva 建議）</button></div>';
     h+='<div id="modeA" '+(isB?'hidden':'')+'><label>TDEE（每日總消耗）kcal — 只有 A 法用</label><input id="s_tdee" type="number" inputmode="numeric" value="'+(s.tdee||2200)+'"><div class="hint">A 法：赤字＝TDEE ＋ 運動 ＋ 步行 − 食物。TDEE 已包日常活動，加運動會有重複計。</div></div>';
     h+='<div id="modeB" '+(isB?'':'hidden')+'><div class="g2"><div><label>BMR 基礎代謝 kcal</label><input id="s_bmr" type="number" inputmode="numeric" value="'+(s.bmr||'')+'" placeholder="例 1580"></div><div><label>日常活動加成 %</label><input id="s_neat" type="number" inputmode="numeric" value="'+(s.neatPct!=null?s.neatPct:10)+'"></div></div>';
@@ -1151,7 +1160,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
@@ -1209,6 +1218,7 @@
       if(confirmId===wid){ state.workouts=state.workouts.filter(function(w){return w.id!==wid;}); confirmId=null; markDirty(); }
       else { confirmId=wid; render(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; render(); },3000); }
     }
+    else if(act==='asrc'){ document.querySelectorAll('#asrc button').forEach(function(x){x.classList.toggle('on', x===b);}); }
     else if(act==='dmode'){ document.querySelectorAll('#dmode button').forEach(function(x){x.classList.toggle('on', x===b);}); var isB=b.getAttribute('data-m')==='bmr'; $('modeA').hidden=isB; $('modeB').hidden=!isB; }
     else if(act==='savesettings') saveSettings();
     else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
