@@ -336,7 +336,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1102';
+  var APP_VER = '20260907-1105';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -503,8 +503,11 @@
   // 步行消耗：ACSM 步行代謝方程 淨 VO2＝0.1 mL/kg/min × 速度(m/min) → 每米淨耗氧 0.1 mL/kg → ×體重 ×5 kcal/L
   function stepsKcal(steps){ var kg=+state.settings.weightKg||0, st=+state.settings.strideM||0.8; if(!kg||!steps) return 0; return steps*st*0.1*kg*5/1000; }
   function daySteps(date){ return +(state.steps[date])||0; }
+  var CADENCE=120; // 步／分鐘（步行·中等強度 100–120 步/分，Tudor-Locke 2005）
+  function treadmillSteps(date){ return state.workouts.filter(function(w){return w.date===date&&w.type==='跑步機';}).reduce(function(a,w){ return a+(+w.steps>0? +w.steps : r0((+w.minutes||0)*CADENCE)); },0); }
+  function walkSteps(date){ var t=daySteps(date); if(!t) return 0; return Math.max(0, t-treadmillSteps(date)); }
   function dayWorkoutBurn(date){ return state.workouts.filter(function(w){return w.date===date;}).reduce(function(a,w){return a+(+w.kcal||0);},0); }
-  function dayBurn(date){ return dayWorkoutBurn(date)+stepsKcal(daySteps(date)); }
+  function dayBurn(date){ return dayWorkoutBurn(date)+stepsKcal(walkSteps(date)); }
   // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
   function dayDeficit(date, intake){
     var st=state.settings, burn=dayBurn(date);
@@ -691,7 +694,7 @@
   }
   function renderToday(){
     var t=totals(dayItems(curDate)), s=state.settings, h='';
-    var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), stepK=stepsKcal(steps), tdee=+s.tdee||2300, deficit=dayDeficit(curDate, t.kcal), modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
+    var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), tmSteps=treadmillSteps(curDate), wSteps=walkSteps(curDate), stepK=stepsKcal(wSteps), tdee=+s.tdee||2300, deficit=dayDeficit(curDate, t.kcal), modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
     var target=+s.dailyKcal||0, over=target&&t.kcal>target, pct=target?t.kcal/target:0;
     h+='<div class="card budget"><div class="bh"><h2>每日預算</h2><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
     h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'" data-act="settings">'+ringSvg(target?pct:0)+'<div class="c">';
@@ -700,7 +703,7 @@
     h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' − 攝取 '+r0(t.kcal).toLocaleString()+'</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div>';
-    h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'步數 → 自動估消耗')+'</span></div>';
+    h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?(tmSteps?'扣跑步機 '+tmSteps.toLocaleString()+' 步 → ':'')+'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'戒指總步數 → 自動扣跑步機再估')+'</span></div>';
     var yd=shiftDate(curDate,-1);
     if(curDate===today() && !daySteps(yd)){
       h+='<div class="steps y"><span class="ic">🌙</span><input type="number" inputmode="numeric" id="stepsYIn" placeholder="琴日步數" data-d="'+yd+'"><span class="lbl">琴晚忘記填？補返呢度</span></div>';
@@ -714,7 +717,7 @@
     } else
     h+='<div class="r"><span class="op"></span><span class="lb">每日總消耗 TDEE<small>設定可改（已包日常活動）</small></span><span class="nm num">'+tdee.toLocaleString()+'</span></div>';
     h+='<div class="r"><span class="op">＋</span><span class="lb">運動消耗<small>手錶／估算</small></span><span class="nm num">'+r0(wkB).toLocaleString()+'</span></div>';
-    h+='<div class="r"><span class="op">＋</span><span class="lb">步行消耗<small>'+(steps?steps.toLocaleString()+' 步 × ACSM 公式':'未填步數')+'</small></span><span class="nm num">'+r0(stepK).toLocaleString()+'</span></div>';
+    h+='<div class="r"><span class="op">＋</span><span class="lb">步行消耗<small>'+(steps?(tmSteps?steps.toLocaleString()+' − 跑步機 '+tmSteps.toLocaleString()+' ＝ '+wSteps.toLocaleString()+' 步':steps.toLocaleString()+' 步')+' × ACSM':'未填步數')+'</small></span><span class="nm num">'+r0(stepK).toLocaleString()+'</span></div>';
     h+='<div class="r"><span class="op">−</span><span class="lb">食物攝取<small>'+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</small></span><span class="nm num">'+r0(t.kcal).toLocaleString()+'</span></div>';
     h+='<div class="r tot'+(deficit<0?' over':'')+'"><span class="op">＝</span><span class="lb">'+(deficit>=0?'今日赤字':'今日超出')+'</span><span class="nm num">'+r0(Math.abs(deficit)).toLocaleString()+'</span></div>';
     h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 運動 − 步行）</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
@@ -752,7 +755,7 @@
     if(!ws.length) h+='<div class="empty">未記</div>';
     ws.forEach(function(w){
       var conf=confirmId===w.id;
-      h+='<div class="wk"><div class="n tap" data-act="editwk" data-id="'+w.id+'"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+'</span>';
+      h+='<div class="wk"><div class="n tap" data-act="editwk" data-id="'+w.id+'"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+(w.type==='跑步機'?' · '+(w.steps?w.steps.toLocaleString()+' 步':'約 '+r0((+w.minutes||0)*CADENCE).toLocaleString()+' 步（估）'):'')+'</span>';
       if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ h+='<div>'+esc(s.exercise||'')+(s.exerciseEn?' <span class="m">'+esc(s.exerciseEn.replace(/（.*?）/,''))+'</span>':'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+(s.reps||'—')+(s.sets?' × '+s.sets+' 組':'')+'</div>'; }); h+='</div>'; }
       if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
       h+='<div class="hintedit">撳一下改</div>';
@@ -906,6 +909,7 @@
       h+='<div class="g3"><div><label>重量 kg</label><input id="w_kg" type="number" inputmode="decimal" placeholder="40" value="'+esc(first&&st0&&st0.weightKg!=null?st0.weightKg:'')+'"></div><div><label>組數</label><input id="w_sets" type="number" inputmode="numeric" placeholder="3" value="'+esc(first&&st0&&st0.sets!=null?st0.sets:'')+'"></div><div><label>每組次數</label><input id="w_reps" type="number" inputmode="numeric" placeholder="12" value="'+esc(first&&st0&&st0.reps!=null?st0.reps:'')+'"></div></div>';
     }
     var defMin = wkType==='Sixpad 腹帶' ? 23 : '';
+    if(wkType==='跑步機'){ h+='<label>跑步機步數（可留空，留空就按 '+CADENCE+' 步／分估）</label><input id="w_steps" type="number" inputmode="numeric" placeholder="戒指或跑步機顯示" value="'+esc(first&&wkEdit&&wkEdit.steps?wkEdit.steps:'')+'"><div class="hint">你戒指嘅全日步數已包跑步機嗰段，app 會自動扣返呢個數先估步行消耗，唔使自己減。</div>'; }
     h+='<div class="g3"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30" value="'+esc(keepMin||defMin)+'"></div><div><label>消耗 kcal</label><input id="w_kcal" type="number" inputmode="numeric" placeholder="手錶顯示" value="'+esc(keepK)+'"></div><div><label>時間</label><input id="w_time" type="time" value="'+esc(keepT)+'"></div></div>';
     if(wkType==='負重'){ h+='<div class="est" id="est"></div><div class="hint">時長＝由第一組開始到最後一組完，連中間休息（MET 3.5 本身就係連休息計）。冇計時就用「組數 × 2 分鐘」，填組數會自動幫你填。</div>'; }
     else if(wkType==='Sixpad 腹帶'){ h+='<div class="hint">EMS 腹帶嘅耗能 Eva 查唔到可信研究數，唔估；有手錶數就入，冇就留空當 0。</div>'; }
@@ -931,7 +935,8 @@
       sets.push({exercise:wkEx[0], exerciseEn:wkEx[1]||'', weightKg:kg===''?null:parseFloat(kg), sets:isNaN(sc)?null:sc, reps:isNaN(rp)?null:rp});
     }
     var wk=parseInt($('w_kcal').value,10); if(isNaN(wk)||wk<0) wk=null;
-    var rec={id:wkEdit?wkEdit.id:uid(), date:wkEdit?wkEdit.date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, kcalSrc:(wk!=null&&$('w_kcal').getAttribute('data-est')==='1')?'MET估':(wk!=null?'手動':null), sets:sets, note:($('w_note').value||'').trim()};
+    var stp=$('w_steps')?parseInt($('w_steps').value,10):NaN;
+    var rec={id:wkEdit?wkEdit.id:uid(), date:wkEdit?wkEdit.date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, steps:isNaN(stp)?null:stp, kcalSrc:(wk!=null&&$('w_kcal').getAttribute('data-est')==='1')?'MET估':(wk!=null?'手動':null), sets:sets, note:($('w_note').value||'').trim()};
     if(wkEdit){ var ix=state.workouts.findIndex(function(w){return w.id===wkEdit.id;}); if(ix>=0) state.workouts[ix]=rec; else state.workouts.push(rec); } else state.workouts.push(rec);
     wkEdit=null; markDirty(); closeSheet();
   }
