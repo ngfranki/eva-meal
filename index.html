@@ -102,12 +102,16 @@
   .mrow.fb .mring{background:var(--fb-soft)} .mrow.fb .trk{stroke:var(--fb-soft)} .mrow.fb .val{stroke:var(--fb)}
   .mrow.over .t b{color:var(--warn)}
 
-  .net{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:14px}
+  .net{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px}
+  .net div.d{background:var(--c-soft)} .net div.d.over{background:var(--warn); color:#fff} .net div.d.over span{color:#fff; opacity:.85}
+  .steps{display:flex; align-items:center; gap:8px; margin-top:14px; background:var(--soft); border-radius:14px; padding:8px 10px}
+  .steps .ic{font-size:18px}
+  .steps input{width:120px; border:0; border-radius:10px; padding:8px 10px; background:var(--card); font-size:16px; font-weight:700}
+  .steps .sk{font-size:12px; color:var(--muted); flex:1}
   .net div{background:var(--soft); border-radius:14px; padding:9px 6px; text-align:center}
   .net b{display:block; font-size:17px; font-weight:800}
   .net span{font-size:11px; color:var(--muted)}
   .net div.n{background:var(--gold-soft)}
-  .net div.n.over{background:var(--warn); color:#fff} .net div.n.over span{color:#fff; opacity:.85}
   /* meals */
   .meal{padding:14px 16px}
   .mh{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px}
@@ -232,7 +236,8 @@
   /* workouts */
   .wk{display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px solid var(--line)}
   .wk:first-of-type{border-top:0}
-  .wk .n{flex:1}
+  .wk .n{flex:1; cursor:pointer}
+  .wk .n .hintedit{font-size:11px; color:var(--muted)}
   .wk .n b{font-size:15px; font-weight:700}
   .wk .n .m{font-size:13px; color:var(--muted)}
   .wk .n .sets{font-size:13px; margin-top:4px}
@@ -245,6 +250,11 @@
   .chart .b.over{background:var(--warn)}
   .chart .b.p{background:var(--p)}
   .chart .b.wk{background:var(--c)}
+  .chart.neg{height:150px}
+  .chart .bar2{position:relative; width:100%; height:100%}
+  .chart .bar2 .b{position:absolute; left:0; right:0; border-radius:4px}
+  .chart .bar2 .b.d{background:var(--c)}
+  .chart .zero{position:absolute; left:0; right:0; top:calc(50% + 6px); border-top:1px solid var(--line)}
   .chart .v{font-size:9px; color:var(--muted); margin-bottom:2px}
   .chart .l{font-size:9px; color:var(--muted); margin-top:4px}
   .tline{position:absolute; left:0; right:0; border-top:1.5px dashed var(--warn); opacity:.6}
@@ -347,7 +357,7 @@
 
   // ---------- state ----------
   function defaultState(){
-    return { meals:[], workouts:[], sets:[], foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
+    return { meals:[], workouts:[], sets:[], steps:{}, foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
       settings:{ dailyKcal:null, proteinTarget:null, weightKg:null, workoutTypes:DEFAULT_TYPES.slice(), lastPortion:{}, updatedAt:null },
       meta:{ lastSync:null } };
   }
@@ -358,6 +368,9 @@
     if(!Array.isArray(s.workouts)) s.workouts=[];
     if(!Array.isArray(s.foods)) s.foods=[];
     if(!Array.isArray(s.sets)) s.sets=[];
+    if(!s.steps || typeof s.steps!=='object') s.steps={};
+    if(!s.settings.tdee) s.settings.tdee=2300;
+    if(!s.settings.strideM) s.settings.strideM=0.8;
     if(!s.settings) s.settings={};
     if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
     if(s.settings.workoutTypes.indexOf('Sixpad 腹帶')<0) s.settings.workoutTypes.splice(2,0,'Sixpad 腹帶');
@@ -464,7 +477,11 @@
     items.forEach(function(i){ t.kcal+=i.kcal||0; t.protein+=i.protein||0; t.carb+=i.carb||0; t.fat+=i.fat||0; t.fiber+=i.fiber||0; });
     return t;
   }
-  function dayBurn(date){ return state.workouts.filter(function(w){return w.date===date;}).reduce(function(a,w){return a+(+w.kcal||0);},0); }
+  // 步行消耗：ACSM 步行代謝方程 淨 VO2＝0.1 mL/kg/min × 速度(m/min) → 每米淨耗氧 0.1 mL/kg → ×體重 ×5 kcal/L
+  function stepsKcal(steps){ var kg=+state.settings.weightKg||0, st=+state.settings.strideM||0.8; if(!kg||!steps) return 0; return steps*st*0.1*kg*5/1000; }
+  function daySteps(date){ return +(state.steps[date])||0; }
+  function dayWorkoutBurn(date){ return state.workouts.filter(function(w){return w.date===date;}).reduce(function(a,w){return a+(+w.kcal||0);},0); }
+  function dayBurn(date){ return dayWorkoutBurn(date)+stepsKcal(daySteps(date)); }
   function dayItems(date){ var a=[]; mealsOn(date).forEach(function(m){ a=a.concat(m.items||[]); }); return a; }
   function getMeal(date, slot, create){
     var ms=mealsOn(date).filter(function(m){ return m.slot===slot; });
@@ -615,6 +632,7 @@
   // ---------- render ----------
   function render(){
     if(!state) return;
+    if(document.activeElement&&document.activeElement.id==='stepsIn'){ var ae=document.activeElement, val=ae.value, pos=ae.selectionStart; setTimeout(function(){ var el=$('stepsIn'); if(el){ el.focus(); } },0); }
     var nav=$('datenav'); nav.style.display = tab==='trend'?'none':'';
     $('dateLbl').innerHTML=dateLabel(curDate);
     $('week').innerHTML=weekStrip();
@@ -642,16 +660,17 @@
   }
   function renderToday(){
     var t=totals(dayItems(curDate)), s=state.settings, h='';
-    var burn=dayBurn(curDate), net=t.kcal-burn;
-    var target=+s.dailyKcal||0, over=target&&net>target, pct=target?net/target:0;
+    var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), stepK=stepsKcal(steps), tdee=+s.tdee||2300, deficit=tdee-net;
+    var target=+s.dailyKcal||0, over=target&&t.kcal>target, pct=target?t.kcal/target:0;
     h+='<div class="card budget"><div class="bh"><h2>每日預算</h2><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
     h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'" data-act="settings">'+ringSvg(target?pct:0)+'<div class="c">';
-    if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-net)).toLocaleString()+'</b><em>kcal</em>'; }
-    else { h+='<small>淨攝取</small><b class="num">'+r0(net).toLocaleString()+'</b><em>kcal</em>'; }
-    h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' kcal（以淨攝取計）</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
+    if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-t.kcal)).toLocaleString()+'</b><em>kcal</em>'; }
+    else { h+='<small>已食</small><b class="num">'+r0(t.kcal).toLocaleString()+'</b><em>kcal</em>'; }
+    h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' − 攝取 '+r0(t.kcal).toLocaleString()+'</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div>';
-    h+='<div class="net"><div><b class="num">'+r0(t.kcal).toLocaleString()+'</b><span>攝取 kcal</span></div><div><b class="num">'+(burn?'−'+r0(burn).toLocaleString():'0')+'</b><span>運動消耗</span></div><div class="n'+(over?' over':'')+'"><b class="num">'+r0(net).toLocaleString()+'</b><span>淨攝取</span></div></div>';
+    h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="今日步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'步數 → 自動估消耗')+'</span></div>';
+    h+='<div class="net"><div><b class="num">'+r0(t.kcal).toLocaleString()+'</b><span>攝取</span></div><div><b class="num">'+(burn?'−'+r0(burn).toLocaleString():'0')+'</b><span>消耗（運動 '+r0(dayWorkoutBurn(curDate))+'＋步行 '+r0(stepK)+'）</span></div><div class="n"><b class="num">'+r0(net).toLocaleString()+'</b><span>淨攝取</span></div><div class="d'+(deficit<0?' over':'')+'"><b class="num">'+(deficit>=0?'−':'+')+r0(Math.abs(deficit)).toLocaleString()+'</b><span>赤字（TDEE '+tdee.toLocaleString()+'）</span></div></div>';
     h+='</div>';
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
     SLOTS.forEach(function(slot){
@@ -685,9 +704,10 @@
     if(!ws.length) h+='<div class="empty">未記</div>';
     ws.forEach(function(w){
       var conf=confirmId===w.id;
-      h+='<div class="wk"><div class="n"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+'</span>';
+      h+='<div class="wk"><div class="n tap" data-act="editwk" data-id="'+w.id+'"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+'</span>';
       if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ h+='<div>'+esc(s.exercise||'')+(s.exerciseEn?' <span class="m">'+esc(s.exerciseEn.replace(/（.*?）/,''))+'</span>':'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+(s.reps||'—')+(s.sets?' × '+s.sets+' 組':'')+'</div>'; }); h+='</div>'; }
       if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
+      h+='<div class="hintedit">撳一下改</div>';
       h+='</div><button class="x'+(conf?' confirm':'')+'" data-act="delwk" data-id="'+w.id+'">'+(conf?'確定刪除':'✕')+'</button></div>';
     });
     h+='</div>';
@@ -695,32 +715,37 @@
   }
   function renderTrend(){
     var days=[], t=today(); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
-    var s=state.settings, target=+s.dailyKcal||0, pT=+s.proteinTarget||0;
+    var s=state.settings, target=+s.dailyKcal||0, tdee=+s.tdee||2300;
     var kc=days.map(function(d){ return totals(dayItems(d)); });
-    var wk=days.map(function(d){ return state.workouts.filter(function(w){return w.date===d;}).reduce(function(a,w){return a+(+w.minutes||0);},0); });
-    var burnTot=days.reduce(function(a,d){return a+dayBurn(d);},0);
-    function chart(vals, cls, targetV, unit){
-      var mx=Math.max.apply(null, vals.concat([targetV||0, 1]))*1.1, h='<div class="chart">';
-      if(targetV) h+='<div class="tline" style="bottom:'+(targetV/mx*100)+'%"><span>'+targetV+unit+'</span></div>';
+    var steps=days.map(function(d){ return daySteps(d); });
+    var deficit=days.map(function(d,i){ var logged=kc[i].kcal>0; return logged? tdee-(kc[i].kcal-dayBurn(d)) : null; });
+    function chart(vals, cls, targetV, unit, allowNeg){
+      var nums=vals.filter(function(v){return v!=null;});
+      var mx=Math.max.apply(null, nums.map(Math.abs).concat([Math.abs(targetV||0), 1]))*1.1, h='<div class="chart'+(allowNeg?' neg':'')+'">';
+      if(targetV&&!allowNeg) h+='<div class="tline" style="bottom:'+(targetV/mx*100)+'%"><span>'+targetV+unit+'</span></div>';
+      if(allowNeg) h+='<div class="zero"></div>';
       vals.forEach(function(v,i){
         var over=targetV&&v>targetV&&cls==='kc';
-        h+='<div class="c"><div class="v">'+(v?r0(v):'')+'</div><div class="b'+(over?' over':'')+(cls==='wk'?' wk':'')+(cls==='p'?' p':'')+'" style="height:'+(v/mx*100)+'%"></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
+        if(allowNeg){
+          var hh=v==null?0:Math.abs(v)/mx*50;
+          h+='<div class="c"><div class="v">'+(v==null?'':(v>=0?'−':'+')+r0(Math.abs(v)))+'</div><div class="bar2"><div class="b'+(v!=null&&v<0?' over':' d')+'" style="height:'+hh+'%;'+(v!=null&&v<0?'top:50%':'bottom:50%')+'"></div></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
+        } else
+        h+='<div class="c"><div class="v">'+(v?r0(v):'')+'</div><div class="b'+(over?' over':'')+(cls==='st'?' wk':'')+'" style="height:'+(v/mx*100)+'%"></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
       });
       return h+'</div>';
     }
     var logged=kc.filter(function(x){return x.kcal>0;});
     var avgK=logged.length?r0(logged.reduce(function(a,x){return a+x.kcal;},0)/logged.length):0;
-    var avgP=logged.length?r0(logged.reduce(function(a,x){return a+x.protein;},0)/logged.length):0;
-    var wkTot=wk.reduce(function(a,b){return a+b;},0), wkDays=wk.filter(function(x){return x>0;}).length;
-    var h='<div class="card"><h2>近 14 日 kcal</h2>'+chart(kc.map(function(x){return x.kcal;}),'kc',target,'')+
-      '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均 kcal</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
-    h+='<div class="card"><h2>近 14 日 蛋白質（g）</h2>'+chart(kc.map(function(x){return x.protein;}),'p',pT,'g')+
-      '<div class="stat"><div><b>'+avgP+'g</b><span>有記錄日均</span></div><div><b>'+(pT?pT+'g':'—')+'</b><span>目標</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg（⚙︎）</span></div></div></div>';
-    h+='<div class="card"><h2>近 14 日 運動分鐘</h2>'+chart(wk,'wk',0,'')+
-      '<div class="stat"><div><b>'+wkTot+'</b><span>總分鐘</span></div><div><b>'+wkDays+'</b><span>有運動日數</span></div><div><b>'+burnTot.toLocaleString()+'</b><span>總消耗 kcal（手動入）</span></div></div></div>';
+    var stTot=steps.reduce(function(a,b){return a+b;},0), stDays=steps.filter(function(x){return x>0;}).length;
+    var defs=deficit.filter(function(v){return v!=null;}); var defAvg=defs.length?r0(defs.reduce(function(a,b){return a+b;},0)/defs.length):0, defSum=r0(defs.reduce(function(a,b){return a+b;},0));
+    var h='<div class="card"><h2>近 14 日 卡路里攝取（唔扣運動）</h2>'+chart(kc.map(function(x){return x.kcal;}),'kc',target,'',false)+
+      '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
+    h+='<div class="card"><h2>近 14 日 行路步數</h2>'+chart(steps,'st',0,'',false)+
+      '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
+    h+='<div class="card"><h2>近 14 日 卡路里赤字（TDEE '+tdee.toLocaleString()+' − 淨攝取）</h2>'+chart(deficit,'df',0,'',true)+
+      '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     return h;
   }
-
   // ---------- sheets ----------
   function openSheet(html){ $('sheet').innerHTML=html; $('sheet').className='sheet show'; $('veil').className='veil show'; }
   function closeSheet(){ $('sheet').className='sheet'; $('veil').className='veil'; $('sheet').innerHTML=''; }
@@ -804,28 +829,32 @@
     state.foods.push({id:'c_'+uid(), name:name, cat:'自訂', per100g:{kcal:vals[0],protein:vals[1],carb:vals[2],fat:vals[3],fiber:vals[4]}, portions:ports, source:src, custom:true});
     markDirty(); openAdd(addSlot);
   }
-  var wkType='跑步機', wkEx=null;
-  function openWorkout(){
-    var types=state.settings.workoutTypes; wkType=types[0]; wkEx=null;
-    var h='<div class="hd"><h2>記運動</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
+  var wkType='跑步機', wkEx=null, wkEdit=null;
+  function openWorkout(editId){
+    var types=state.settings.workoutTypes; wkEdit=editId?state.workouts.filter(function(w){return w.id===editId;})[0]||null:null;
+    wkType=wkEdit?wkEdit.type:types[0]; wkEx=(wkEdit&&wkEdit.sets&&wkEdit.sets[0])?[wkEdit.sets[0].exercise, wkEdit.sets[0].exerciseEn||'']:null;
+    if(wkType&&types.indexOf(wkType)<0) types.push(wkType);
+    var h='<div class="hd"><h2>'+(wkEdit?'改運動':'記運動')+'</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
     h+='<label>項目</label><div class="chips" id="wtypes">';
-    types.forEach(function(t,i){ h+='<button data-act="wtype" data-t="'+esc(t)+'" class="'+(i===0?'on':'')+'">'+esc(t)+'</button>'; });
+    types.forEach(function(t,i){ h+='<button data-act="wtype" data-t="'+esc(t)+'" class="'+(t===wkType?'on':'')+'">'+esc(t)+'</button>'; });
     h+='<button data-act="wtype-add">＋</button></div>';
     h+='<div id="wkbody"></div>';
-    h+='<label>備註</label><input id="w_note" placeholder="例：斜坡 8%·腰有少少緊">';
-    h+='<button class="btn" data-act="savewk">儲存</button></div>';
-    openSheet(h); renderWkBody();
+    h+='<label>備註</label><input id="w_note" placeholder="例：斜坡 8%·腰有少少緊" value="'+esc(wkEdit?wkEdit.note||'':'')+'">';
+    h+='<button class="btn" data-act="savewk">'+(wkEdit?'儲存修改':'儲存')+'</button></div>';
+    openSheet(h); renderWkBody(true);
   }
   function allExercises(){ return EXERCISES.concat((state.settings.exercises||[]).map(function(x){ return [x, '']; })); }
-  function renderWkBody(){
+  function renderWkBody(first){
     var el=$('wkbody'); if(!el) return;
     var keepMin=$('w_min')?$('w_min').value:'', keepK=$('w_kcal')?$('w_kcal').value:'', keepT=$('w_time')?$('w_time').value:nowTime();
+    var st0=(wkEdit&&wkEdit.sets&&wkEdit.sets[0])||null;
+    if(first&&wkEdit){ keepMin=wkEdit.minutes||''; keepK=wkEdit.kcal!=null?wkEdit.kcal:''; keepT=wkEdit.time||nowTime(); }
     var h='';
     if(wkType==='負重'){
       h+='<label>動作（撳一個）</label><div class="exchips" id="exchips">';
       allExercises().forEach(function(x){ h+='<button data-act="wex" data-zh="'+esc(x[0])+'" data-en="'+esc(x[1])+'" class="'+(wkEx&&wkEx[0]===x[0]?'on':'')+'">'+esc(x[0])+(x[1]?'<small>'+esc(x[1])+'</small>':'')+'</button>'; });
       h+='<button data-act="wex-add">＋ 其他</button></div>';
-      h+='<div class="g3"><div><label>重量 kg</label><input id="w_kg" type="number" inputmode="decimal" placeholder="40"></div><div><label>組數</label><input id="w_sets" type="number" inputmode="numeric" placeholder="3"></div><div><label>每組次數</label><input id="w_reps" type="number" inputmode="numeric" placeholder="12"></div></div>';
+      h+='<div class="g3"><div><label>重量 kg</label><input id="w_kg" type="number" inputmode="decimal" placeholder="40" value="'+esc(first&&st0&&st0.weightKg!=null?st0.weightKg:'')+'"></div><div><label>組數</label><input id="w_sets" type="number" inputmode="numeric" placeholder="3" value="'+esc(first&&st0&&st0.sets!=null?st0.sets:'')+'"></div><div><label>每組次數</label><input id="w_reps" type="number" inputmode="numeric" placeholder="12" value="'+esc(first&&st0&&st0.reps!=null?st0.reps:'')+'"></div></div>';
     }
     var defMin = wkType==='Sixpad 腹帶' ? 23 : '';
     h+='<div class="g3"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30" value="'+esc(keepMin||defMin)+'"></div><div><label>消耗 kcal</label><input id="w_kcal" type="number" inputmode="numeric" placeholder="手錶顯示" value="'+esc(keepK)+'"></div><div><label>時間</label><input id="w_time" type="time" value="'+esc(keepT)+'"></div></div>';
@@ -852,12 +881,15 @@
       sets.push({exercise:wkEx[0], exerciseEn:wkEx[1]||'', weightKg:kg===''?null:parseFloat(kg), sets:isNaN(sc)?null:sc, reps:isNaN(rp)?null:rp});
     }
     var wk=parseInt($('w_kcal').value,10); if(isNaN(wk)||wk<0) wk=null;
-    state.workouts.push({id:uid(), date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, kcalSrc:(wk!=null&&$('w_kcal').getAttribute('data-est')==='1')?'MET估':(wk!=null?'手動':null), sets:sets, note:($('w_note').value||'').trim()});
-    markDirty(); closeSheet();
+    var rec={id:wkEdit?wkEdit.id:uid(), date:wkEdit?wkEdit.date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, kcalSrc:(wk!=null&&$('w_kcal').getAttribute('data-est')==='1')?'MET估':(wk!=null?'手動':null), sets:sets, note:($('w_note').value||'').trim()};
+    if(wkEdit){ var ix=state.workouts.findIndex(function(w){return w.id===wkEdit.id;}); if(ix>=0) state.workouts[ix]=rec; else state.workouts.push(rec); } else state.workouts.push(rec);
+    wkEdit=null; markDirty(); closeSheet();
   }
   function openSettings(){
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
-    h+='<div class="g2"><div><label>每日 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
+    h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
+    h+='<div class="g2"><div><label>TDEE（每日總消耗）kcal</label><input id="s_tdee" type="number" inputmode="numeric" value="'+(s.tdee||2300)+'"></div><div><label>步長 m（估步行消耗用）</label><input id="s_stride" type="number" inputmode="decimal" step="0.01" value="'+(s.strideM||0.8)+'"></div></div>';
+    h+='<div class="hint">步行消耗＝步數 × 步長 × 0.1 mL O₂/kg/m × 體重 × 5 kcal/L（ACSM 步行代謝方程·淨耗氧·平路）；赤字＝TDEE − 淨攝取。</div>';
     h+='<div class="g3"><div><label>蛋白質 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>碳水 g（可留空）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（可留空）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
@@ -867,7 +899,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
@@ -923,6 +955,7 @@
       else { confirmId=cid; render(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; render(); },3000); }
     }
     else if(act==='addwk') openWorkout();
+    else if(act==='editwk') openWorkout(b.getAttribute('data-id'));
     else if(act==='wtype'){ document.querySelectorAll('#wtypes button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); wkType=b.getAttribute('data-t'); renderWkBody(); }
     else if(act==='wtype-add'){ var nt=prompt('新項目名稱'); if(nt&&nt.trim()){ state.settings.workoutTypes.push(nt.trim()); markDirty(); openWorkout(); wkType=nt.trim(); document.querySelectorAll('#wtypes button').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-t')===wkType); }); renderWkBody(); } }
     else if(act==='wex'){ wkEx=[b.getAttribute('data-zh'), b.getAttribute('data-en')]; document.querySelectorAll('#exchips button').forEach(function(x){x.classList.toggle('on', x===b);}); }
@@ -937,6 +970,8 @@
     else if(act==='savesettings') saveSettings();
     else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
   });
+  var stepsTimer=null;
+  document.addEventListener('input', function(e){ if(e.target&&e.target.id==='stepsIn'){ var v=parseInt(e.target.value,10); if(stepsTimer) clearTimeout(stepsTimer); stepsTimer=setTimeout(function(){ if(isNaN(v)||v<=0) delete state.steps[curDate]; else state.steps[curDate]=v; markDirty(); }, 900); } });
   document.addEventListener('change', function(e){
     if(e.target&&e.target.id==='photoIn'){ var fl=e.target.files&&e.target.files[0]; if(fl){ resizeImage(fl, function(b64){ if(!b64){ alert('讀唔到張相'); return; } photoB64=b64; photoStage1(); }); } return; }
     var el=e.target.closest('[data-act="note"]'); if(!el) return;
