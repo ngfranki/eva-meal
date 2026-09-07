@@ -371,7 +371,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1651';
+  var APP_VER = '20260907-1658';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1077,14 +1077,16 @@
     }
     var defMin = wkType==='Sixpad 腹帶' ? 23 : '';
     if(wkType==='跑步機'){ h+='<label>跑步機步數（可留空，留空就按 '+CADENCE+' 步／分估）</label><input id="w_steps" type="number" inputmode="numeric" placeholder="戒指或跑步機顯示" value="'+esc(first&&wkEdit&&wkEdit.steps?wkEdit.steps:'')+'"><div class="hint">你戒指嘅全日步數已包跑步機嗰段，app 會自動扣返呢個數先估步行消耗，唔使自己減。</div>'; }
-    h+='<div class="g3"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30" value="'+esc(keepMin||defMin)+'"></div><div><label>消耗 kcal</label><input id="w_kcal" type="number" inputmode="numeric" placeholder="手錶顯示" value="'+esc(keepK)+'"></div><div><label>時間</label><input id="w_time" type="time" value="'+esc(keepT)+'"></div></div>';
-    if(wkType==='負重'){ h+='<div class="est" id="est"></div><div class="hint">時長＝由第一組開始到最後一組完，連中間休息（MET 3.5 本身就係連休息計）。冇計時就用「組數 × 2 分鐘」，填組數會自動幫你填。</div>'; }
+    var oU=useOura(curDate);
+    h+='<div class="'+(oU?'g2':'g3')+'"><div><label>時長（分鐘）</label><input id="w_min" type="number" inputmode="numeric" placeholder="30" value="'+esc(keepMin||defMin)+'"></div>'+(oU?'<div hidden><input id="w_kcal" type="number" value="'+esc(keepK)+'"></div>':'<div><label>消耗 kcal</label><input id="w_kcal" type="number" inputmode="numeric" placeholder="手錶顯示" value="'+esc(keepK)+'"></div>')+'<div><label>時間</label><input id="w_time" type="time" value="'+esc(keepT)+'"></div></div>';
+    if(oU){ h+='<div class="hint">卡數由 Oura 計，唔使填。呢度只記做咗乜、幾耐、幾重。'+(wkType==='負重'?'冇計時就填組數，時長自動當每組 2 分鐘。':'')+'</div>'; if(wkType==='負重') h+='<div id="est" hidden></div>'; }
+    else if(wkType==='負重'){ h+='<div class="est" id="est"></div><div class="hint">時長＝由第一組開始到最後一組完，連中間休息（MET 3.5 本身就係連休息計）。冇計時就用「組數 × 2 分鐘」，填組數會自動幫你填。</div>'; }
     else if(wkType==='Sixpad 腹帶'){ h+='<div class="hint">EMS 腹帶嘅耗能 Eva 查唔到可信研究數，唔估；有手錶數就入，冇就留空當 0。</div>'; }
     else { h+='<div class="hint">消耗卡數照 Apple Watch／跑步機顯示嘅數入，app 唔會自己估。</div>'; }
     el.innerHTML=h; updateEst();
   }
   function updateEst(){
-    var el=$('est'); if(!el) return;
+    var el=$('est'); if(!el||useOura(curDate)) return;
     var kg=+state.settings.weightKg||0, mins=parseFloat($('w_min')?$('w_min').value:'');
     if(!kg){ el.innerHTML='<span>要估消耗先要體重：撳 ⚙︎ 入體重 kg</span>'; return; }
     if(!(mins>0)){ el.innerHTML='<span>填時長就估到消耗（MET 3.5 × 3.5 × 體重 ÷ 200 × 分鐘）</span>'; return; }
@@ -1094,7 +1096,7 @@
   }
   function saveWorkout(){
     var type=wkType||'其他';
-    var mins=parseInt($('w_min').value,10); if(isNaN(mins)||mins<=0){ alert('填時長（分鐘）'); return; }
+    var mins=parseInt($('w_min').value,10); if(isNaN(mins)||mins<=0){ var sc0=parseInt(($('w_sets')||{}).value,10); if(sc0>0) mins=sc0*2; else { alert('填時長（分鐘）——負重可以只填組數，自動當每組 2 分鐘'); return; } }
     var sets=[];
     if(type==='負重'){
       if(!wkEx){ alert('揀一個動作'); return; }
