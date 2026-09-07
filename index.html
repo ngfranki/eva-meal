@@ -44,6 +44,9 @@
   .sync{font-size:12px; color:var(--muted); white-space:nowrap}
   .sync.err{color:var(--warn)}
   .gear{width:36px; height:36px; border-radius:50%; background:var(--card); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; font-size:16px}
+  .upd{display:none; background:var(--ink); color:var(--bg); font-size:13px; padding:10px 12px; border-radius:14px; margin-bottom:12px; text-align:center; cursor:pointer}
+  .upd.show{display:block}
+  .ver{font-size:10px; color:var(--muted); text-align:center; padding:14px 0 0}
   .offline{display:none; background:var(--warn); color:#fff; font-size:13px; padding:9px 12px; border-radius:14px; margin-bottom:12px; text-align:center}
   .offline.show{display:block}
 
@@ -308,11 +311,13 @@
     </div>
   </div>
   <div class="offline" id="offline">離線，資料未同步</div>
+  <div class="upd" id="upd">🔄 有新版本 — 撳呢行更新</div>
   <div class="datenav" id="datenav">
     <div class="wk-top"><div class="d" id="dateLbl"></div><div class="arrows"><button id="prevD">‹</button><button id="nextD">›</button></div></div>
     <div class="week" id="week"></div>
   </div>
   <div id="view"></div>
+  <div class="ver" id="ver"></div>
 </div>
 
 <div class="tabbar"><div class="in">
@@ -331,6 +336,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
+  var APP_VER = '20260907-1041';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1013,6 +1019,16 @@
   document.querySelectorAll('.tabbar button').forEach(function(b){ b.addEventListener('click', function(){ tab=b.getAttribute('data-tab'); render(); }); });
   $('sync').addEventListener('click', function(){ if(retryTimer) clearTimeout(retryTimer); boot(); });
 
+  // 版本檢查：手機主畫面 app 會 cache 舊版，發現新版就畀個掣重載
+  try{ $('ver').textContent='版本 '+APP_VER; }catch(e){}
+  function checkUpdate(){
+    fetch('index.html?cb='+Date.now(), {cache:'no-store'}).then(function(r){ return r.text(); }).then(function(t){
+      var m=t.match(/APP_VER = '([^']+)'/); if(m && m[1]!==APP_VER){ $('upd').className='upd show'; }
+    }).catch(function(){});
+  }
+  $('upd').addEventListener('click', function(){ location.replace(location.pathname+'?v='+Date.now()); });
+  setTimeout(checkUpdate, 3000); setInterval(checkUpdate, 10*60*1000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) checkUpdate(); });
   boot();
   setInterval(refreshIfChanged, 5000);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden){ if(curDate!==today() && tab!=='trend'){ /* 保持用戶揀嘅日子 */ } refreshIfChanged(); } });
