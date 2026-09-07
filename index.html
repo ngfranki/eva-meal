@@ -380,7 +380,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1702';
+  var APP_VER = '20260907-1704';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -882,12 +882,12 @@
     var avgK=logged.length?r0(logged.reduce(function(a,x){return a+x.kcal;},0)/logged.length):0;
     var stTot=steps.reduce(function(a,b){return a+b;},0), stDays=steps.filter(function(x){return x>0;}).length;
     var defs=deficit.filter(function(v){return v!=null;}); var defAvg=defs.length?r0(defs.reduce(function(a,b){return a+b;},0)/defs.length):0, defSum=r0(defs.reduce(function(a,b){return a+b;},0));
-    var h='<div class="card"><h2>近 14 日 卡路里攝取（唔扣運動）</h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
-      '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
+    var h='<div class="card"><h2>近 14 日 卡路里赤字</h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
+      '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 行路步數</h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
-    h+='<div class="card"><h2>近 14 日 卡路里赤字</h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
-      '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
+    h+='<div class="card"><h2>近 14 日 卡路里攝取（唔扣運動）</h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
+      '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
     return h;
   }
   // ---------- Oura 解讀 ----------
