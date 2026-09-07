@@ -336,7 +336,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1052';
+  var APP_VER = '20260907-1057';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -392,6 +392,7 @@
     if(!s.steps || typeof s.steps!=='object') s.steps={};
     if(!s.settings.tdee) s.settings.tdee=2300;
     if(!s.settings.strideM) s.settings.strideM=0.8;
+    if(!s.settings.deficitMode) s.settings.deficitMode='tdee';
     if(!s.settings) s.settings={};
     if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
     if(s.settings.workoutTypes.indexOf('Sixpad 腹帶')<0) s.settings.workoutTypes.splice(2,0,'Sixpad 腹帶');
@@ -503,6 +504,12 @@
   function daySteps(date){ return +(state.steps[date])||0; }
   function dayWorkoutBurn(date){ return state.workouts.filter(function(w){return w.date===date;}).reduce(function(a,w){return a+(+w.kcal||0);},0); }
   function dayBurn(date){ return dayWorkoutBurn(date)+stepsKcal(daySteps(date)); }
+  // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
+  function dayDeficit(date, intake){
+    var st=state.settings, burn=dayBurn(date);
+    if(st.deficitMode==='bmr' && +st.bmr>0) return (+st.bmr) + intake*0.10 + burn - intake;
+    return (+st.tdee||2300) + burn - intake;
+  }
   function dayItems(date){ var a=[]; mealsOn(date).forEach(function(m){ a=a.concat(m.items||[]); }); return a; }
   function getMeal(date, slot, create){
     var ms=mealsOn(date).filter(function(m){ return m.slot===slot; });
@@ -683,7 +690,7 @@
   }
   function renderToday(){
     var t=totals(dayItems(curDate)), s=state.settings, h='';
-    var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), stepK=stepsKcal(steps), tdee=+s.tdee||2300, deficit=tdee-net;
+    var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), stepK=stepsKcal(steps), tdee=+s.tdee||2300, deficit=dayDeficit(curDate, t.kcal), modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
     var target=+s.dailyKcal||0, over=target&&t.kcal>target, pct=target?t.kcal/target:0;
     h+='<div class="card budget"><div class="bh"><h2>每日預算</h2><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
     h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'" data-act="settings">'+ringSvg(target?pct:0)+'<div class="c">';
@@ -699,7 +706,11 @@
     }
     var wkB=dayWorkoutBurn(curDate);
     h+='<div class="ledger">';
-    h+='<div class="r"><span class="op"></span><span class="lb">每日總消耗 TDEE<small>設定可改</small></span><span class="nm num">'+tdee.toLocaleString()+'</span></div>';
+    if(modeB){
+      h+='<div class="r"><span class="op"></span><span class="lb">基礎代謝 BMR<small>設定可改</small></span><span class="nm num">'+(+s.bmr).toLocaleString()+'</span></div>';
+      h+='<div class="r"><span class="op">＋</span><span class="lb">食物消化熱<small>攝取 × 10%</small></span><span class="nm num">'+r0(t.kcal*0.1).toLocaleString()+'</span></div>';
+    } else
+    h+='<div class="r"><span class="op"></span><span class="lb">每日總消耗 TDEE<small>設定可改（已包日常活動）</small></span><span class="nm num">'+tdee.toLocaleString()+'</span></div>';
     h+='<div class="r"><span class="op">＋</span><span class="lb">運動消耗<small>手錶／估算</small></span><span class="nm num">'+r0(wkB).toLocaleString()+'</span></div>';
     h+='<div class="r"><span class="op">＋</span><span class="lb">步行消耗<small>'+(steps?steps.toLocaleString()+' 步 × ACSM 公式':'未填步數')+'</small></span><span class="nm num">'+r0(stepK).toLocaleString()+'</span></div>';
     h+='<div class="r"><span class="op">−</span><span class="lb">食物攝取<small>'+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</small></span><span class="nm num">'+r0(t.kcal).toLocaleString()+'</span></div>';
@@ -753,7 +764,8 @@
     var s=state.settings, target=+s.dailyKcal||0, tdee=+s.tdee||2300;
     var kc=days.map(function(d){ return totals(dayItems(d)); });
     var steps=days.map(function(d){ return daySteps(d); });
-    var deficit=days.map(function(d,i){ var logged=kc[i].kcal>0; return logged? tdee-(kc[i].kcal-dayBurn(d)) : null; });
+    var deficit=days.map(function(d,i){ var logged=kc[i].kcal>0; return logged? dayDeficit(d, kc[i].kcal) : null; });
+    var modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
     function chart(vals, cls, targetV, unit, allowNeg){
       var nums=vals.filter(function(v){return v!=null;});
       var mx=Math.max.apply(null, nums.map(Math.abs).concat([Math.abs(targetV||0), 1]))*1.1, h='<div class="chart'+(allowNeg?' neg':'')+'">';
@@ -777,7 +789,7 @@
       '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 行路步數</h2>'+chart(steps,'st',0,'',false)+
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
-    h+='<div class="card"><h2>近 14 日 卡路里赤字（TDEE '+tdee.toLocaleString()+' − 淨攝取）</h2>'+chart(deficit,'df',0,'',true)+
+    h+='<div class="card"><h2>近 14 日 卡路里赤字（'+(modeB?'BMR '+(+s.bmr).toLocaleString()+'＋消化熱＋運動＋步行−攝取':'TDEE '+tdee.toLocaleString()+'＋運動＋步行−攝取')+'）</h2>'+chart(deficit,'df',0,'',true)+
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     return h;
   }
@@ -925,7 +937,9 @@
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
     h+='<div class="g2"><div><label>TDEE（每日總消耗）kcal</label><input id="s_tdee" type="number" inputmode="numeric" value="'+(s.tdee||2300)+'"></div><div><label>步長 m（估步行消耗用）</label><input id="s_stride" type="number" inputmode="decimal" step="0.01" value="'+(s.strideM||0.8)+'"></div></div>';
-    h+='<div class="hint">步行消耗＝步數 × 步長 × 0.1 mL O₂/kg/m × 體重 × 5 kcal/L（ACSM 步行代謝方程·淨耗氧·平路）；赤字＝TDEE − 淨攝取。</div>';
+    h+='<label>赤字計法</label><div class="chips" id="dmode"><button data-act="dmode" data-m="tdee" class="'+(s.deficitMode!=='bmr'?'on':'')+'">A · 固定 TDEE</button><button data-act="dmode" data-m="bmr" class="'+(s.deficitMode==='bmr'?'on':'')+'">B · BMR 拆件（建議）</button></div>';
+    h+='<label>BMR 基礎代謝 kcal（計法 B 用；磅／手錶／Mifflin 公式嘅數）</label><input id="s_bmr" type="number" inputmode="numeric" value="'+(s.bmr||'')+'" placeholder="例 1450">';
+    h+='<div class="hint">A：赤字＝TDEE＋運動＋步行−攝取（TDEE 已包日常活動，加運動會重複計）。B：赤字＝BMR＋攝取×10% 消化熱＋運動＋步行−攝取（每件可量，唔重複）。步行消耗＝步數×步長×0.1 mL O₂/kg/m×體重×5 kcal/L（ACSM）。</div>';
     h+='<div class="g3"><div><label>蛋白質 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>碳水 g（可留空）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（可留空）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
@@ -935,7 +949,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
@@ -1003,6 +1017,7 @@
       if(confirmId===wid){ state.workouts=state.workouts.filter(function(w){return w.id!==wid;}); confirmId=null; markDirty(); }
       else { confirmId=wid; render(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; render(); },3000); }
     }
+    else if(act==='dmode'){ document.querySelectorAll('#dmode button').forEach(function(x){x.classList.toggle('on', x===b);}); }
     else if(act==='savesettings') saveSettings();
     else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
   });
