@@ -336,7 +336,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1344';
+  var APP_VER = '20260907-1345';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1008,10 +1008,12 @@
   function openSettings(){
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
-    h+='<div class="g2"><div><label>TDEE（每日總消耗）kcal</label><input id="s_tdee" type="number" inputmode="numeric" value="'+(s.tdee||2300)+'"></div><div><label>步長 m（估步行消耗用）</label><input id="s_stride" type="number" inputmode="decimal" step="0.01" value="'+(s.strideM||0.8)+'"></div></div>';
-    h+='<label>赤字計法</label><div class="chips" id="dmode"><button data-act="dmode" data-m="tdee" class="'+(s.deficitMode!=='bmr'?'on':'')+'">A · 固定 TDEE</button><button data-act="dmode" data-m="bmr" class="'+(s.deficitMode==='bmr'?'on':'')+'">B · BMR 拆件（建議）</button></div>';
-    h+='<div class="g2"><div><label>BMR 基礎代謝 kcal（計法 B）</label><input id="s_bmr" type="number" inputmode="numeric" value="'+(s.bmr||'')+'" placeholder="例 1450"></div><div><label>日常活動加成 %（企／家務·唔計步）</label><input id="s_neat" type="number" inputmode="numeric" value="'+(s.neatPct!=null?s.neatPct:10)+'"></div></div>';
-    h+='<div class="hint">A：赤字＝TDEE＋運動＋步行−攝取（TDEE 已包日常活動，加運動會重複計）。B：赤字＝BMR＋BMR×日常活動%（企／家務等唔計步嘅郁動，預設 10%）＋攝取×10% 消化熱＋步行＋運動−攝取。兩三星期後對磅：累計赤字÷7,700 應≈跌幅，唔對就調日常活動%。步行消耗＝步數×步長×0.1 mL O₂/kg/m×體重×5 kcal/L（ACSM）。</div>';
+    var isB=(s.deficitMode==='bmr');
+    h+='<div hidden><input id="s_stride" type="number" value="'+(s.strideM||0.8)+'"></div>';
+    h+='<label>赤字計法</label><div class="chips" id="dmode"><button data-act="dmode" data-m="tdee" class="'+(isB?'':'on')+'">A · 固定 TDEE</button><button data-act="dmode" data-m="bmr" class="'+(isB?'on':'')+'">B · BMR 拆件（Eva 建議）</button></div>';
+    h+='<div id="modeA" '+(isB?'hidden':'')+'><label>TDEE（每日總消耗）kcal — 只有 A 法用</label><input id="s_tdee" type="number" inputmode="numeric" value="'+(s.tdee||2200)+'"><div class="hint">A 法：赤字＝TDEE ＋ 運動 ＋ 步行 − 食物。TDEE 已包日常活動，加運動會有重複計。</div></div>';
+    h+='<div id="modeB" '+(isB?'':'hidden')+'><div class="g2"><div><label>BMR 基礎代謝 kcal</label><input id="s_bmr" type="number" inputmode="numeric" value="'+(s.bmr||'')+'" placeholder="例 1580"></div><div><label>日常活動加成 %</label><input id="s_neat" type="number" inputmode="numeric" value="'+(s.neatPct!=null?s.neatPct:10)+'"></div></div>';
+    h+='<div class="hint">B 法：赤字＝BMR ＋ BMR×日常活動% ＋ 食物×10% 消化熱 ＋ 步行 ＋ 運動 − 食物。呢頁嘅數 Eva 已幫你 set 好（BMR 1,580·10%），三星期後對磅先再調，平時唔使掂。</div></div>';
     h+='<div class="g3"><div><label>蛋白質 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>碳水 g（可留空）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（可留空）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
@@ -1079,7 +1081,7 @@
       if(confirmId===wid){ state.workouts=state.workouts.filter(function(w){return w.id!==wid;}); confirmId=null; markDirty(); }
       else { confirmId=wid; render(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; render(); },3000); }
     }
-    else if(act==='dmode'){ document.querySelectorAll('#dmode button').forEach(function(x){x.classList.toggle('on', x===b);}); }
+    else if(act==='dmode'){ document.querySelectorAll('#dmode button').forEach(function(x){x.classList.toggle('on', x===b);}); var isB=b.getAttribute('data-m')==='bmr'; $('modeA').hidden=isB; $('modeB').hidden=!isB; }
     else if(act==='savesettings') saveSettings();
     else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
   });
