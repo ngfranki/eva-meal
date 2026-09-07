@@ -336,7 +336,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1059';
+  var APP_VER = '20260907-1102';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -393,6 +393,7 @@
     if(!s.settings.tdee) s.settings.tdee=2300;
     if(!s.settings.strideM) s.settings.strideM=0.8;
     if(!s.settings.deficitMode) s.settings.deficitMode='tdee';
+    if(s.settings.neatPct==null) s.settings.neatPct=10;
     if(!s.settings) s.settings={};
     if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
     if(s.settings.workoutTypes.indexOf('Sixpad 腹帶')<0) s.settings.workoutTypes.splice(2,0,'Sixpad 腹帶');
@@ -507,7 +508,7 @@
   // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
   function dayDeficit(date, intake){
     var st=state.settings, burn=dayBurn(date);
-    if(st.deficitMode==='bmr' && +st.bmr>0) return (+st.bmr) + intake*0.10 + burn - intake;
+    if(st.deficitMode==='bmr' && +st.bmr>0) return (+st.bmr) + (+st.bmr)*((+st.neatPct||0)/100) + intake*0.10 + burn - intake;
     return (+st.tdee||2300) + burn - intake;
   }
   function dayItems(date){ var a=[]; mealsOn(date).forEach(function(m){ a=a.concat(m.items||[]); }); return a; }
@@ -708,6 +709,7 @@
     h+='<div class="ledger">';
     if(modeB){
       h+='<div class="r"><span class="op"></span><span class="lb">基礎代謝 BMR<small>設定可改</small></span><span class="nm num">'+(+s.bmr).toLocaleString()+'</span></div>';
+      h+='<div class="r"><span class="op">＋</span><span class="lb">日常活動（企／家務）<small>BMR × '+(+s.neatPct||0)+'%·估·設定可改</small></span><span class="nm num">'+r0((+s.bmr)*((+s.neatPct||0)/100)).toLocaleString()+'</span></div>';
       h+='<div class="r"><span class="op">＋</span><span class="lb">食物消化熱<small>攝取 × 10%</small></span><span class="nm num">'+r0(t.kcal*0.1).toLocaleString()+'</span></div>';
     } else
     h+='<div class="r"><span class="op"></span><span class="lb">每日總消耗 TDEE<small>設定可改（已包日常活動）</small></span><span class="nm num">'+tdee.toLocaleString()+'</span></div>';
@@ -789,7 +791,7 @@
       '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 行路步數</h2>'+chart(steps,'st',0,'',false)+
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
-    h+='<div class="card"><h2>近 14 日 卡路里赤字（'+(modeB?'BMR '+(+s.bmr).toLocaleString()+'＋消化熱＋運動＋步行−攝取':'TDEE '+tdee.toLocaleString()+'＋運動＋步行−攝取')+'）</h2>'+chart(deficit,'df',0,'',true)+
+    h+='<div class="card"><h2>近 14 日 卡路里赤字（'+(modeB?'BMR '+(+s.bmr).toLocaleString()+'＋日常'+(+s.neatPct||0)+'%＋消化熱＋運動＋步行−攝取':'TDEE '+tdee.toLocaleString()+'＋運動＋步行−攝取')+'）</h2>'+chart(deficit,'df',0,'',true)+
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     return h;
   }
@@ -972,8 +974,8 @@
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
     h+='<div class="g2"><div><label>TDEE（每日總消耗）kcal</label><input id="s_tdee" type="number" inputmode="numeric" value="'+(s.tdee||2300)+'"></div><div><label>步長 m（估步行消耗用）</label><input id="s_stride" type="number" inputmode="decimal" step="0.01" value="'+(s.strideM||0.8)+'"></div></div>';
     h+='<label>赤字計法</label><div class="chips" id="dmode"><button data-act="dmode" data-m="tdee" class="'+(s.deficitMode!=='bmr'?'on':'')+'">A · 固定 TDEE</button><button data-act="dmode" data-m="bmr" class="'+(s.deficitMode==='bmr'?'on':'')+'">B · BMR 拆件（建議）</button></div>';
-    h+='<label>BMR 基礎代謝 kcal（計法 B 用；磅／手錶／Mifflin 公式嘅數）</label><input id="s_bmr" type="number" inputmode="numeric" value="'+(s.bmr||'')+'" placeholder="例 1450">';
-    h+='<div class="hint">A：赤字＝TDEE＋運動＋步行−攝取（TDEE 已包日常活動，加運動會重複計）。B：赤字＝BMR＋攝取×10% 消化熱＋運動＋步行−攝取（每件可量，唔重複）。步行消耗＝步數×步長×0.1 mL O₂/kg/m×體重×5 kcal/L（ACSM）。</div>';
+    h+='<div class="g2"><div><label>BMR 基礎代謝 kcal（計法 B）</label><input id="s_bmr" type="number" inputmode="numeric" value="'+(s.bmr||'')+'" placeholder="例 1450"></div><div><label>日常活動加成 %（企／家務·唔計步）</label><input id="s_neat" type="number" inputmode="numeric" value="'+(s.neatPct!=null?s.neatPct:10)+'"></div></div>';
+    h+='<div class="hint">A：赤字＝TDEE＋運動＋步行−攝取（TDEE 已包日常活動，加運動會重複計）。B：赤字＝BMR＋BMR×日常活動%（企／家務等唔計步嘅郁動，預設 10%）＋攝取×10% 消化熱＋步行＋運動−攝取。兩三星期後對磅：累計赤字÷7,700 應≈跌幅，唔對就調日常活動%。步行消耗＝步數×步長×0.1 mL O₂/kg/m×體重×5 kcal/L（ACSM）。</div>';
     h+='<div class="g3"><div><label>蛋白質 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>碳水 g（可留空）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（可留空）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
@@ -983,7 +985,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
