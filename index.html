@@ -282,6 +282,40 @@
   .stat b{display:block; font-size:18px; font-weight:800}
   .stat span{font-size:11px; color:var(--muted)}
 
+  /* oura */
+  .ostrip{display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px}
+  .ostrip span{background:var(--card); box-shadow:var(--shadow); border-radius:999px; padding:7px 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px}
+  .ostrip i{width:8px; height:8px; border-radius:50%; display:inline-block}
+  .ok{background:var(--c)} .mid{background:var(--f)} .bad{background:var(--warn)}
+  .demo{background:var(--gold-soft); border-radius:14px; padding:9px 12px; font-size:12px; color:var(--muted); margin-bottom:12px; text-align:center}
+  .ocard{background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:16px 18px; margin-bottom:12px}
+  .ocard .lb{font-size:13px; color:var(--muted); font-weight:700; letter-spacing:.02em; display:flex; justify-content:space-between; align-items:center}
+  .ocard .lb .tag{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:var(--soft); color:var(--muted)}
+  .ocard .lb .tag.ok{background:var(--c-soft); color:#3F6B3A} .ocard .lb .tag.mid{background:var(--f-soft); color:#7A5C10} .ocard .lb .tag.bad{background:#F6E0DA; color:var(--warn)}
+  .ocard .big{display:flex; align-items:baseline; gap:8px; margin:6px 0 2px}
+  .ocard .big b{font-size:44px; font-weight:800; letter-spacing:-.03em; line-height:1}
+  .ocard .big small{font-size:14px; color:var(--muted); font-weight:500}
+  .ocard .big .dl{margin-left:auto; font-size:14px; font-weight:700; color:var(--muted)}
+  .ocard .big .dl.up{color:var(--warn)} .ocard .big .dl.dn{color:var(--c)}
+  .ocard .spark{height:34px; margin:8px 0 10px}
+  .ocard .spark svg{width:100%; height:34px; overflow:visible}
+  .ocard .spark polyline{fill:none; stroke:var(--gold); stroke-width:2; stroke-linejoin:round}
+  .ocard .spark line{stroke:var(--line); stroke-dasharray:3 3}
+  .ocard .spark circle{fill:var(--ink)}
+  .ocard .ex{font-size:13px; color:var(--muted); line-height:1.5; padding-top:8px; border-top:1px dashed var(--line)}
+  .ocard .ex b{color:var(--ink); font-weight:700}
+  .ocard .ex + .ex{border-top:0; padding-top:4px}
+  .ocard .ex .k{display:inline-block; min-width:38px; font-weight:800; color:var(--ink)}
+  .obal{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px}
+  .obal div{background:var(--soft); border-radius:14px; padding:10px 12px}
+  .obal b{display:block; font-size:22px; font-weight:800; letter-spacing:-.02em}
+  .obal span{font-size:11px; color:var(--muted)}
+  .obal div.o{background:var(--gold-soft)}
+  .wrow{display:flex; align-items:center; gap:8px; background:var(--card); box-shadow:var(--shadow); border-radius:16px; padding:10px 14px; margin-bottom:12px}
+  .wrow .t{flex:1; font-size:13px; color:var(--muted)}
+  .wrow .t b{display:block; font-size:15px; color:var(--ink)}
+  .wrow input{width:90px; border:0; border-radius:10px; padding:9px 10px; background:var(--soft); font-size:18px; font-weight:800; text-align:right}
+  .wrow .u{font-size:13px; color:var(--muted)}
   /* gate */
   .gate{position:fixed; inset:0; background:var(--bg); z-index:50; display:none; align-items:center; justify-content:center; padding:20px}
   .gate.show{display:flex}
@@ -324,6 +358,7 @@
   <button data-tab="today" class="on"><i>🍽</i>今日</button>
   <button data-tab="workout"><i>🏋️</i>運動</button>
   <button data-tab="trend"><i>📊</i>趨勢</button>
+  <button data-tab="oura"><i>💍</i>Oura</button>
 </div></div>
 
 <div class="veil" id="veil"></div>
@@ -336,7 +371,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1345';
+  var APP_VER = '20260907-1505';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -378,7 +413,7 @@
 
   // ---------- state ----------
   function defaultState(){
-    return { meals:[], workouts:[], sets:[], steps:{}, foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
+    return { meals:[], workouts:[], sets:[], steps:{}, oura:{days:{}}, weights:{}, foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
       settings:{ dailyKcal:null, proteinTarget:null, weightKg:null, workoutTypes:DEFAULT_TYPES.slice(), lastPortion:{}, updatedAt:null },
       meta:{ lastSync:null } };
   }
@@ -394,6 +429,9 @@
     if(!s.settings.strideM) s.settings.strideM=0.8;
     if(!s.settings.deficitMode) s.settings.deficitMode='tdee';
     if(s.settings.neatPct==null) s.settings.neatPct=10;
+    if(!s.oura || typeof s.oura!=='object') s.oura={days:{}};
+    if(!s.oura.days) s.oura.days={};
+    if(!s.weights || typeof s.weights!=='object') s.weights={};
     if(!s.settings) s.settings={};
     if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
     if(s.settings.workoutTypes.indexOf('Sixpad 腹帶')<0) s.settings.workoutTypes.splice(2,0,'Sixpad 腹帶');
@@ -698,14 +736,15 @@
   function render(){
     if(!state) return;
     if(document.activeElement&&(document.activeElement.id==='stepsIn'||document.activeElement.id==='stepsYIn')){ var aid=document.activeElement.id, aval=document.activeElement.value; setTimeout(function(){ var el=$(aid); if(el){ el.value=aval; el.focus(); } },0); }
-    var nav=$('datenav'); nav.style.display = tab==='trend'?'none':'';
+    var nav=$('datenav'); nav.style.display = (tab==='trend'||tab==='oura')?'none':'';
     $('dateLbl').innerHTML=dateLabel(curDate);
     $('week').innerHTML=weekStrip();
-    $('title').textContent = tab==='today'?'飲食記錄':tab==='workout'?'運動':'趨勢';
+    $('title').textContent = tab==='today'?'飲食記錄':tab==='workout'?'運動':tab==='trend'?'趨勢':'Oura 解讀';
     document.querySelectorAll('.tabbar button').forEach(function(b){ b.className = b.getAttribute('data-tab')===tab?'on':''; });
     var v=$('view');
     if(tab==='today') v.innerHTML=renderToday();
     else if(tab==='workout') v.innerHTML=renderWorkout();
+    else if(tab==='oura') v.innerHTML=renderOura();
     else v.innerHTML=renderTrend();
   }
   var CAT_EMOJI={'飯麵':'🍚','肉類':'🍗','蛋奶豆':'🥚','蔬菜':'🥦','水果':'🍎','油脂堅果':'🫒','飲品':'☕','港式外食':'🍜','自訂':'🍽'};
@@ -829,6 +868,93 @@
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     return h;
   }
+  // ---------- Oura 解讀 ----------
+  var OURA_DEMO = { // 示範數據（Franki 09-07 Oura 截圖＋合理基線），token 接通後由真數取代
+    readiness:72, sleepScore:78, rhr:58, hrv:38, deepMin:48, remMin:70, totalSleepMin:395, efficiency:86, bedtime:'22:10',
+    activeCal:637, totalCal:2590, steps:12367, inactiveMin:540, mhvMin:52, tempDev:0.3,
+    base:{readiness:78, sleepScore:80, rhr:54, hrv:45, deepMin:75, totalSleepMin:420, activeCal:520, steps:9500, inactiveMin:480},
+    hist:{rhr:[53,54,55,54,56,57,58], hrv:[46,45,44,43,41,40,38], readiness:[80,79,76,78,74,73,72], deepMin:[78,72,80,65,60,55,48], steps:[8200,9100,7600,10400,9800,11200,12367]}
+  };
+  function ouraToday(){
+    var d=state.oura.days[curDate]||state.oura.days[today()];
+    if(d) return {data:d, demo:false};
+    return {data:OURA_DEMO, demo:true};
+  }
+  function spark(arr, base){
+    if(!arr||arr.length<2) return '';
+    var w=300,h=30,mn=Math.min.apply(null,arr.concat(base!=null?[base]:[])),mx=Math.max.apply(null,arr.concat(base!=null?[base]:[])); if(mx===mn) mx=mn+1;
+    var pts=arr.map(function(v,i){ return (i/(arr.length-1)*w).toFixed(1)+','+((1-(v-mn)/(mx-mn))*h+2).toFixed(1); });
+    var last=pts[pts.length-1].split(',');
+    var bl= base!=null ? '<line x1="0" x2="'+w+'" y1="'+((1-(base-mn)/(mx-mn))*h+2).toFixed(1)+'" y2="'+((1-(base-mn)/(mx-mn))*h+2).toFixed(1)+'"/>' : '';
+    return '<div class="spark"><svg viewBox="0 0 '+w+' '+(h+4)+'" preserveAspectRatio="none">'+bl+'<polyline points="'+pts.join(' ')+'"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="3"/></svg></div>';
+  }
+  function statusOf(v, base, higherIsWorse, pctMid, pctBad){
+    if(base==null||!v) return 'ok';
+    var d=(v-base)/base*100; if(higherIsWorse===false) d=-d;
+    if(d>=(pctBad||10)) return 'bad'; if(d>=(pctMid||5)) return 'mid'; return 'ok';
+  }
+  function ocard(o){
+    var tagTxt={ok:'喺你基線',mid:'偏離少少',bad:'注意'}[o.st];
+    var dl = (o.delta!=null && o.base!=null) ? '<span class="dl '+(o.delta>0?'up':(o.delta<0?'dn':''))+'">'+(o.delta>0?'↑':(o.delta<0?'↓':'＝'))+' '+Math.abs(o.delta)+(o.deltaUnit||'')+' <small style="color:var(--muted);font-weight:500">vs 你 7 日</small></span>' : '';
+    return '<div class="ocard"><div class="lb"><span>'+o.label+'</span><span class="tag '+o.st+'">'+(o.tag||tagTxt)+'</span></div>'+
+      '<div class="big"><b class="num">'+o.value+'</b><small>'+(o.unit||'')+'</small>'+dl+'</div>'+
+      (o.spark||'')+
+      '<div class="ex"><span class="k">解釋</span>'+o.explain+'</div><div class="ex"><span class="k">代表</span>'+o.means+'</div></div>';
+  }
+  function renderOura(){
+    var od=ouraToday(), d=od.data, b=d.base||{}, s=state.settings, h='';
+    var t=totals(dayItems(curDate)); var intake=t.kcal;
+    var appBurn=dayBurn(curDate), appDef=dayDeficit(curDate,intake);
+    var ouraDef = d.totalCal ? (d.totalCal - intake) : null;
+    // 頂部四詞
+    var stR=statusOf(d.readiness,b.readiness,false,5,12), stD=statusOf(d.deepMin,b.deepMin,false,15,30), stS=statusOf(d.steps,b.steps,false,0,0)==='ok'?'ok':'mid', stH=statusOf(d.rhr,b.rhr,true,4,8);
+    var words=[[stR, d.readiness>=b.readiness-3?'恢復正常':(d.readiness>=b.readiness-10?'恢復一般':'恢復差')],[stD, d.deepMin>=60?'深層夠':'深層瞓少'],[d.steps>=b.steps?'ok':'mid', d.steps>=b.steps?'郁得夠':'郁得少'],[stH, d.rhr<=b.rhr+2?'心率正常':'心率偏高']];
+    h+='<div class="ostrip">'+words.map(function(w){return '<span><i class="'+w[0]+'"></i>'+w[1]+'</span>';}).join('')+'</div>';
+    if(od.demo) h+='<div class="demo">示範數據（用你 9 月 7 日 Oura 截圖）· Oura token 接通後自動換真數，每小時更新</div>';
+    // 體重
+    var wk=state.weights[curDate]||'';
+    h+='<div class="wrow"><span style="font-size:20px">⚖️</span><div class="t"><b>體重（每星期磅一次）</b>校準基礎代謝用，唔使日日</div><input type="number" inputmode="decimal" step="0.1" id="weightIn" placeholder="'+(s.weightKg||'75')+'" value="'+wk+'"><span class="u">kg</span></div>';
+    // 能量收支對照
+    h+='<div class="ocard"><div class="lb"><span>能量收支對照</span><span class="tag">App vs Oura</span></div>';
+    h+='<div class="obal"><div><b class="num">'+r0(intake).toLocaleString()+'</b><span>食物攝取（你記嘅）</span></div><div class="o"><b class="num">'+r0(d.activeCal).toLocaleString()+'</b><span>Oura 活動卡（量出嚟）</span></div>';
+    h+='<div><b class="num">'+r0(appBurn).toLocaleString()+'</b><span>App 估活動（步數＋運動＋日常）</span></div><div class="o"><b class="num">'+(d.totalCal?r0(d.totalCal).toLocaleString():'—')+'</b><span>Oura 全日總消耗（含成日 BMR）</span></div>';
+    h+='<div><b class="num">'+(appDef>=0?'−':'+')+r0(Math.abs(appDef)).toLocaleString()+'</b><span>赤字 App 版（BMR '+(+s.bmr||0).toLocaleString()+'）</span></div><div class="o"><b class="num">'+(ouraDef!=null?((ouraDef>=0?'−':'+')+r0(Math.abs(ouraDef)).toLocaleString()):'—')+'</b><span>赤字 Oura 版（BMR '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'）</span></div></div>';
+    h+='<div class="ex"><span class="k">解釋</span>兩套數活動部分接近（'+r0(appBurn-(+s.bmr||0)*((+s.neatPct||0)/100))+' 對 '+r0(d.activeCal)+'），分歧喺基礎代謝：App 用 '+(+s.bmr||0).toLocaleString()+'，Oura 用約 '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'。</div><div class="ex"><span class="k">代表</span>邊個近真，三星期後由磅裁決：累計赤字 ÷ 7,700 ＝ 應該跌幾多 kg。</div></div>';
+    // 準備度
+    h+=ocard({label:'準備度 Readiness', value:d.readiness, unit:'／100', delta:b.readiness!=null?d.readiness-b.readiness:null, base:b.readiness, st:stR, spark:spark(d.hist&&d.hist.readiness,b.readiness),
+      explain:'Oura 綜合你昨晚睡眠、靜止心率、HRV、體溫，畀出「今日身體承受得幾多」。85 以上係好，70–84 一般，70 以下要輕手。',
+      means: d.readiness>=85?'<b>今日可以照常訓練同保持赤字。</b>':(d.readiness>=70?'<b>可以照常，唔要加碼。</b>低過 7 日平均 '+Math.abs(d.readiness-b.readiness)+' 分，今日赤字大過 700 嘅話第二朝多數更攰。':'<b>身體要休息。</b>今日赤字唔要超過 500，訓練改輕。')});
+    // 深層睡眠
+    h+=ocard({label:'深層睡眠', value:d.deepMin, unit:'分鐘', delta:b.deepMin!=null?d.deepMin-b.deepMin:null, deltaUnit:'分', base:b.deepMin, st:stD, spark:spark(d.hist&&d.hist.deepMin,b.deepMin),
+      explain:'身體修補肌肉、清理腦部代謝廢物嘅時段，主要喺上半夜。成年人一般 60–110 分。',
+      means: d.deepMin<60?'<b>深層瞓少，係「瞓夠但冇精神」最常見嘅原因。</b>長期赤字、太夜食、瞓前睇機都會壓低深層。你連續 5 個月赤字，呢格最值得留意。':'<b>深層夠，修復正常。</b>'});
+    h+=ocard({label:'總睡眠', value:Math.floor(d.totalSleepMin/60)+'h '+(d.totalSleepMin%60), unit:'分', delta:b.totalSleepMin!=null?r0((d.totalSleepMin-b.totalSleepMin)):null, deltaUnit:'分', base:b.totalSleepMin, st:statusOf(d.totalSleepMin,b.totalSleepMin,false,5,12),
+      explain:'實際瞓着嘅時間（唔計瞓前瞓後醒住）。效率 '+d.efficiency+'%，上床 '+d.bedtime+'。',
+      means: d.totalSleepMin<390?'<b>少過 6.5 小時。</b>睡眠唔夠嗰日，飢餓感同對甜食嘅渴求會升，赤字更難守。':'<b>時長正常。</b>質素睇上面深層嗰格。'});
+    // 靜止心率
+    h+=ocard({label:'靜止心率', value:d.rhr, unit:'次/分', delta:b.rhr!=null?d.rhr-b.rhr:null, base:b.rhr, st:stH, spark:spark(d.hist&&d.hist.rhr,b.rhr),
+      explain:'瞓覺時心臟最慢嘅速度，反映身體有幾多「未清嘅賬」（壓力、訓練、赤字、病）。',
+      means: d.rhr>b.rhr+3?'<b>高於你基線 '+(d.rhr-b.rhr)+' 下。</b>連續 3 日咁樣＝身體處理緊壓力：赤字太大、瞓唔夠或者開始病，三選一。呢個訊號通常比磅同精神早一至兩星期。':'<b>喺你基線範圍。</b>身體頂得順而家嘅赤字同訓練。'});
+    // HRV
+    h+=ocard({label:'HRV 心率變異', value:d.hrv, unit:'ms', delta:b.hrv!=null?d.hrv-b.hrv:null, base:b.hrv, st:statusOf(d.hrv,b.hrv,false,8,15), spark:spark(d.hist&&d.hist.hrv,b.hrv),
+      explain:'心跳之間嘅微細變化。越高＝神經系統越鬆、恢復越好。每個人數值唔同，只同自己比。',
+      means: d.hrv<b.hrv*0.88?'<b>比基線低 '+r0((1-d.hrv/b.hrv)*100)+'%。</b>同靜止心率一齊睇：兩樣同時轉差，係「食太少或訓練太重」最可靠嘅訊號。':'<b>正常。</b>'});
+    // 活動
+    h+=ocard({label:'今日活動消耗（Oura 量）', value:r0(d.activeCal).toLocaleString(), unit:'kcal', delta:b.activeCal!=null?r0(d.activeCal-b.activeCal):null, base:b.activeCal, st:'ok', tag:'≈ '+r1(d.activeCal/180)+' 碗白飯',
+      explain:'Oura 用心率同動作量出你今日「額外」燒嘅，唔包基礎代謝。步行 '+r0(stepsKcal(Math.max(0,d.steps-treadmillSteps(curDate))))+' ＋ 運動 '+r0(dayWorkoutBurn(curDate))+' ＋ 企／家務其餘。',
+      means:'<b>你一日嘅努力就係呢個數。</b>1,800 目標入面有 '+r0(d.activeCal)+' 係郁返嚟嘅，其餘 '+r0(1800-d.activeCal)+' 靠基礎代謝。'});
+    h+=ocard({label:'步數', value:d.steps.toLocaleString(), unit:'步', delta:b.steps!=null?r0(d.steps-b.steps):null, base:b.steps, st:'ok', tag:d.steps>=b.steps?'多過平時':'少過平時', spark:spark(d.hist&&d.hist.steps,b.steps),
+      explain:'全日步數（Oura 戒指）。扣跑步機 '+treadmillSteps(curDate).toLocaleString()+' 步後，日常行路 '+Math.max(0,d.steps-treadmillSteps(curDate)).toLocaleString()+' 步。',
+      means:'<b>日常行路係你全日消耗第二大嘅一格，比 gym 更大。</b>7 日平均 '+b.steps.toLocaleString()+'，今日'+(d.steps>=b.steps?'多':'少')+' '+Math.abs(d.steps-b.steps).toLocaleString()+'。'});
+    h+=ocard({label:'久坐時間', value:r1(d.inactiveMin/60), unit:'小時', delta:b.inactiveMin!=null?r1((d.inactiveMin-b.inactiveMin)/60):null, deltaUnit:'h', base:b.inactiveMin, st:statusOf(d.inactiveMin,b.inactiveMin,true,8,15),
+      explain:'Oura 計你醒住但幾乎冇郁嘅時間（坐、企定）。',
+      means: d.inactiveMin>480?'<b>坐多過 8 小時。</b>腰痛日子多數係咁；每坐 50 分起身行 2 分，對腰同 NEAT 都有幫助。':'<b>坐得唔多。</b>'});
+    h+=ocard({label:'體溫偏差', value:(d.tempDev>0?'+':'')+d.tempDev, unit:'°C', st:Math.abs(d.tempDev)>=0.5?'bad':(Math.abs(d.tempDev)>=0.3?'mid':'ok'), delta:null,
+      explain:'瞓覺時皮膚溫度同你長期平均比。一日上落正常，連續三日同方向先係訊號。',
+      means: Math.abs(d.tempDev)>=0.5?'<b>偏差大。</b>可能開始病或者過勞，今日唔要谷。':'<b>一日唔使理。</b>連續三日 +0.3 以上先當訊號。'});
+    return h;
+  }
+  document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='weightIn'){ var v=parseFloat(el.value); if(stepsTimer) clearTimeout(stepsTimer); stepsTimer=setTimeout(function(){ if(v>0){ state.weights[curDate]=v; state.settings.weightKg=v; markDirty(); } },1200); } });
   // ---------- sheets ----------
   function openSheet(html){ $('sheet').innerHTML=html; $('sheet').className='sheet show'; $('veil').className='veil show'; }
   function closeSheet(){ $('sheet').className='sheet'; $('veil').className='veil'; $('sheet').innerHTML=''; }
