@@ -917,9 +917,10 @@
     // 能量收支對照
     h+='<div class="ocard"><div class="lb"><span>能量收支對照</span><span class="tag">App vs Oura</span></div>';
     h+='<div class="obal"><div><b class="num">'+r0(intake).toLocaleString()+'</b><span>食物攝取（你記嘅）</span></div><div class="o"><b class="num">'+r0(d.activeCal).toLocaleString()+'</b><span>Oura 活動卡（量出嚟）</span></div>';
-    h+='<div><b class="num">'+r0(appBurn).toLocaleString()+'</b><span>App 估活動（步數＋運動＋日常）</span></div><div class="o"><b class="num">'+(d.totalCal?r0(d.totalCal).toLocaleString():'—')+'</b><span>Oura 全日總消耗（含成日 BMR）</span></div>';
+    h+='<div><b class="num">'+r0(appBurn+(+s.bmr||0)*((+s.neatPct||0)/100)).toLocaleString()+'</b><span>App 估活動（步行＋運動＋日常 10%）</span></div><div class="o"><b class="num">'+(d.totalCal?r0(d.totalCal).toLocaleString():'—')+'</b><span>Oura 全日總消耗（含成日 BMR）</span></div>';
     h+='<div><b class="num">'+(appDef>=0?'−':'+')+r0(Math.abs(appDef)).toLocaleString()+'</b><span>赤字 App 版（BMR '+(+s.bmr||0).toLocaleString()+'）</span></div><div class="o"><b class="num">'+(ouraDef!=null?((ouraDef>=0?'−':'+')+r0(Math.abs(ouraDef)).toLocaleString()):'—')+'</b><span>赤字 Oura 版（BMR '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'）</span></div></div>';
-    h+='<div class="ex"><span class="k">解釋</span>兩套數活動部分接近（'+r0(appBurn-(+s.bmr||0)*((+s.neatPct||0)/100))+' 對 '+r0(d.activeCal)+'），分歧喺基礎代謝：App 用 '+(+s.bmr||0).toLocaleString()+'，Oura 用約 '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'。</div><div class="ex"><span class="k">代表</span>邊個近真，三星期後由磅裁決：累計赤字 ÷ 7,700 ＝ 應該跌幾多 kg。</div></div>';
+    var appAct=appBurn+(+s.bmr||0)*((+s.neatPct||0)/100);
+    h+='<div class="ex"><span class="k">解釋</span>活動部分：App（步行＋運動＋日常 10%）'+r0(appAct)+' 對 Oura '+r0(d.activeCal)+'，差 '+r0(Math.abs(appAct-d.activeCal))+'。真正分歧喺基礎代謝：App 用 '+(+s.bmr||0).toLocaleString()+'，Oura 用約 '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'。</div><div class="ex"><span class="k">代表</span>邊個近真，三星期後由磅裁決：累計赤字 ÷ 7,700 ＝ 應該跌幾多 kg。</div></div>';
     // 準備度
     h+=ocard({label:'準備度 Readiness', value:d.readiness, unit:'／100', delta:b.readiness!=null?d.readiness-b.readiness:null, base:b.readiness, st:stR, spark:spark(d.hist&&d.hist.readiness,b.readiness),
       explain:'Oura 綜合你昨晚睡眠、靜止心率、HRV、體溫，畀出「今日身體承受得幾多」。85 以上係好，70–84 一般，70 以下要輕手。',
