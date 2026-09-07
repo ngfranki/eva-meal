@@ -104,7 +104,22 @@
 
   .net{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px}
   .net div.d{background:var(--c-soft)} .net div.d.over{background:var(--warn); color:#fff} .net div.d.over span{color:#fff; opacity:.85}
+  .ledger{margin-top:12px; background:var(--soft); border-radius:16px; padding:10px 14px}
+  .ledger .r{display:flex; align-items:baseline; gap:8px; padding:5px 0; border-top:1px dashed var(--line)}
+  .ledger .r:first-child{border-top:0}
+  .ledger .op{width:18px; font-weight:800; color:var(--muted)}
+  .ledger .lb{flex:1; font-size:14px}
+  .ledger .lb small{display:block; font-size:11px; color:var(--muted)}
+  .ledger .nm{font-weight:800; font-size:17px; min-width:70px; text-align:right}
+  .ledger .r.tot{border-top:2px solid var(--ink); margin-top:4px; padding-top:8px}
+  .ledger .r.tot .lb{font-weight:800; font-size:15px}
+  .ledger .r.tot .nm{font-size:22px; color:var(--c)}
+  .ledger .r.tot.over .nm{color:var(--warn)}
+  .ledger .r.sub .nm,.ledger .r.sub .lb{color:var(--muted); font-size:13px}
   .steps{display:flex; align-items:center; gap:8px; margin-top:14px; background:var(--soft); border-radius:14px; padding:8px 10px}
+  .steps.y{margin-top:6px; background:transparent; border:1px dashed var(--line)}
+  .steps.y input{background:var(--soft)}
+  .steps .lbl{font-size:12px; color:var(--muted); white-space:nowrap}
   .steps .ic{font-size:18px}
   .steps input{width:120px; border:0; border-radius:10px; padding:8px 10px; background:var(--card); font-size:16px; font-weight:700}
   .steps .sk{font-size:12px; color:var(--muted); flex:1}
@@ -632,7 +647,7 @@
   // ---------- render ----------
   function render(){
     if(!state) return;
-    if(document.activeElement&&document.activeElement.id==='stepsIn'){ var ae=document.activeElement, val=ae.value, pos=ae.selectionStart; setTimeout(function(){ var el=$('stepsIn'); if(el){ el.focus(); } },0); }
+    if(document.activeElement&&(document.activeElement.id==='stepsIn'||document.activeElement.id==='stepsYIn')){ var aid=document.activeElement.id, aval=document.activeElement.value; setTimeout(function(){ var el=$(aid); if(el){ el.value=aval; el.focus(); } },0); }
     var nav=$('datenav'); nav.style.display = tab==='trend'?'none':'';
     $('dateLbl').innerHTML=dateLabel(curDate);
     $('week').innerHTML=weekStrip();
@@ -669,8 +684,20 @@
     h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' − 攝取 '+r0(t.kcal).toLocaleString()+'</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div>';
-    h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="今日步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'步數 → 自動估消耗')+'</span></div>';
-    h+='<div class="net"><div><b class="num">'+r0(t.kcal).toLocaleString()+'</b><span>攝取</span></div><div><b class="num">'+(burn?'−'+r0(burn).toLocaleString():'0')+'</b><span>消耗（運動 '+r0(dayWorkoutBurn(curDate))+'＋步行 '+r0(stepK)+'）</span></div><div class="n"><b class="num">'+r0(net).toLocaleString()+'</b><span>淨攝取</span></div><div class="d'+(deficit<0?' over':'')+'"><b class="num">'+(deficit>=0?'−':'+')+r0(Math.abs(deficit)).toLocaleString()+'</b><span>赤字（TDEE '+tdee.toLocaleString()+'）</span></div></div>';
+    h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'步數 → 自動估消耗')+'</span></div>';
+    var yd=shiftDate(curDate,-1);
+    if(curDate===today() && !daySteps(yd) && (dayItems(yd).length||state.workouts.some(function(w){return w.date===yd;}))){
+      h+='<div class="steps y"><span class="ic">🌙</span><input type="number" inputmode="numeric" id="stepsYIn" placeholder="琴日步數" data-d="'+yd+'"><span class="lbl">琴晚忘記填？補返呢度</span></div>';
+    }
+    var wkB=dayWorkoutBurn(curDate);
+    h+='<div class="ledger">';
+    h+='<div class="r"><span class="op"></span><span class="lb">每日總消耗 TDEE<small>設定可改</small></span><span class="nm num">'+tdee.toLocaleString()+'</span></div>';
+    h+='<div class="r"><span class="op">＋</span><span class="lb">運動消耗<small>手錶／估算</small></span><span class="nm num">'+r0(wkB).toLocaleString()+'</span></div>';
+    h+='<div class="r"><span class="op">＋</span><span class="lb">步行消耗<small>'+(steps?steps.toLocaleString()+' 步 × ACSM 公式':'未填步數')+'</small></span><span class="nm num">'+r0(stepK).toLocaleString()+'</span></div>';
+    h+='<div class="r"><span class="op">−</span><span class="lb">食物攝取<small>'+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</small></span><span class="nm num">'+r0(t.kcal).toLocaleString()+'</span></div>';
+    h+='<div class="r tot'+(deficit<0?' over':'')+'"><span class="op">＝</span><span class="lb">'+(deficit>=0?'今日赤字':'今日超出')+'</span><span class="nm num">'+r0(Math.abs(deficit)).toLocaleString()+'</span></div>';
+    h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 運動 − 步行）</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
+    h+='</div>';
     h+='</div>';
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
     SLOTS.forEach(function(slot){
@@ -971,6 +998,8 @@
     else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
   });
   var stepsTimer=null;
+  var stepsYTimer=null;
+  document.addEventListener('input', function(e){ if(e.target&&e.target.id==='stepsYIn'){ var d=e.target.getAttribute('data-d'), v2=parseInt(e.target.value,10); if(stepsYTimer) clearTimeout(stepsYTimer); stepsYTimer=setTimeout(function(){ if(!isNaN(v2)&&v2>0){ state.steps[d]=v2; markDirty(); } }, 1200); } });
   document.addEventListener('input', function(e){ if(e.target&&e.target.id==='stepsIn'){ var v=parseInt(e.target.value,10); if(stepsTimer) clearTimeout(stepsTimer); stepsTimer=setTimeout(function(){ if(isNaN(v)||v<=0) delete state.steps[curDate]; else state.steps[curDate]=v; markDirty(); }, 900); } });
   document.addEventListener('change', function(e){
     if(e.target&&e.target.id==='photoIn'){ var fl=e.target.files&&e.target.files[0]; if(fl){ resizeImage(fl, function(b64){ if(!b64){ alert('讀唔到張相'); return; } photoB64=b64; photoStage1(); }); } return; }
