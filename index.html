@@ -262,6 +262,15 @@
   .wk .n .sets div{padding:1px 0}
 
   /* trends */
+  .lchart{width:100%; margin-top:6px}
+  .lchart svg{width:100%; height:170px; overflow:visible}
+  .lchart .ln{fill:none; stroke:var(--gold); stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round}
+  .lchart .ln.df{stroke:var(--ink)}
+  .lchart .pt{fill:var(--ink)} .lchart .pt.over{fill:var(--warn)}
+  .lchart .vl{font-size:10px; font-weight:700; fill:var(--ink)} .lchart .vl.over{fill:var(--warn)}
+  .lchart .xl{font-size:9px; fill:var(--muted)}
+  .lchart .tgt{stroke:var(--warn); stroke-dasharray:4 3; opacity:.6} .lchart .tl{font-size:9px; fill:var(--warn)}
+  .lchart .zero{stroke:var(--line)}
   .chart{display:flex; align-items:flex-end; gap:4px; height:130px; padding-top:10px; position:relative}
   .chart .c{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%}
   .chart .b{width:100%; background:var(--gold); border-radius:6px; min-height:3px}
@@ -371,7 +380,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1658';
+  var APP_VER = '20260907-1659';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -850,19 +859,24 @@
     var deficit=days.map(function(d,i){ var logged=kc[i].kcal>0; return logged? dayDeficit(d, kc[i].kcal) : null; });
     var modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
     function chart(vals, cls, targetV, unit, allowNeg){
+      var W=320,Hh=150,padL=6,padR=6,padT=22,padB=18, n=vals.length;
       var nums=vals.filter(function(v){return v!=null;});
-      var mx=Math.max.apply(null, nums.map(Math.abs).concat([Math.abs(targetV||0), 1]))*1.1, h='<div class="chart'+(allowNeg?' neg':'')+'">';
-      if(targetV&&!allowNeg) h+='<div class="tline" style="bottom:'+(targetV/mx*100)+'%"><span>'+targetV+unit+'</span></div>';
-      if(allowNeg) h+='<div class="zero"></div>';
+      var lo=Math.min.apply(null,nums.concat([allowNeg?0:0, targetV||0])), hi=Math.max.apply(null,nums.concat([targetV||0,1]));
+      if(!allowNeg) lo=0; var span=(hi-lo)||1; hi=hi+span*0.15; if(allowNeg) lo=lo-span*0.15; span=hi-lo;
+      var X=function(i){ return padL+(n===1?0:(i/(n-1)))*(W-padL-padR); }, Y=function(v){ return padT+(1-(v-lo)/span)*(Hh-padT-padB); };
+      var h='<div class="lchart"><svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">';
+      if(targetV&&!allowNeg) h+='<line class="tgt" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+Y(targetV).toFixed(1)+'" y2="'+Y(targetV).toFixed(1)+'"/><text class="tl" x="'+(W-padR)+'" y="'+(Y(targetV)-4).toFixed(1)+'" text-anchor="end">目標 '+targetV+unit+'</text>';
+      if(allowNeg) h+='<line class="zero" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+Y(0).toFixed(1)+'" y2="'+Y(0).toFixed(1)+'"/>';
+      var pts=[]; vals.forEach(function(v,i){ if(v!=null) pts.push(X(i).toFixed(1)+','+Y(v).toFixed(1)); });
+      if(pts.length>1) h+='<polyline class="ln'+(cls==='df'?' df':'')+'" points="'+pts.join(' ')+'"/>';
       vals.forEach(function(v,i){
-        var over=targetV&&v>targetV&&cls==='kc';
-        if(allowNeg){
-          var hh=v==null?0:Math.abs(v)/mx*50;
-          h+='<div class="c"><div class="v">'+(v==null?'':(v>=0?'−':'+')+r0(Math.abs(v)))+'</div><div class="bar2"><div class="b'+(v!=null&&v<0?' over':' d')+'" style="height:'+hh+'%;'+(v!=null&&v<0?'top:50%':'bottom:50%')+'"></div></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
-        } else
-        h+='<div class="c"><div class="v">'+(v?r0(v):'')+'</div><div class="b'+(over?' over':'')+(cls==='st'?' wk':'')+'" style="height:'+(v/mx*100)+'%"></div><div class="l">'+(+days[i].slice(8))+'</div></div>';
+        var x=X(i);
+        if(v!=null){ var y=Y(v); var over=(targetV&&v>targetV&&cls==='kc')||(allowNeg&&v<0);
+          h+='<circle class="pt'+(over?' over':'')+'" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.5"/>';
+          h+='<text class="vl'+(over?' over':'')+'" x="'+x.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle">'+(allowNeg?(v>=0?'−':'+')+r0(Math.abs(v)).toLocaleString():r0(v).toLocaleString())+'</text>'; }
+        h+='<text class="xl" x="'+x.toFixed(1)+'" y="'+(Hh-4)+'" text-anchor="middle">'+(+days[i].slice(8))+'</text>';
       });
-      return h+'</div>';
+      return h+'</svg></div>';
     }
     var logged=kc.filter(function(x){return x.kcal>0;});
     var avgK=logged.length?r0(logged.reduce(function(a,x){return a+x.kcal;},0)/logged.length):0;
