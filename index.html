@@ -107,7 +107,7 @@
 
   .net{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px}
   .net div.d{background:var(--gold-soft)} .net div.d.over{background:var(--warn); color:#fff} .net div.d.over span{color:#fff; opacity:.85}
-  .ledger{margin-top:12px; background:var(--soft); border-radius:16px; padding:10px 14px}
+  .ledger{margin-top:12px; background:transparent; border-radius:0; padding:4px 2px 0}
   .ledger .r{display:flex; align-items:baseline; gap:8px; padding:5px 0; border-top:1px dashed var(--line)}
   .ledger .r:first-child{border-top:0}
   .ledger .op{width:18px; font-weight:800; color:var(--muted)}
@@ -116,8 +116,8 @@
   .ledger .nm{font-weight:800; font-size:17px; min-width:70px; text-align:right}
   .ledger .r.tot{border-top:2px solid var(--ink); margin-top:4px; padding-top:8px}
   .ledger .r.tot .lb{font-weight:800; font-size:15px}
-  .ledger .r.tot .nm{font-size:22px; color:var(--ink)}
-  .ledger .r.tot.over .nm{color:var(--warn)}
+  .ledger .r.tot .nm{font-size:24px; color:var(--warn)}
+  .ledger .r.tot.over .nm{color:var(--warn); text-decoration:underline; text-decoration-thickness:2px}
   .ledger .r.sub .nm,.ledger .r.sub .lb{color:var(--muted); font-size:13px}
   .steps{display:flex; align-items:center; gap:8px; margin-top:14px; background:var(--soft); border-radius:14px; padding:8px 10px}
   .steps.y{margin-top:6px; background:transparent; border:1px dashed var(--line)}
@@ -371,7 +371,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260907-1636';
+  var APP_VER = '20260907-1637';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
