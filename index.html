@@ -326,6 +326,34 @@
   .wrow .t b{display:block; font-size:15px; color:var(--ink)}
   .wrow input{width:90px; border:0; border-radius:10px; padding:9px 10px; background:var(--soft); font-size:18px; font-weight:800; text-align:right}
   .wrow .u{font-size:13px; color:var(--muted)}
+  /* export */
+  .exp{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .exp input[type=date]{border:0; border-radius:12px; padding:9px 10px; background:var(--soft); font-size:14px; font-weight:700}
+  .exp .arrow{color:var(--muted)}
+  .exp .btns{display:flex; gap:8px; width:100%; margin-top:8px}
+  .exp .btns button{flex:1; border-radius:14px; padding:12px; font-weight:800; background:var(--ink); color:var(--bg)}
+  .exp .btns button.ghost{background:var(--soft); color:var(--ink)}
+  #report{position:fixed; left:-10000px; top:0; width:794px; background:#FFFFFF; color:#3B3A19; font-family:-apple-system,"PingFang HK",sans-serif; padding:44px 48px; box-sizing:border-box}
+  #report *{box-sizing:border-box}
+  #report h1{font-size:26px; margin:0; font-weight:800; letter-spacing:-.01em}
+  #report .sub{font-size:12px; color:#8A876A; margin:4px 0 18px}
+  #report .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px}
+  #report .kpi{background:#FAF6EB; border-radius:14px; padding:12px 14px}
+  #report .kpi b{display:block; font-size:22px; font-weight:800}
+  #report .kpi span{font-size:11px; color:#8A876A}
+  #report h2{font-size:14px; margin:18px 0 8px; font-weight:800; letter-spacing:.04em; color:#8A876A}
+  #report table{width:100%; border-collapse:collapse; font-size:11px}
+  #report th{font-weight:700; color:#8A876A; text-align:right; padding:6px 6px; border-bottom:1.5px solid #3B3A19}
+  #report th:first-child,#report td:first-child{text-align:left}
+  #report td{text-align:right; padding:6px 6px; border-bottom:1px solid #ECE5D3; font-variant-numeric:tabular-nums}
+  #report tr.tot td{font-weight:800; border-top:1.5px solid #3B3A19; border-bottom:0}
+  #report .meals{font-size:11px; columns:2; column-gap:24px}
+  #report .day{break-inside:avoid; margin-bottom:10px}
+  #report .day b{display:block; font-size:12px; margin-bottom:2px}
+  #report .day div{color:#3B3A19; padding-left:8px; line-height:1.5}
+  #report .day div span{color:#8A876A}
+  #report .foot{font-size:10px; color:#8A876A; margin-top:18px; border-top:1px solid #ECE5D3; padding-top:8px; line-height:1.5}
+  #report .ecg{height:6px; background:linear-gradient(90deg,#CEB991 0 60%,#3B3A19 60% 62%,transparent 62%); border-radius:3px; margin:10px 0 0}
   /* gate */
   .gate{position:fixed; inset:0; background:var(--bg); z-index:50; display:none; align-items:center; justify-content:center; padding:20px}
   .gate.show{display:flex}
@@ -381,7 +409,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260908-1333';
+  var APP_VER = '20260908-1618';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -884,13 +912,73 @@
     var avgK=logged.length?r0(logged.reduce(function(a,x){return a+x.kcal;},0)/logged.length):0;
     var stTot=steps.reduce(function(a,b){return a+b;},0), stDays=steps.filter(function(x){return x>0;}).length;
     var defs=deficit.filter(function(v){return v!=null;}); var defAvg=defs.length?r0(defs.reduce(function(a,b){return a+b;},0)/defs.length):0, defSum=r0(defs.reduce(function(a,b){return a+b;},0));
-    var h='<div class="card"><h2>近 14 日 卡路里赤字</h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
+    var fromD=state.settings.expFrom||shiftDate(t,-13), toD=state.settings.expTo||t;
+    var h='<div class="card"><div class="lb" style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">匯出報告</h2><span class="hint" style="margin:0">PDF 靚版／文字版畀 ChatGPT</span></div><div class="exp" style="margin-top:10px"><input type="date" id="expFrom" value="'+fromD+'"><span class="arrow">→</span><input type="date" id="expTo" value="'+toD+'"><div class="btns"><button data-act="exp-pdf">📄 匯出 PDF</button><button class="ghost" data-act="exp-txt">📋 複製文字版</button></div></div><div class="hint" id="expMsg"></div></div>';
+    h+='<div class="card"><h2>近 14 日 卡路里赤字</h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 行路步數</h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 卡路里攝取（唔扣運動）</h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
       '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
     return h;
+  }
+  // ---------- 匯出 ----------
+  function reportData(from,to){
+    var days=[], d=from; while(d<=to){ days.push(d); d=shiftDate(d,1); if(days.length>120) break; }
+    var s=state.settings, rows=days.map(function(dt){
+      var it=dayItems(dt), tt=totals(it), o=(state.oura.days||{})[dt]||{}, ws=state.workouts.filter(function(w){return w.date===dt;});
+      var intake=tt.kcal, burn=dayBurn(dt), deficit=intake>0?dayDeficit(dt,intake):null;
+      return {date:dt, intake:intake, p:tt.protein, c:tt.carb, f:tt.fat, fb:tt.fiber, burn:burn, deficit:deficit, steps:daySteps(dt), oura:o, weight:state.weights[dt]||null,
+        meals:SLOTS.map(function(sl){ var m=getMeal(dt,sl,false); return m&&m.items.length?{slot:sl,time:m.time,items:m.items}:null; }).filter(Boolean),
+        workouts:ws};
+    });
+    return rows;
+  }
+  function fmtItems(items){ return items.map(function(i){ return (i.parts?('['+i.name+'] '+i.parts.map(function(p){return p.name+' '+p.grams+'g';}).join('、')):(i.name+' '+i.grams+'g'))+' '+i.kcal; }).join('；'); }
+  function reportHTML(rows,from,to){
+    var s=state.settings, logged=rows.filter(function(r){return r.intake>0;});
+    var avg=function(arr,k){ var v=arr.map(function(r){return r[k];}).filter(function(x){return x!=null&&!isNaN(x);}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null; };
+    var wts=rows.filter(function(r){return r.weight;}); var wchg=wts.length>1?(wts[wts.length-1].weight-wts[0].weight):null;
+    var h='<div class="ecg"></div><h1 style="margin-top:14px">飲食記錄 · '+from.slice(5).replace('-','/')+' – '+to.slice(5).replace('-','/')+'</h1><div class="sub">Franki · '+s.weightKg+' kg · 目標 '+(s.dailyKcal||'—')+' kcal／蛋白 ≥'+(s.proteinTarget||'—')+'g／纖維 ≥'+(s.fiberTarget||'—')+'g／碳水 ≤'+(s.carbTarget||'—')+'g／脂肪 ≤'+(s.fatTarget||'—')+'g · 赤字計法：'+(s.deficitMode==='bmr'?'BMR '+s.bmr+' ＋ 食物×10% ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+s.tdee+' ＋ 活動 − 食物')+' · 匯出 '+new Date().toLocaleString('zh-HK',{hour12:false})+'</div>';
+    h+='<div class="kpis"><div class="kpi"><b>'+(avg(logged,'intake')!=null?r0(avg(logged,'intake')).toLocaleString():'—')+'</b><span>日均攝取 kcal（'+logged.length+' 日有記錄）</span></div><div class="kpi"><b>'+(avg(logged,'deficit')!=null?((avg(logged,'deficit')>=0?'−':'+')+r0(Math.abs(avg(logged,'deficit'))).toLocaleString()):'—')+'</b><span>日均赤字 kcal</span></div><div class="kpi"><b>'+(avg(logged,'p')!=null?r0(avg(logged,'p')):'—')+'g</b><span>日均蛋白（目標 '+(s.proteinTarget||'—')+'）</span></div><div class="kpi"><b>'+(avg(rows.filter(function(r){return r.steps>0;}),'steps')!=null?r0(avg(rows.filter(function(r){return r.steps>0;}),'steps')).toLocaleString():'—')+'</b><span>日均步數（Oura）</span></div></div>';
+    h+='<div class="kpis"><div class="kpi"><b>'+(wts.length?wts[0].weight+' → '+wts[wts.length-1].weight:'—')+'</b><span>體重 kg'+(wchg!=null?'（'+(wchg>0?'+':'')+r1(wchg)+'）':'')+'</span></div><div class="kpi"><b>'+(avg(logged,'fb')!=null?r0(avg(logged,'fb')):'—')+'g</b><span>日均纖維（目標 '+(s.fiberTarget||'—')+'）</span></div><div class="kpi"><b>'+(avg(rows.filter(function(r){return r.oura.readiness;}).map(function(r){return {v:r.oura.readiness};}),'v')!=null?r0(avg(rows.filter(function(r){return r.oura.readiness;}).map(function(r){return {v:r.oura.readiness};}),'v')):'—')+'</b><span>日均準備度（Oura）</span></div><div class="kpi"><b>'+(avg(rows.filter(function(r){return r.oura.rhr;}).map(function(r){return {v:r.oura.rhr};}),'v')!=null?r0(avg(rows.filter(function(r){return r.oura.rhr;}).map(function(r){return {v:r.oura.rhr};}),'v')):'—')+'</b><span>日均靜止心率</span></div></div>';
+    h+='<h2>每日總覽</h2><table><tr><th>日期</th><th>攝取</th><th>蛋白</th><th>碳水</th><th>脂肪</th><th>纖維</th><th>活動</th><th>赤字</th><th>步數</th><th>準備度</th><th>睡眠</th><th>深層</th><th>RHR</th><th>HRV</th><th>體重</th></tr>';
+    rows.forEach(function(r){ var o=r.oura; h+='<tr><td>'+r.date.slice(5).replace('-','/')+'</td><td>'+(r.intake?r0(r.intake).toLocaleString():'—')+'</td><td>'+(r.intake?r0(r.p):'—')+'</td><td>'+(r.intake?r0(r.c):'—')+'</td><td>'+(r.intake?r0(r.f):'—')+'</td><td>'+(r.intake?r0(r.fb):'—')+'</td><td>'+(r.burn?r0(r.burn):'—')+'</td><td>'+(r.deficit!=null?((r.deficit>=0?'−':'+')+r0(Math.abs(r.deficit))):'—')+'</td><td>'+(r.steps?r.steps.toLocaleString():'—')+'</td><td>'+(o.readiness||'—')+'</td><td>'+(o.totalSleepMin?Math.floor(o.totalSleepMin/60)+'h'+(o.totalSleepMin%60):'—')+'</td><td>'+(o.deepMin||'—')+'</td><td>'+(o.rhr||'—')+'</td><td>'+(o.hrv||'—')+'</td><td>'+(r.weight||'—')+'</td></tr>'; });
+    h+='</table>';
+    h+='<h2>每餐明細</h2><div class="meals">';
+    rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; h+='<div class="day"><b>'+r.date.slice(5).replace('-','/')+' · '+r0(r.intake)+' kcal</b>'; r.meals.forEach(function(m){ h+='<div><span>'+m.slot+(m.time?' '+m.time:'')+'</span> '+esc(fmtItems(m.items))+'</div>'; }); r.workouts.forEach(function(w){ h+='<div><span>運動</span> '+esc(w.type)+' '+w.minutes+'分'+(w.sets&&w.sets[0]?' · '+esc(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?' · '+esc(w.note):'')+'</div>'; }); h+='</div>'; });
+    h+='</div>';
+    h+='<div class="foot">數字來源：食物營養值出自內建食物庫（USDA FoodData Central／香港食安中心／台灣食藥署／日本文部科學省）或包裝標籤；份量由使用者輸入或 AI 目測估算；活動消耗為 Oura 量度之 active calories；BMR 為 Mifflin-St Jeor 公式估算。赤字＝BMR ＋ 攝取×10% ＋ 活動 − 攝取。Oura 總消耗與 BIA 體脂率未採用。由 eva-meal 匯出。</div>';
+    return h;
+  }
+  function reportText(rows,from,to){
+    var s=state.settings, L=[];
+    L.push('# 飲食記錄 '+from+' 至 '+to); L.push('體重 '+s.weightKg+' kg · 目標 '+s.dailyKcal+' kcal · 蛋白≥'+s.proteinTarget+' 纖維≥'+s.fiberTarget+' 碳≤'+s.carbTarget+' 脂≤'+s.fatTarget+' · 赤字＝BMR '+s.bmr+'＋攝取×10%＋活動（Oura）−攝取'); L.push('');
+    L.push('| 日期 | 攝取kcal | 蛋白g | 碳水g | 脂肪g | 纖維g | 活動kcal | 赤字 | 步數 | 準備度 | 睡眠分鐘 | 深層分鐘 | RHR | HRV | 體重kg |'); L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+    rows.forEach(function(r){ var o=r.oura; L.push('| '+r.date+' | '+(r.intake?r0(r.intake):'')+' | '+(r.intake?r0(r.p):'')+' | '+(r.intake?r0(r.c):'')+' | '+(r.intake?r0(r.f):'')+' | '+(r.intake?r0(r.fb):'')+' | '+(r.burn?r0(r.burn):'')+' | '+(r.deficit!=null?r0(r.deficit):'')+' | '+(r.steps||'')+' | '+(o.readiness||'')+' | '+(o.totalSleepMin||'')+' | '+(o.deepMin||'')+' | '+(o.rhr||'')+' | '+(o.hrv||'')+' | '+(r.weight||'')+' |'); });
+    L.push(''); L.push('## 每餐明細');
+    rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; L.push('### '+r.date+'（'+r0(r.intake)+' kcal）'); r.meals.forEach(function(m){ L.push('- '+m.slot+(m.time?' '+m.time:'')+'：'+fmtItems(m.items)); }); r.workouts.forEach(function(w){ L.push('- 運動：'+w.type+' '+w.minutes+'分'+(w.sets&&w.sets[0]?' '+(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?'（'+w.note+'）':'')); }); });
+    return L.join('\n');
+  }
+  function loadScript(src){ return new Promise(function(res,rej){ if(document.querySelector('script[src="'+src+'"]')) return res(); var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
+  function expRange(){ var f=$('expFrom').value, t=$('expTo').value; if(!f||!t||f>t){ alert('揀返日期範圍'); return null; } state.settings.expFrom=f; state.settings.expTo=t; return [f,t]; }
+  function exportText(){ var r=expRange(); if(!r) return; var txt=reportText(reportData(r[0],r[1]),r[0],r[1]);
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){ $('expMsg').textContent='已複製文字版（'+txt.length.toLocaleString()+' 字）— 去 ChatGPT 貼上就得'; }).catch(function(){ var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); $('expMsg').textContent='已複製文字版'; }catch(e){ $('expMsg').textContent='複製唔到，長按下面框全選複製'; ta.style.cssText='width:100%;height:160px;margin-top:8px'; return; } ta.remove(); }); }
+  function exportPDF(){
+    var r=expRange(); if(!r) return; $('expMsg').textContent='整緊 PDF…（首次要載入工具，約 5–10 秒）';
+    Promise.all([loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).then(function(){
+      var rows=reportData(r[0],r[1]); var el=document.getElementById('report'); if(!el){ el=document.createElement('div'); el.id='report'; document.body.appendChild(el); }
+      el.innerHTML=reportHTML(rows,r[0],r[1]);
+      return html2canvas(el,{scale:2,backgroundColor:'#FFFFFF',useCORS:true}).then(function(cv){
+        var pdf=new window.jspdf.jsPDF({orientation:'p',unit:'pt',format:'a4'}); var pw=595.28, ph=841.89;
+        var imgW=pw, ratio=cv.height/cv.width, pageHpx=Math.floor(cv.width*(ph/pw)); var y=0, first=true;
+        while(y<cv.height){ var slice=document.createElement('canvas'); slice.width=cv.width; slice.height=Math.min(pageHpx,cv.height-y); slice.getContext('2d').drawImage(cv,0,y,cv.width,slice.height,0,0,cv.width,slice.height);
+          if(!first) pdf.addPage(); pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',0,0,imgW,slice.height*(pw/cv.width)); first=false; y+=pageHpx; }
+        var name='飲食記錄_'+r[0]+'_至_'+r[1]+'.pdf'; var blob=pdf.output('blob'); var file=new File([blob],name,{type:'application/pdf'});
+        if(navigator.canShare&&navigator.canShare({files:[file]})){ return navigator.share({files:[file],title:name}).then(function(){ $('expMsg').textContent='已匯出 '+name; }).catch(function(){ $('expMsg').textContent='已取消'; }); }
+        var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); $('expMsg').textContent='已下載 '+name;
+      });
+    }).catch(function(e){ $('expMsg').textContent='匯出失敗：'+(e&&e.message||e); });
   }
   // ---------- Oura 解讀 ----------
   var OURA_DEMO = { // 示範數據（Franki 09-07 Oura 截圖＋合理基線），token 接通後由真數取代
@@ -1216,6 +1304,8 @@
     else if(act==='photo-confirm') photoStage2();
     else if(act==='nl-ai'){ nlAi(false); }
     else if(act==='nl-rm'){ nlRows.splice(+b.getAttribute('data-i'),1); renderNl(); }
+    else if(act==='exp-pdf') exportPDF();
+    else if(act==='exp-txt') exportText();
     else if(act==='nl-parse') nlParse();
     else if(act==='nl-pick'){ var rr=nlRows[+b.getAttribute('data-i')]; rr.grams=parseFloat(b.getAttribute('data-grams')); rr.status='ok'; rr.how='你揀'; renderNl(); }
     else if(act==='nl-pickg'){ var ii=+b.getAttribute('data-i'); var gv=parseFloat($('nlg'+ii).value); if(gv>0){ nlRows[ii].grams=gv; nlRows[ii].status='ok'; nlRows[ii].how='你打'; renderNl(); } }
