@@ -380,7 +380,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260908-0845';
+  var APP_VER = '20260908-1113';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -784,7 +784,7 @@
     h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' − 攝取 '+r0(t.kcal).toLocaleString()+'</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
     h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
     h+='</div>';
-    if(oU) h+='<div class="steps"><span class="ic">👟</span><b class="num" style="font-size:18px">'+steps.toLocaleString()+'</b><span class="sk">步 · Oura 自動 · 活動 '+r0(burn)+' kcal（量）</span></div>';
+    if(oU) h+='<div class="steps"><span class="ic">💍</span><b class="num" style="font-size:18px">'+steps.toLocaleString()+'</b><span class="sk"><b style="color:var(--ink)">步 · 跟 Oura</b>（'+esc((state.oura.lastSync||'').slice(11,16))+' 同步）· 活動 '+r0(burn)+' kcal 亦跟 Oura</span></div>';
     else h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?(tmSteps?'扣跑步機 '+tmSteps.toLocaleString()+' 步 → ':'')+'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'戒指總步數 → 自動扣跑步機再估')+'</span></div>';
     var yd=shiftDate(curDate,-1);
     if(curDate===today() && !daySteps(yd)){
