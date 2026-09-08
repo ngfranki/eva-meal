@@ -409,7 +409,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260908-1618';
+  var APP_VER = '20260909-0639';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -587,6 +587,11 @@
   function useOura(date){ return state.settings.activitySource!=='estimate' && ouraActive(date)!=null; }
   function dayBurn(date){ if(useOura(date)) return ouraActive(date); return dayWorkoutBurn(date)+stepsKcal(walkSteps(date)); }
   // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
+  function monthDeficit(date){ // 由月初到 date（含）有記錄嘅日子累計赤字
+    var ym=date.slice(0,7), d=ym+'-01', sum=0, n=0;
+    while(d<=date){ var it=dayItems(d); if(it.length){ sum+=dayDeficit(d, totals(it).kcal); n++; } d=shiftDate(d,1); if(n>40) break; }
+    return {sum:sum, days:n, month:+ym.slice(5)};
+  }
   function dayDeficit(date, intake){
     var st=state.settings, burn=dayBurn(date);
     if(st.deficitMode==='bmr' && +st.bmr>0) return (+st.bmr) + (useOura(date)?0:(+st.bmr)*((+st.neatPct||0)/100)) + intake*0.10 + burn - intake;
@@ -838,6 +843,8 @@
     h+='<div class="r"><span class="op">−</span><span class="lb">食物攝取<small>'+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</small></span><span class="nm num">'+r0(t.kcal).toLocaleString()+'</span></div>';
     h+='<div class="r tot'+(deficit<0?' over':'')+'"><span class="op">＝</span><span class="lb">'+(deficit>=0?'今日赤字':'今日超出')+'</span><span class="nm num">'+r0(Math.abs(deficit)).toLocaleString()+'</span></div>';
     h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 活動）'+(oU?' · 運動記錄嘅卡數唔會再加（已喺 Oura 內）':'')+'</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
+    var md=monthDeficit(curDate);
+    h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月至今累計赤字<small>'+md.days+' 日有記錄 · ÷7,700 ≈ '+(md.sum/7700).toFixed(2)+' kg 脂肪 · 每月重新計</small></span><span class="nm num" style="color:var(--warn)">'+(md.sum>=0?'−':'+')+r0(Math.abs(md.sum)).toLocaleString()+'</span></div>';
     h+='</div>';
     h+='</div>';
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
