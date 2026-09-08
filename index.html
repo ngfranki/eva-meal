@@ -380,7 +380,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260908-0736';
+  var APP_VER = '20260908-0845';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1043,7 +1043,9 @@
   function openCustomFood(){
     var h='<div class="hd"><h2>自訂食物</h2><button class="close" data-act="backadd">‹ 返回</button></div><div class="frm">';
     h+='<label>名稱</label><input id="cf_name" placeholder="例：媽媽蒸水蛋">';
-    h+='<label>每 100g 營養值（kcal／蛋白 g／碳水 g／脂肪 g／纖維 g）</label>';
+    h+='<label>標籤點寫？</label><div class="chips" id="cfbase"><button data-act="cfbase" data-m="100" class="on">每 100g</button><button data-act="cfbase" data-m="serving">每份（serving）</button></div>';
+    h+='<div id="cfserv" hidden><label>一份係幾多克／毫升</label><input id="cf_sg" type="number" inputmode="decimal" placeholder="例：30"><div class="hint">照標籤 serving size 填，app 自動換算做每 100g；毫升當克計（飲品）。</div></div>';
+    h+='<label id="cfvl">每 100g 營養值（kcal／蛋白 g／碳水 g／脂肪 g／纖維 g）</label>';
     h+='<div class="g5"><input id="cf_k" type="number" inputmode="decimal" placeholder="kcal"><input id="cf_p" type="number" inputmode="decimal" placeholder="蛋白"><input id="cf_c" type="number" inputmode="decimal" placeholder="碳水"><input id="cf_f" type="number" inputmode="decimal" placeholder="脂肪"><input id="cf_fb" type="number" inputmode="decimal" placeholder="纖維"></div>';
     h+='<label>三個份量（名稱＋克數）</label>';
     for(var i=0;i<3;i++){ h+='<div class="g2" style="margin-bottom:6px"><input id="cf_l'+i+'" placeholder="'+['半','一','大'][i]+'"><input id="cf_g'+i+'" type="number" inputmode="decimal" placeholder="克數"></div>'; }
@@ -1056,9 +1058,13 @@
     var vals=['cf_k','cf_p','cf_c','cf_f','cf_fb'].map(function(id){ return parseFloat($(id).value); });
     if(!name){ alert('要有名稱'); return; }
     if(vals.some(function(v){ return isNaN(v); })){ alert('五個營養值要全部填（冇就填 0）'); return; }
+    var byServing=document.querySelector('#cfbase button.on')&&document.querySelector('#cfbase button.on').getAttribute('data-m')==='serving', sg=null;
+    if(byServing){ sg=parseFloat($('cf_sg').value); if(!(sg>0)){ alert('填一份係幾多克'); return; } vals=vals.map(function(v){ return Math.round(v/sg*100*100)/100; }); }
     if(!src){ alert('來源必填'); return; }
     var ports=[]; for(var i=0;i<3;i++){ var l=($('cf_l'+i).value||'').trim(), g=parseFloat($('cf_g'+i).value); if(l&&!isNaN(g)&&g>0) ports.push({label:l,grams:g}); }
+    if(byServing && !ports.some(function(p){return Math.abs(p.grams-sg)<0.01;})) ports.unshift({label:'1 份', grams:sg});
     if(ports.length<1){ alert('至少一個份量'); return; }
+    if(byServing) src+='（標籤每份 '+sg+'g 換算）';
     state.foods.push({id:'c_'+uid(), name:name, cat:'自訂', per100g:{kcal:vals[0],protein:vals[1],carb:vals[2],fat:vals[3],fiber:vals[4]}, portions:ports, source:src, custom:true});
     markDirty(); openAdd(addSlot);
   }
@@ -1215,6 +1221,7 @@
     else if(act==='edit-save') saveEditItem();
     else if(act==='toggleparts'){ var c2=b.getAttribute('data-cid'); expandedId = expandedId===c2?null:c2; render(); }
     else if(act==='customfood') openCustomFood();
+    else if(act==='cfbase'){ document.querySelectorAll('#cfbase button').forEach(function(x){x.classList.toggle('on', x===b);}); var sv=b.getAttribute('data-m')==='serving'; $('cfserv').hidden=!sv; $('cfvl').textContent=sv?'每份營養值（kcal／蛋白 g／碳水 g／脂肪 g／纖維 g）照標籤抄':'每 100g 營養值（kcal／蛋白 g／碳水 g／脂肪 g／纖維 g）'; }
     else if(act==='savefood') saveCustomFood();
     else if(act==='del'){
       var mid=b.getAttribute('data-meal'), idx=+b.getAttribute('data-idx'), cid=mid+':'+idx;
