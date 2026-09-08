@@ -104,6 +104,7 @@
   .mrow.f .mring{background:var(--f-soft)} .mrow.f .trk{stroke:var(--f-soft)} .mrow.f .val{stroke:var(--f)}
   .mrow.fb .mring{background:var(--fb-soft)} .mrow.fb .trk{stroke:var(--fb-soft)} .mrow.fb .val{stroke:var(--fb)}
   .mrow.over .t b{color:var(--warn)}
+  .mrow.done .mring{background:var(--ink)} .mrow.done .mring span{color:var(--bg); font-weight:800; font-size:18px} .mrow.done .t span{color:var(--ink); font-weight:700}
 
   .net{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px}
   .net div.d{background:var(--gold-soft)} .net div.d.over{background:var(--warn); color:#fff} .net div.d.over span{color:#fff; opacity:.85}
@@ -380,7 +381,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260908-1114';
+  var APP_VER = '20260908-1333';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -769,9 +770,10 @@
     var r=19, c=2*Math.PI*r, v=Math.max(0,Math.min(1,pct))*c;
     return '<svg viewBox="0 0 42 42"><circle class="trk" cx="21" cy="21" r="'+r+'"/>'+(v>0?'<circle class="val" cx="21" cy="21" r="'+r+'" stroke-dasharray="'+v.toFixed(1)+' '+c.toFixed(1)+'"/>':'')+'</svg>';
   }
-  function mrow(label, val, target, cls, emoji){
-    var over=target&&val>target;
-    return '<div class="mrow '+cls+(over?' over':'')+'"><div class="mring">'+(target?miniRing(val/target):'')+'<span>'+emoji+'</span></div><div class="t"><b class="num">'+r0(val)+(target?' <small>/ '+target+'g</small>':'<small>g</small>')+'</b><span>'+label+'</span></div></div>';
+  function mrow(label, val, target, cls, emoji, floor){
+    var over=target&&val>target, done=floor&&target&&val>=target;
+    var sub = !target ? label : (floor ? (done ? label+' ✓ 達標' : label+' · 差 '+r0(target-val)+'g') : (over ? label+' · 超 '+r0(val-target)+'g' : label+' · 剩 '+r0(target-val)+'g'));
+    return '<div class="mrow '+cls+(over&&!floor?' over':'')+(done?' done':'')+'"><div class="mring">'+(target?miniRing(val/target):'')+'<span>'+(done?'✓':emoji)+'</span></div><div class="t"><b class="num">'+r0(val)+(target?' <small>/ '+target+'g</small>':'<small>g</small>')+'</b><span>'+sub+'</span></div></div>';
   }
   function renderToday(){
     var t=totals(dayItems(curDate)), s=state.settings, h='';
@@ -783,7 +785,7 @@
     if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-t.kcal)).toLocaleString()+'</b><em>kcal</em>'; }
     else { h+='<small>已食</small><b class="num">'+r0(t.kcal).toLocaleString()+'</b><em>kcal</em>'; }
     h+='</div></div>'+(target?'<div class="goal">目標 '+target.toLocaleString()+' − 攝取 '+r0(t.kcal).toLocaleString()+'</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
-    h+='<div class="mrows">'+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾')+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗')+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑')+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬')+'</div>';
+    h+='<div class="mrows">'+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗',true)+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬',true)+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾',false)+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑',false)+'</div>';
     h+='</div>';
     if(oU) h+='<div class="steps"><span class="ic">💍</span><b class="num" style="font-size:18px">'+steps.toLocaleString()+'</b><span class="sk">步 · 跟 Oura · '+esc((state.oura.lastSync||'').slice(11,16))+'</span></div>';
     else h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?(tmSteps?'扣跑步機 '+tmSteps.toLocaleString()+' 步 → ':'')+'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'戒指總步數 → 自動扣跑步機再估')+'</span></div>';
@@ -1173,7 +1175,9 @@
     h+='<div id="modeA" '+(isB?'hidden':'')+'><label>TDEE（每日總消耗）kcal — 只有 A 法用</label><input id="s_tdee" type="number" inputmode="numeric" value="'+(s.tdee||2200)+'"><div class="hint">A 法：赤字＝TDEE ＋ 運動 ＋ 步行 − 食物。TDEE 已包日常活動，加運動會有重複計。</div></div>';
     h+='<div id="modeB" '+(isB?'':'hidden')+'><div class="g2"><div><label>BMR 基礎代謝 kcal</label><input id="s_bmr" type="number" inputmode="numeric" value="'+(s.bmr||'')+'" placeholder="例 1580"></div><div><label>日常活動加成 %</label><input id="s_neat" type="number" inputmode="numeric" value="'+(s.neatPct!=null?s.neatPct:10)+'"></div></div>';
     h+='<div class="hint">B 法：赤字＝BMR ＋ BMR×日常活動% ＋ 食物×10% 消化熱 ＋ 步行 ＋ 運動 − 食物。呢頁嘅數 Eva 已幫你 set 好（BMR 1,580·10%），三星期後對磅先再調，平時唔使掂。</div></div>';
-    h+='<div class="g3"><div><label>蛋白質 g</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>碳水 g（可留空）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（可留空）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
+    h+='<div class="g2"><div><label>蛋白質 g（至少）</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>纖維 g（至少）</label><input id="s_fb" type="number" inputmode="numeric" value="'+(s.fiberTarget||'')+'"></div></div>';
+    h+='<div class="g2"><div><label>碳水 g（上限）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（上限）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
+    h+='<div class="hint">蛋白質、纖維達到就打 ✓；碳水、脂肪顯示剩幾多，超咗變紅。</div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
     h+='<div class="hint">食物庫：'+BUILTIN.length+' 樣內建（每樣有來源）＋ '+state.foods.filter(function(f){return f.custom;}).length+' 樣自訂。撳食物名可睇來源。</div>';
@@ -1182,7 +1186,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
