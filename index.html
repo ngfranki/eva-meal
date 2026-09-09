@@ -409,7 +409,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260910-0649';
+  var APP_VER = '20260910-0742';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -869,12 +869,12 @@
           var cid=m.id+':'+idx, conf=confirmId===cid;
           if(it.parts){
             var open=expandedId===cid;
-            h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?'':' · 撳睇明細')+'</span></div>';
+            h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?' · 撳收埋':' · 撳睇明細')+'</span></div>';
           } else
           h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+' · 撳改</span></div>';
           h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
           h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
-          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+p.grams+'g ✎</span><span>'+p.kcal+'</span></li>'; }); h+='</ul></li>'; }
+          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+p.grams+'g ✎</span><span>'+p.kcal+'</span></li>'; }); h+='<li class="tap" data-act="toggleparts" data-cid="'+cid+'" style="justify-content:center;color:var(--muted);padding-top:6px"><span>▲ 收埋明細</span></li></ul></li>'; }
         });
         h+='</ul>';
         h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
