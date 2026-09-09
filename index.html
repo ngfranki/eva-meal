@@ -409,9 +409,9 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260909-1656';
+  var APP_VER = '20260909-1839';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
-  var SLOTS = ['早','午','晚','宵'];
+  var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
   var EXERCISES = [['高位下拉','Lat Pulldown（Panatta Super Lat Pulldown Circular）'],['髖外展','Hip Abduction（Life Fitness）'],['髖內收','Hip Adduction（Life Fitness）'],['腿伸（大腿前）','Leg Extension（Life Fitness）'],['坐姿划船','Seated Row'],['胸推','Chest Press'],['肩推','Shoulder Press'],['腿推','Leg Press'],['腿彎舉','Leg Curl'],['深蹲','Squat'],['硬拉','Deadlift'],['二頭彎舉','Biceps Curl'],['三頭下壓','Triceps Pushdown'],['腹肌機','Abdominal Crunch'],['背伸展','Back Extension']];
   var DEFAULT_QUICK = ['rice_white','egg','chicken_breast','choy_sum','coffee_black','banana','greek_yogurt_nonfat','oats'];
@@ -801,7 +801,7 @@
     else v.innerHTML=renderTrend();
   }
   var CAT_EMOJI={'飯麵':'🍚','肉類':'🍗','蛋奶豆':'🥚','蔬菜':'🥦','水果':'🍎','油脂堅果':'🫒','飲品':'☕','港式外食':'🍜','自訂':'🍽'};
-  var SLOT_EMOJI={'早':'🌅','午':'☀️','晚':'🌙','宵':'🌃'};
+  var SLOT_EMOJI={'早':'🌅','午':'☀️','下午':'🥤','晚':'🌙','宵':'🌃'};
   function thumbOf(it){ if(it.parts) return '🍱'; var f=foodById(it.foodId); return f?(CAT_EMOJI[f.cat]||'🍽'):'🍽'; }
   function ringSvg(pct, cls){
     var r=54, c=2*Math.PI*r, v=Math.max(0,Math.min(1,pct))*c;
@@ -861,7 +861,7 @@
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
     SLOTS.forEach(function(slot){
       var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
-      h+='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">'+SLOT_EMOJI[slot]+'</div><div><b>'+slot+(slot==='宵'?'夜':'餐')+'</b><span>'+(m&&m.time?esc(m.time):'')+(items.length?(m&&m.time?' · ':'')+r0(st.kcal)+' kcal · 蛋白 '+r0(st.protein)+'g':'未記')+'</span></div></div>';
+      h+='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">'+SLOT_EMOJI[slot]+'</div><div><b>'+(slot==='下午'?'下午':slot+(slot==='宵'?'夜':'餐'))+'</b><span>'+(m&&m.time?esc(m.time):'')+(items.length?(m&&m.time?' · ':'')+r0(st.kcal)+' kcal · 蛋白 '+r0(st.protein)+'g':'未記')+'</span></div></div>';
       h+='<button class="addbtn" data-act="add" data-slot="'+slot+'">＋</button></div>';
       if(items.length){
         h+='<ul class="items">';
