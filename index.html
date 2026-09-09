@@ -409,7 +409,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260909-1647';
+  var APP_VER = '20260909-1656';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -588,10 +588,12 @@
   function dayBurn(date){ if(useOura(date)) return ouraActive(date); return dayWorkoutBurn(date)+stepsKcal(walkSteps(date)); }
   // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
   function isRestDay(date){ var p=date.split('-'); var dow=new Date(+p[0],+p[1]-1,+p[2]).getDay(); var rd=String(state.settings.restDays||'').split(',').map(function(x){return parseInt(x,10);}); return rd.indexOf(dow)>=0; }
+  function dayDeficitTarget(date){ var st=state.settings; return isRestDay(date)?(+st.deficitTargetRest||300):(+st.deficitTargetGym||+st.deficitTarget||600); }
   function weekDeficit(date){ // 本週（一至日）到 date 為止有記錄日嘅平均
     var p=date.split('-'); var d0=new Date(+p[0],+p[1]-1,+p[2]); var dow=(d0.getDay()+6)%7; var mon=shiftDate(date,-dow);
     var d=mon, sum=0, n=0; while(d<=date){ var it=dayItems(d); if(it.length){ sum+=dayDeficit(d, totals(it).kcal); n++; } d=shiftDate(d,1); }
-    return {sum:sum, days:n, avg:n?sum/n:0, left:7-((dow)+1)};
+    var wk=0, d2=mon; for(var i=0;i<7;i++){ wk+=dayDeficitTarget(d2); d2=shiftDate(d2,1); }
+    return {sum:sum, days:n, avg:n?sum/n:0, left:7-((dow)+1), weekTarget:wk};
   }
   function monthDeficit(date){ // 由月初到 date（含）有記錄嘅日子累計赤字
     var ym=date.slice(0,7), d=ym+'-01', sum=0, n=0;
@@ -847,10 +849,11 @@
     h+='<div class="r"><span class="op">＋</span><span class="lb">步行消耗<small>'+(steps?(tmSteps?steps.toLocaleString()+' − 跑步機 '+tmSteps.toLocaleString()+' ＝ '+wSteps.toLocaleString()+' 步':steps.toLocaleString()+' 步')+' × ACSM':'未填步數')+'</small></span><span class="nm num">'+r0(stepK).toLocaleString()+'</span></div>';
     }
     h+='<div class="r"><span class="op">−</span><span class="lb">食物攝取<small>'+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</small></span><span class="nm num">'+r0(t.kcal).toLocaleString()+'</span></div>';
-    h+='<div class="r tot'+(deficit<0?' over':'')+'"><span class="op">＝</span><span class="lb">'+(deficit>=0?'今日赤字':'今日超出')+'</span><span class="nm num">'+r0(Math.abs(deficit)).toLocaleString()+'</span></div>';
+    var dtg=dayDeficitTarget(curDate);
+    h+='<div class="r tot'+(deficit<0?' over':'')+'"><span class="op">＝</span><span class="lb">'+(deficit>=0?'今日赤字':'今日超出')+'<small>'+(rest?'休息日':'運動日')+'目標 '+dtg+(deficit>=dtg?' ✓ 達標':' · 差 '+r0(dtg-deficit))+'</small></span><span class="nm num">'+r0(Math.abs(deficit)).toLocaleString()+'</span></div>';
     h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 活動）'+(oU?' · 運動記錄嘅卡數唔會再加（已喺 Oura 內）':'')+'</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
-    var wd=weekDeficit(curDate), tgt=+s.deficitTarget||500, need=wd.left>0?(tgt*7-wd.sum)/wd.left:null;
-    h+='<div class="r sub"><span class="op"></span><span class="lb">本週平均赤字（一至日）<small>'+wd.days+' 日 · 目標 '+tgt+'/日'+(need!=null?' · 餘 '+wd.left+' 日每日要 '+r0(Math.max(0,need)):' · 今週埋單')+'</small></span><span class="nm num" style="color:'+(wd.avg>=tgt?'var(--ink)':'var(--warn)')+'">'+(wd.avg>=0?'−':'+')+r0(Math.abs(wd.avg)).toLocaleString()+'</span></div>';
+    var wd=weekDeficit(curDate), tgt=Math.round(wd.weekTarget/7), need=wd.left>0?(wd.weekTarget-wd.sum)/wd.left:null;
+    h+='<div class="r sub"><span class="op"></span><span class="lb">本週累計赤字（一至日）<small>'+wd.days+' 日 · 週目標 '+wd.weekTarget.toLocaleString()+'（運動日 '+(+s.deficitTargetGym||600)+'／休息日 '+(+s.deficitTargetRest||300)+'）'+(need!=null?' · 餘 '+wd.left+' 日平均要 '+r0(Math.max(0,need)):' · 今週埋單')+'</small></span><span class="nm num" style="color:'+(wd.sum>=wd.weekTarget*(wd.days/7)?'var(--ink)':'var(--warn)')+'">'+(wd.sum>=0?'−':'+')+r0(Math.abs(wd.sum)).toLocaleString()+'</span></div>';
     var md=monthDeficit(curDate);
     h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月至今累計赤字<small>'+md.days+' 日有記錄 · ÷7,700 ≈ '+(md.sum/7700).toFixed(2)+' kg 脂肪 · 每月重新計</small></span><span class="nm num" style="color:var(--warn)">'+(md.sum>=0?'−':'+')+r0(Math.abs(md.sum)).toLocaleString()+'</span></div>';
     h+='</div>';
@@ -1270,7 +1273,7 @@
   }
   function openSettings(){
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
-    h+='<div class="g2"><div><label>每週平均赤字目標 kcal/日</label><input id="s_dt" type="number" inputmode="numeric" value="'+(s.deficitTarget||500)+'"></div><div><label>休息日可攝取 kcal</label><input id="s_rk" type="number" inputmode="numeric" value="'+(s.restKcal||'')+'" placeholder="例 1650"></div></div>';
+    h+='<div class="g3"><div><label>運動日赤字目標</label><input id="s_dtg" type="number" inputmode="numeric" value="'+(s.deficitTargetGym||600)+'"></div><div><label>休息日赤字目標</label><input id="s_dtr" type="number" inputmode="numeric" value="'+(s.deficitTargetRest||300)+'"></div><div><label>休息日可攝取 kcal</label><input id="s_rk" type="number" inputmode="numeric" value="'+(s.restKcal||'')+'" placeholder="例 1800"></div></div>';
     h+='<label>休息日（星期幾，逗號分隔：0＝日，1＝一…6＝六）</label><input id="s_rd" value="'+esc(s.restDays||'')+'" placeholder="例 3,0"><div class="hint">休息日圓環用休息日目標；其他日用每日目標。</div>';
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
     var isB=(s.deficitMode==='bmr');
@@ -1291,7 +1294,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.deficitTarget=parseInt($('s_dt').value,10)||500; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
