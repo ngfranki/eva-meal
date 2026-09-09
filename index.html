@@ -409,11 +409,11 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260909-1839';
+  var APP_VER = '20260910-0649';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
-  var EXERCISES = [['高位下拉','Lat Pulldown（Panatta Super Lat Pulldown Circular）'],['髖外展','Hip Abduction（Life Fitness）'],['髖內收','Hip Adduction（Life Fitness）'],['腿伸（大腿前）','Leg Extension（Life Fitness）'],['坐姿划船','Seated Row'],['胸推','Chest Press'],['肩推','Shoulder Press'],['腿推','Leg Press'],['腿彎舉','Leg Curl'],['深蹲','Squat'],['硬拉','Deadlift'],['二頭彎舉','Biceps Curl'],['三頭下壓','Triceps Pushdown'],['腹肌機','Abdominal Crunch'],['背伸展','Back Extension']];
+  var EXERCISES = [['高位下拉','Lat Pulldown（Panatta Super Lat Pulldown Circular）'],['高拉划船','High Row（Panatta Super High Row）'],['髖外展','Hip Abduction（Life Fitness）'],['髖內收','Hip Adduction（Life Fitness）'],['腿伸（大腿前）','Leg Extension（Life Fitness）'],['坐姿划船','Seated Row'],['胸推','Chest Press'],['肩推','Shoulder Press'],['腿推','Leg Press'],['腿彎舉','Leg Curl'],['深蹲','Squat'],['硬拉','Deadlift'],['二頭彎舉','Biceps Curl'],['三頭下壓','Triceps Pushdown'],['腹肌機','Abdominal Crunch'],['背伸展','Back Extension']];
   var DEFAULT_QUICK = ['rice_white','egg','chicken_breast','choy_sum','coffee_black','banana','greek_yogurt_nonfat','oats'];
 
   var $ = function(id){ return document.getElementById(id); };
@@ -891,7 +891,7 @@
     ws.forEach(function(w){
       var conf=confirmId===w.id;
       h+='<div class="wk"><div class="n tap" data-act="editwk" data-id="'+w.id+'"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+(w.type==='跑步機'?' · '+(w.steps?w.steps.toLocaleString()+' 步':'約 '+r0((+w.minutes||0)*CADENCE).toLocaleString()+' 步（估）'):'')+'</span>';
-      if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ h+='<div>'+esc(s.exercise||'')+(s.exerciseEn?' <span class="m">'+esc(s.exerciseEn.replace(/（.*?）/,''))+'</span>':'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+(s.reps||'—')+(s.sets?' × '+s.sets+' 組':'')+'</div>'; }); h+='</div>'; }
+      if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ var repTxt=s.repsList&&s.repsList.length>1?s.repsList.join(' / ')+' 下（'+s.repsList.length+' 組）':((s.reps||'—')+(s.sets?' × '+s.sets+' 組':'')); h+='<div>'+esc(s.exercise||'')+(s.exerciseEn?' <span class="m">'+esc(s.exerciseEn.replace(/（.*?）/,''))+'</span>':'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+repTxt+'</div>'; }); h+='</div>'; }
       if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
       h+='<div class="hintedit">撳一下改</div>';
       h+='</div><button class="x'+(conf?' confirm':'')+'" data-act="delwk" data-id="'+w.id+'">'+(conf?'確定刪除':'✕')+'</button></div>';
@@ -1201,7 +1201,7 @@
       h+='<label>動作（撳一個）</label><div class="exchips" id="exchips">';
       allExercises().forEach(function(x){ h+='<button data-act="wex" data-zh="'+esc(x[0])+'" data-en="'+esc(x[1])+'" class="'+(wkEx&&wkEx[0]===x[0]?'on':'')+'">'+esc(x[0])+(x[1]?'<small>'+esc(x[1])+'</small>':'')+'</button>'; });
       h+='<button data-act="wex-add">＋ 其他</button></div>';
-      h+='<div class="g3"><div><label>重量 kg</label><input id="w_kg" type="number" inputmode="decimal" placeholder="40" value="'+esc(first&&st0&&st0.weightKg!=null?st0.weightKg:'')+'"></div><div><label>組數</label><input id="w_sets" type="number" inputmode="numeric" placeholder="3" value="'+esc(first&&st0&&st0.sets!=null?st0.sets:'')+'"></div><div><label>每組次數</label><input id="w_reps" type="number" inputmode="numeric" placeholder="12" value="'+esc(first&&st0&&st0.reps!=null?st0.reps:'')+'"></div></div>';
+      h+='<div class="g3"><div><label>重量 kg</label><input id="w_kg" type="number" inputmode="decimal" placeholder="40" value="'+esc(first&&st0&&st0.weightKg!=null?st0.weightKg:'')+'"></div><div><label>組數</label><input id="w_sets" type="number" inputmode="numeric" placeholder="3" value="'+esc(first&&st0&&st0.sets!=null?st0.sets:'')+'"></div><div><label>每組次數</label><input id="w_reps" inputmode="numeric" placeholder="12 或 15,12,10" value="'+esc(first&&st0&&(st0.repsList||st0.reps)!=null?(st0.repsList?st0.repsList.join(','):st0.reps):'')+'"></div></div>';
     }
     var defMin = wkType==='Sixpad 腹帶' ? 23 : '';
     if(wkType==='跑步機'){ h+='<label>跑步機步數（可留空，留空就按 '+CADENCE+' 步／分估）</label><input id="w_steps" type="number" inputmode="numeric" placeholder="戒指或跑步機顯示" value="'+esc(first&&wkEdit&&wkEdit.steps?wkEdit.steps:'')+'"><div class="hint">你戒指嘅全日步數已包跑步機嗰段，app 會自動扣返呢個數先估步行消耗，唔使自己減。</div>'; }
@@ -1228,8 +1228,10 @@
     var sets=[];
     if(type==='負重'){
       if(!wkEx){ alert('揀一個動作'); return; }
-      var kg=$('w_kg').value, sc=parseInt($('w_sets').value,10), rp=parseInt($('w_reps').value,10);
-      sets.push({exercise:wkEx[0], exerciseEn:wkEx[1]||'', weightKg:kg===''?null:parseFloat(kg), sets:isNaN(sc)?null:sc, reps:isNaN(rp)?null:rp});
+      var kg=$('w_kg').value, sc=parseInt($('w_sets').value,10);
+      var rl=String($('w_reps').value||'').split(/[,，、\s]+/).map(function(x){return parseInt(x,10);}).filter(function(x){return !isNaN(x)&&x>0;});
+      if(rl.length>1 && (isNaN(sc)||sc<rl.length)) sc=rl.length;
+      sets.push({exercise:wkEx[0], exerciseEn:wkEx[1]||'', weightKg:kg===''?null:parseFloat(kg), sets:isNaN(sc)?null:sc, reps:rl.length?rl[0]:null, repsList:rl.length>1?rl:null});
     }
     var wk=parseInt($('w_kcal').value,10); if(isNaN(wk)||wk<0) wk=null;
     var stp=$('w_steps')?parseInt($('w_steps').value,10):NaN;
