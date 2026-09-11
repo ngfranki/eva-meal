@@ -412,7 +412,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260911-1038';
+  var APP_VER = '20260911-1040';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -471,6 +471,7 @@
     if(!s.settings.deficitMode) s.settings.deficitMode='tdee';
     if(s.settings.neatPct==null) s.settings.neatPct=10;
     if(!s.dayType || typeof s.dayType!=='object') s.dayType={};
+    if(!s.settings.monthTarget) s.settings.monthTarget=16000;
     if(!s.oura || typeof s.oura!=='object') s.oura={days:{}};
     if(!s.oura.days) s.oura.days={};
     if(!s.weights || typeof s.weights!=='object') s.weights={};
@@ -859,8 +860,14 @@
     h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 活動）'+(oU?' · 運動記錄嘅卡數唔會再加（已喺 Oura 內）':'')+'</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
     var wd=weekDeficit(curDate), tgt=Math.round(wd.weekTarget/7), need=wd.left>0?(wd.weekTarget-wd.sum)/wd.left:null;
     h+='<div class="r sub"><span class="op"></span><span class="lb">本週累計赤字（一至日）<small>'+wd.days+' 日 · 週目標 '+wd.weekTarget.toLocaleString()+'（運動日 '+(+s.deficitTargetGym||600)+'／休息日 '+(+s.deficitTargetRest||300)+'）'+(need!=null?' · 餘 '+wd.left+' 日平均要 '+r0(Math.max(0,need)):' · 今週埋單')+'</small></span><span class="nm num" style="color:'+(wd.sum>=wd.weekTarget*(wd.days/7)?'var(--ink)':'var(--warn)')+'">'+(wd.sum>=0?'−':'+')+r0(Math.abs(wd.sum)).toLocaleString()+'</span></div>';
-    var md=monthDeficit(curDate);
-    h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月至今累計赤字<small>'+md.days+' 日有記錄 · ÷7,700 ≈ '+(md.sum/7700).toFixed(2)+' kg 脂肪 · 每月重新計</small></span><span class="nm num" style="color:var(--warn)">'+(md.sum>=0?'−':'+')+r0(Math.abs(md.sum)).toLocaleString()+'</span></div>';
+    var md=monthDeficit(curDate), mt=+s.monthTarget||16000;
+    var p2=curDate.split('-'), dim=new Date(+p2[0],+p2[1],0).getDate(), left=dim-(+p2[2]);
+    var gLeft=0, rLeft=0, dd=shiftDate(curDate,1);
+    for(var i=0;i<left;i++){ if(isRestDay(dd)) rLeft++; else gLeft++; dd=shiftDate(dd,1); }
+    var short=mt-md.sum, unit=(gLeft*2+rLeft)>0?short/(gLeft*2+rLeft):0;
+    var hit=md.sum>=mt;
+    h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月至今累計赤字<small>'+md.days+' 日 · 目標 '+mt.toLocaleString()+'（≈'+(mt/7700).toFixed(1)+'kg）· ÷7,700 ≈ '+(md.sum/7700).toFixed(2)+' kg</small></span><span class="nm num" style="color:var(--warn)">'+(md.sum>=0?'−':'+')+r0(Math.abs(md.sum)).toLocaleString()+'</span></div>';
+    h+='<div class="r sub"><span class="op"></span><span class="lb">'+(hit?'本月已達標 ✓':'仲爭 '+r0(short).toLocaleString())+'<small>'+(hit?'超出目標 '+r0(md.sum-mt).toLocaleString():'餘 '+left+' 日（運動 '+gLeft+'／休息 '+rLeft+'）· 每日要 運動 '+r0(unit*2)+'／休息 '+r0(unit))+'</small></span><span class="nm num" style="color:'+(hit?'var(--ink)':'var(--muted)')+'">'+(hit?'✓':r0(short).toLocaleString())+'</span></div>';
     h+='</div>';
     h+='</div>';
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
@@ -1287,6 +1294,7 @@
   }
   function openSettings(){
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
+    h+='<label>每月赤字目標 kcal</label><input id="s_mt" type="number" inputmode="numeric" value="'+(s.monthTarget||16000)+'"><div class="hint">16,000 ≈ 2.0 kg 脂肪（÷7,700）。下面兩個日型目標由佢倒推。</div>';
     h+='<div class="g3"><div><label>運動日赤字目標</label><input id="s_dtg" type="number" inputmode="numeric" value="'+(s.deficitTargetGym||600)+'"></div><div><label>休息日赤字目標</label><input id="s_dtr" type="number" inputmode="numeric" value="'+(s.deficitTargetRest||300)+'"></div><div><label>休息日可攝取 kcal</label><input id="s_rk" type="number" inputmode="numeric" value="'+(s.restKcal||'')+'" placeholder="例 1800"></div></div>';
     h+='<label>休息日（星期幾，逗號分隔：0＝日，1＝一…6＝六）</label><input id="s_rd" value="'+esc(s.restDays||'')+'" placeholder="例 3,0"><div class="hint">休息日圓環用休息日目標；其他日用每日目標。</div>';
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
@@ -1308,7 +1316,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.monthTarget=parseInt($('s_mt').value,10)||16000; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
