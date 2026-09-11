@@ -409,7 +409,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260910-0742';
+  var APP_VER = '20260911-0806';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -789,7 +789,7 @@
   function render(){
     if(!state) return;
     if(document.activeElement&&(document.activeElement.id==='stepsIn'||document.activeElement.id==='stepsYIn')){ var aid=document.activeElement.id, aval=document.activeElement.value; setTimeout(function(){ var el=$(aid); if(el){ el.value=aval; el.focus(); } },0); }
-    var nav=$('datenav'); nav.style.display = (tab==='trend'||tab==='oura')?'none':'';
+    var nav=$('datenav'); nav.style.display = (tab==='trend')?'none':'';
     $('dateLbl').innerHTML=dateLabel(curDate);
     $('week').innerHTML=weekStrip();
     $('title').textContent = tab==='today'?'飲食記錄':tab==='workout'?'運動':tab==='trend'?'趨勢':'Oura 解讀';
@@ -1006,9 +1006,11 @@
     hist:{rhr:[53,54,55,54,56,57,58], hrv:[46,45,44,43,41,40,38], readiness:[80,79,76,78,74,73,72], deepMin:[78,72,80,65,60,55,48], steps:[8200,9100,7600,10400,9800,11200,12367]}
   };
   function ouraToday(){
-    var d=state.oura.days[curDate]||state.oura.days[today()];
-    if(d) return {data:d, demo:false};
-    return {data:OURA_DEMO, demo:true};
+    var d=state.oura.days[curDate];
+    if(d) return {data:d, demo:false, none:false};
+    var any=Object.keys(state.oura.days||{}).length>0;
+    if(any) return {data:null, demo:false, none:true};
+    return {data:OURA_DEMO, demo:true, none:false};
   }
   function spark(arr, base){
     if(!arr||arr.length<2) return '';
@@ -1032,7 +1034,12 @@
       '<div class="ex"><span class="k">解釋</span>'+o.explain+'</div><div class="ex"><span class="k">代表</span>'+o.means+'</div></div>';
   }
   function renderOura(){
-    var od=ouraToday(), d=od.data, b=d.base||{}, s=state.settings, h='';
+    var od=ouraToday();
+    if(od.none){
+      var ds=Object.keys(state.oura.days||{}).sort();
+      return '<div class="card" style="text-align:center;padding:28px 18px"><div style="font-size:34px">💍</div><div style="font-weight:800;font-size:17px;margin-top:8px">'+dateLabel(curDate).replace(/<[^>]+>/g,' ')+' 冇 Oura 記錄</div><div class="hint" style="margin-top:6px">有記錄嘅日子：'+(ds.length?ds[0].slice(5).replace('-','/')+' 至 '+ds[ds.length-1].slice(5).replace('-','/')+'（'+ds.length+' 日）':'—')+'<br>撳上面星期條或者 ‹ › 揀返其他日子</div></div>';
+    }
+    var d=od.data, b=d.base||{}, s=state.settings, h='';
     var t=totals(dayItems(curDate)); var intake=t.kcal;
     var appBurn=dayBurn(curDate), appDef=dayDeficit(curDate,intake);
     var ouraDef = d.totalCal ? (d.totalCal - intake) : null;
