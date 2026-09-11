@@ -75,6 +75,9 @@
 
   /* budget */
   .bh{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+  .daytype{display:flex; gap:6px; align-items:center}
+  .daytype button{background:var(--soft); color:var(--muted); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700}
+  .daytype button.on{background:var(--ink); color:var(--bg)}
   .bh .edit{font-size:12px; color:var(--muted); background:var(--soft); border-radius:999px; padding:5px 10px}
   .bgrid{display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:center}
   .ringbox{display:flex; flex-direction:column; align-items:center}
@@ -409,7 +412,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260911-0806';
+  var APP_VER = '20260911-1038';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -451,7 +454,7 @@
 
   // ---------- state ----------
   function defaultState(){
-    return { meals:[], workouts:[], sets:[], steps:{}, oura:{days:{}}, weights:{}, foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
+    return { meals:[], workouts:[], sets:[], steps:{}, oura:{days:{}}, weights:{}, dayType:{}, foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
       settings:{ dailyKcal:null, proteinTarget:null, weightKg:null, workoutTypes:DEFAULT_TYPES.slice(), lastPortion:{}, updatedAt:null },
       meta:{ lastSync:null } };
   }
@@ -467,6 +470,7 @@
     if(!s.settings.strideM) s.settings.strideM=0.8;
     if(!s.settings.deficitMode) s.settings.deficitMode='tdee';
     if(s.settings.neatPct==null) s.settings.neatPct=10;
+    if(!s.dayType || typeof s.dayType!=='object') s.dayType={};
     if(!s.oura || typeof s.oura!=='object') s.oura={days:{}};
     if(!s.oura.days) s.oura.days={};
     if(!s.weights || typeof s.weights!=='object') s.weights={};
@@ -587,7 +591,8 @@
   function useOura(date){ return state.settings.activitySource!=='estimate' && ouraActive(date)!=null; }
   function dayBurn(date){ if(useOura(date)) return ouraActive(date); return dayWorkoutBurn(date)+stepsKcal(walkSteps(date)); }
   // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
-  function isRestDay(date){ var p=date.split('-'); var dow=new Date(+p[0],+p[1]-1,+p[2]).getDay(); var rd=String(state.settings.restDays||'').split(',').map(function(x){return parseInt(x,10);}); return rd.indexOf(dow)>=0; }
+  function isRestDay(date){ var ov=(state.dayType||{})[date]; if(ov) return ov==='rest';
+    var p=date.split('-'); var dow=new Date(+p[0],+p[1]-1,+p[2]).getDay(); var rd=String(state.settings.restDays||'').split(',').map(function(x){return parseInt(x,10);}); return rd.indexOf(dow)>=0; }
   function dayDeficitTarget(date){ var st=state.settings; return isRestDay(date)?(+st.deficitTargetRest||300):(+st.deficitTargetGym||+st.deficitTarget||600); }
   function weekDeficit(date){ // 本週（一至日）到 date 為止有記錄日嘅平均
     var p=date.split('-'); var d0=new Date(+p[0],+p[1]-1,+p[2]); var dow=(d0.getDay()+6)%7; var mon=shiftDate(date,-dow);
@@ -821,7 +826,7 @@
     var oU=useOura(curDate);
     var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), tmSteps=treadmillSteps(curDate), wSteps=walkSteps(curDate), stepK=stepsKcal(wSteps), tdee=+s.tdee||2300, deficit=dayDeficit(curDate, t.kcal), modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
     var rest=isRestDay(curDate); var target=(rest&&+s.restKcal>0)?+s.restKcal:(+s.dailyKcal||0), over=target&&t.kcal>target, pct=target?t.kcal/target:0;
-    h+='<div class="card budget"><div class="bh"><h2>每日預算'+(rest?' <span class="tag" style="font-size:11px;background:var(--soft);border-radius:999px;padding:3px 9px;color:var(--muted)">休息日</span>':'')+'</h2><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
+    h+='<div class="card budget"><div class="bh"><div class="daytype"><button data-act="daytype" data-v="gym" class="'+(rest?'':'on')+'">🏋️ 運動日</button><button data-act="daytype" data-v="rest" class="'+(rest?'on':'')+'">😴 休息日</button></div><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
     h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'" data-act="settings">'+ringSvg(target?pct:0)+'<div class="c">';
     if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-t.kcal)).toLocaleString()+'</b><em>kcal</em>'; }
     else { h+='<small>已食</small><b class="num">'+r0(t.kcal).toLocaleString()+'</b><em>kcal</em>'; }
@@ -1315,6 +1320,7 @@
     if(act==='add') openAdd(b.getAttribute('data-slot'));
     else if(act==='close') closeSheet();
     else if(act==='goday'){ curDate=b.getAttribute('data-d'); render(); }
+    else if(act==='daytype'){ state.dayType=state.dayType||{}; var v=b.getAttribute('data-v'); if(state.dayType[curDate]===v) delete state.dayType[curDate]; else state.dayType[curDate]=v; markDirty(); }
     else if(act==='settings') openSettings();
     else if(act==='backadd') openAdd(addSlot);
     else if(act==='openfood'){ var li=b.closest('li'); var was=li.classList.contains('open'); document.querySelectorAll('.flist li.open').forEach(function(x){x.classList.remove('open');}); if(!was) li.classList.add('open'); }
