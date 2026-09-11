@@ -412,7 +412,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260911-1116';
+  var APP_VER = '20260911-1157';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -865,6 +865,30 @@
     for(var i=0;i<left;i++){ if(isRestDay(dd)) rLeft++; else gLeft++; dd=shiftDate(dd,1); }
     var short=mt-md.sum, unit=(gLeft*2+rLeft)>0?short/(gLeft*2+rLeft):0, hit=md.sum>=mt;
     h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月累計 '+r0(md.sum).toLocaleString()+' / '+mt.toLocaleString()+'（'+(md.sum/7700).toFixed(2)+' / '+(mt/7700).toFixed(1)+' kg）<small>'+(hit?'已達標 ✓ 超出 '+r0(md.sum-mt).toLocaleString():'仲爭 '+r0(short).toLocaleString()+' · 餘 '+left+' 日每日要 運動 '+r0(unit*2)+'／休息 '+r0(unit))+'</small></span><span class="nm num" style="color:'+(hit?'var(--ink)':'var(--warn)')+'">'+(hit?'✓':r0(short).toLocaleString())+'</span></div>';
+    h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
+    SLOTS.forEach(function(slot){
+      var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
+      h+='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">'+SLOT_EMOJI[slot]+'</div><div><b>'+(slot==='下午'?'下午':slot+(slot==='宵'?'夜':'餐'))+'</b><span>'+(m&&m.time?esc(m.time):'')+(items.length?(m&&m.time?' · ':'')+r0(st.kcal)+' kcal · 蛋白 '+r0(st.protein)+'g':'未記')+'</span></div></div>';
+      h+='<button class="addbtn" data-act="add" data-slot="'+slot+'">＋</button></div>';
+      if(items.length){
+        h+='<ul class="items">';
+        items.forEach(function(it, idx){
+          var cid=m.id+':'+idx, conf=confirmId===cid;
+          if(it.parts){
+            var open=expandedId===cid;
+            h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?' · 撳收埋':' · 撳睇明細')+'</span></div>';
+          } else
+          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+' · 撳改</span></div>';
+          h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
+          h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
+          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+p.grams+'g ✎</span><span>'+p.kcal+'</span></li>'; }); h+='<li class="tap" data-act="toggleparts" data-cid="'+cid+'" style="justify-content:center;color:var(--muted);padding-top:6px"><span>▲ 收埋明細</span></li></ul></li>'; }
+        });
+        h+='</ul>';
+        h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
+        h+='<button class="savebtn" data-act="mealset-save" data-meal="'+m.id+'">儲呢餐做套餐 ›</button>';
+      }
+      h+='</div>';
+    });
     return h;
   }
   function renderWorkout(){
