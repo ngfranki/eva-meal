@@ -412,7 +412,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260911-1040';
+  var APP_VER = '20260911-1116';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -857,43 +857,14 @@
     h+='<div class="r"><span class="op">−</span><span class="lb">食物攝取<small>'+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</small></span><span class="nm num">'+r0(t.kcal).toLocaleString()+'</span></div>';
     var dtg=dayDeficitTarget(curDate);
     h+='<div class="r tot'+(deficit<0?' over':'')+'"><span class="op">＝</span><span class="lb">'+(deficit>=0?'今日赤字':'今日超出')+'<small>'+(rest?'休息日':'運動日')+'目標 '+dtg+(deficit>=dtg?' ✓ 達標':' · 差 '+r0(dtg-deficit))+'</small></span><span class="nm num">'+r0(Math.abs(deficit)).toLocaleString()+'</span></div>';
-    h+='<div class="r sub"><span class="op"></span><span class="lb">淨攝取（攝取 − 活動）'+(oU?' · 運動記錄嘅卡數唔會再加（已喺 Oura 內）':'')+'</span><span class="nm num">'+r0(net).toLocaleString()+'</span></div>';
-    var wd=weekDeficit(curDate), tgt=Math.round(wd.weekTarget/7), need=wd.left>0?(wd.weekTarget-wd.sum)/wd.left:null;
-    h+='<div class="r sub"><span class="op"></span><span class="lb">本週累計赤字（一至日）<small>'+wd.days+' 日 · 週目標 '+wd.weekTarget.toLocaleString()+'（運動日 '+(+s.deficitTargetGym||600)+'／休息日 '+(+s.deficitTargetRest||300)+'）'+(need!=null?' · 餘 '+wd.left+' 日平均要 '+r0(Math.max(0,need)):' · 今週埋單')+'</small></span><span class="nm num" style="color:'+(wd.sum>=wd.weekTarget*(wd.days/7)?'var(--ink)':'var(--warn)')+'">'+(wd.sum>=0?'−':'+')+r0(Math.abs(wd.sum)).toLocaleString()+'</span></div>';
+    var wd=weekDeficit(curDate), need=wd.left>0?(wd.weekTarget-wd.sum)/wd.left:null, wkHit=wd.sum>=wd.weekTarget;
+    h+='<div class="r sub"><span class="op"></span><span class="lb">本週累計 '+r0(wd.sum).toLocaleString()+' / '+wd.weekTarget.toLocaleString()+'<small>'+(wkHit?'已達標 ✓':(need!=null?'餘 '+wd.left+' 日平均要 '+r0(Math.max(0,need)):'今週埋單'))+' · 淨攝取 '+r0(net).toLocaleString()+'</small></span><span class="nm num" style="color:'+(wkHit?'var(--ink)':'var(--warn)')+'">'+(wkHit?'✓':r0(Math.max(0,wd.weekTarget-wd.sum)).toLocaleString())+'</span></div>';
     var md=monthDeficit(curDate), mt=+s.monthTarget||16000;
     var p2=curDate.split('-'), dim=new Date(+p2[0],+p2[1],0).getDate(), left=dim-(+p2[2]);
     var gLeft=0, rLeft=0, dd=shiftDate(curDate,1);
     for(var i=0;i<left;i++){ if(isRestDay(dd)) rLeft++; else gLeft++; dd=shiftDate(dd,1); }
-    var short=mt-md.sum, unit=(gLeft*2+rLeft)>0?short/(gLeft*2+rLeft):0;
-    var hit=md.sum>=mt;
-    h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月至今累計赤字<small>'+md.days+' 日 · 目標 '+mt.toLocaleString()+'（≈'+(mt/7700).toFixed(1)+'kg）· ÷7,700 ≈ '+(md.sum/7700).toFixed(2)+' kg</small></span><span class="nm num" style="color:var(--warn)">'+(md.sum>=0?'−':'+')+r0(Math.abs(md.sum)).toLocaleString()+'</span></div>';
-    h+='<div class="r sub"><span class="op"></span><span class="lb">'+(hit?'本月已達標 ✓':'仲爭 '+r0(short).toLocaleString())+'<small>'+(hit?'超出目標 '+r0(md.sum-mt).toLocaleString():'餘 '+left+' 日（運動 '+gLeft+'／休息 '+rLeft+'）· 每日要 運動 '+r0(unit*2)+'／休息 '+r0(unit))+'</small></span><span class="nm num" style="color:'+(hit?'var(--ink)':'var(--muted)')+'">'+(hit?'✓':r0(short).toLocaleString())+'</span></div>';
-    h+='</div>';
-    h+='</div>';
-    h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
-    SLOTS.forEach(function(slot){
-      var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
-      h+='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">'+SLOT_EMOJI[slot]+'</div><div><b>'+(slot==='下午'?'下午':slot+(slot==='宵'?'夜':'餐'))+'</b><span>'+(m&&m.time?esc(m.time):'')+(items.length?(m&&m.time?' · ':'')+r0(st.kcal)+' kcal · 蛋白 '+r0(st.protein)+'g':'未記')+'</span></div></div>';
-      h+='<button class="addbtn" data-act="add" data-slot="'+slot+'">＋</button></div>';
-      if(items.length){
-        h+='<ul class="items">';
-        items.forEach(function(it, idx){
-          var cid=m.id+':'+idx, conf=confirmId===cid;
-          if(it.parts){
-            var open=expandedId===cid;
-            h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?' · 撳收埋':' · 撳睇明細')+'</span></div>';
-          } else
-          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+' · 撳改</span></div>';
-          h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
-          h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
-          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+p.grams+'g ✎</span><span>'+p.kcal+'</span></li>'; }); h+='<li class="tap" data-act="toggleparts" data-cid="'+cid+'" style="justify-content:center;color:var(--muted);padding-top:6px"><span>▲ 收埋明細</span></li></ul></li>'; }
-        });
-        h+='</ul>';
-        h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
-        h+='<button class="savebtn" data-act="mealset-save" data-meal="'+m.id+'">儲呢餐做套餐 ›</button>';
-      }
-      h+='</div>';
-    });
+    var short=mt-md.sum, unit=(gLeft*2+rLeft)>0?short/(gLeft*2+rLeft):0, hit=md.sum>=mt;
+    h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月累計 '+r0(md.sum).toLocaleString()+' / '+mt.toLocaleString()+'（'+(md.sum/7700).toFixed(2)+' / '+(mt/7700).toFixed(1)+' kg）<small>'+(hit?'已達標 ✓ 超出 '+r0(md.sum-mt).toLocaleString():'仲爭 '+r0(short).toLocaleString()+' · 餘 '+left+' 日每日要 運動 '+r0(unit*2)+'／休息 '+r0(unit))+'</small></span><span class="nm num" style="color:'+(hit?'var(--ink)':'var(--warn)')+'">'+(hit?'✓':r0(short).toLocaleString())+'</span></div>';
     return h;
   }
   function renderWorkout(){
