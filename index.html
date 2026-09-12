@@ -413,7 +413,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260912-0814';
+  var APP_VER = '20260912-1003';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1161,15 +1161,20 @@
   function openAdd(slot){
     addSlot=slot; q='';
     var h='<div class="hd"><h2>加入 '+slot+'餐</h2><button class="close" data-act="close">✕</button></div>';
-    var sets=state.sets.filter(function(x){ return !x.slot || x.slot===slot; });
-    if(sets.length){
-      h+='<div class="sec">套餐（一撳加齊）</div><div class="sets">';
-      sets.forEach(function(st){
-        var its=setItems(st), tt=totals(its), conf=confirmId==='set:'+st.id;
-        h+='<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+'</b><span>'+its.length+' 項 · '+r0(tt.kcal)+' kcal · 蛋白 '+r0(tt.protein)+'g</span></button>';
-        h+='<button class="x'+(conf?' confirm':'')+'" data-act="mealset-del" data-set="'+esc(st.id)+'">'+(conf?'確定刪除':'✕')+'</button></div>';
-      });
-      h+='</div>';
+    // 套餐一律全部加得落任何時段：本時段嘅排前面，其餘照樣撳得
+    var mine=state.sets.filter(function(x){ return !x.slot || x.slot===slot; });
+    var other=state.sets.filter(function(x){ return x.slot && x.slot!==slot; });
+    function setRow(st, showFrom){
+      var its=setItems(st), tt=totals(its), conf=confirmId==='set:'+st.id;
+      var from=(showFrom&&st.slot)?((SLOT_EMOJI[st.slot]||'')+st.slot+' · '):'';
+      return '<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+'</b><span>'+from+its.length+' 項 · '+r0(tt.kcal)+' kcal · 蛋白 '+r0(tt.protein)+'g</span></button>'+
+        '<button class="x'+(conf?' confirm':'')+'" data-act="mealset-del" data-set="'+esc(st.id)+'">'+(conf?'確定刪除':'✕')+'</button></div>';
+    }
+    if(mine.length){
+      h+='<div class="sec">套餐（一撳加齊）</div><div class="sets">'+mine.map(function(st){return setRow(st,false);}).join('')+'</div>';
+    }
+    if(other.length){
+      h+='<div class="sec">其他時段套餐 <span class="ai">一樣加得落'+slot+'餐</span></div><div class="sets">'+other.map(function(st){return setRow(st,true);}).join('')+'</div>';
     }
     h+='<div class="sec">影相認食物 <span class="ai">AI 估份量 · 數字仍出自食物庫 · 可改</span></div><div class="photo"><button class="dark" data-act="photo"><span>📷</span>影相</button><button data-act="photo-pick"><span>🖼</span>揀相</button></div><input type="file" id="photoIn" accept="image/*" capture="environment" hidden><input type="file" id="photoPick" accept="image/*" hidden><div id="photoRes"></div>';
     h+='<div class="sec">常食（一撳即加·用上次份量）</div><div class="quick">';
