@@ -108,7 +108,9 @@
       '<div class="tile"><b>'+defTxt(A.estimated_deficit)+'</b><small>赤字 kcal</small></div>'+
       '<div class="tile"><b>'+n(A.steps,0)+'</b><small>步數</small></div>'+
       '<div class="tile"><b>'+n(L.weight_kg,1)+'</b><small>體重 kg</small></div>'+
-      '</div></div>';
+      '</div>'+
+      (T.is_partial_day?'<div class="food">⏳ '+esc(T.partial_day_note||'')+'</div>':'')+
+      '</div>';
 
     // 基本身體資料
     h+='<div class="card"><h2>基本身體資料<span>'+esc(L.measured_on||'')+'</span></h2>'+
@@ -162,7 +164,9 @@
       kv('手動記錄 Workout kcal', A.workout_kcal==null?'—':n(A.workout_kcal,0)+' kcal')+
       kv('估算 TDEE', n(A.estimated_tdee,0)+' kcal', true)+
       kv('估算赤字', defTxt(A.estimated_deficit)+' kcal', true)+
-      '<div class="food"><b>赤字計法：</b>'+esc(A.deficit_formula||'')+'</div></div>';
+      '<div class="food"><b>赤字計法：</b>'+esc(A.deficit_formula||'')+
+      (A.oura_total_burn_note?'<br><br><b>Oura Total Burn：</b>'+
+        esc(A.oura_total_burn_note):'')+'</div></div>';
 
     // 7 日
     h+='<div class="card"><h2>7 日趨勢<span>'+esc(r7.range||'')+'</span></h2>'+
@@ -180,8 +184,10 @@
       kv('平均體重', r7.avg_weight_kg==null?'—':n(r7.avg_weight_kg,2)+' kg')+
       kv('較上一個 7 日', r7.weight_change_vs_previous_7d_kg==null?'—':
          sgn(r7.weight_change_vs_previous_7d_kg,2)+' kg')+
-      kv('每週估算減重速度', r7.est_weekly_rate_kg==null?'—':
+      kv('每週估算減重速度', r7.est_weekly_rate_kg==null?'資料不足':
          sgn(r7.est_weekly_rate_kg,2)+' kg/週', true)+
+      (r7.weight_data_quality?'<div class="food"><b>體重資料品質：</b>'+
+         esc(r7.weight_data_quality)+'</div>':'')+
       '</div>';
 
     // 30 日
