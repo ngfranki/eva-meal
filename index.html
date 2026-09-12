@@ -413,7 +413,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260912-1003';
+  var APP_VER = '20260912-1006';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -632,6 +632,10 @@
   function setItems(st){
     var out=[]; (st.items||[]).forEach(function(x){ var f=foodById(x.foodId); if(f) out.push(makeItem(f, x.grams)); });
     return out;
+  }
+  // 套餐入面有幾多項喺食物庫搵唔返（搵唔返會靜靜雞跌咗，要出警告）
+  function setMissing(st){
+    return (st.items||[]).filter(function(x){ return !foodById(x.foodId); });
   }
   // ---------- 打字記錄：規則拆句，唔估數 ----------
   var CN={'零':0,'一':1,'二':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
@@ -1167,7 +1171,9 @@
     function setRow(st, showFrom){
       var its=setItems(st), tt=totals(its), conf=confirmId==='set:'+st.id;
       var from=(showFrom&&st.slot)?((SLOT_EMOJI[st.slot]||'')+st.slot+' · '):'';
-      return '<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+'</b><span>'+from+its.length+' 項 · '+r0(tt.kcal)+' kcal · 蛋白 '+r0(tt.protein)+'g</span></button>'+
+      var miss=setMissing(st);
+      var warn=miss.length?'<em style="font-style:normal;color:#F0C9A0">　⚠️ 有 '+miss.length+' 項食物已失蹤，未計入</em>':'';
+      return '<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+'</b><span>'+from+its.length+' 項 · '+r0(tt.kcal)+' kcal · 蛋白 '+r0(tt.protein)+'g'+warn+'</span></button>'+
         '<button class="x'+(conf?' confirm':'')+'" data-act="mealset-del" data-set="'+esc(st.id)+'">'+(conf?'確定刪除':'✕')+'</button></div>';
     }
     if(mine.length){
