@@ -413,7 +413,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260912-0627';
+  var APP_VER = '20260912-0814';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -455,7 +455,7 @@
 
   // ---------- state ----------
   function defaultState(){
-    return { meals:[], workouts:[], sets:[], steps:{}, oura:{days:{}}, weights:{}, dayType:{}, foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
+    return { meals:[], workouts:[], sets:[], steps:{}, oura:{days:{}}, weights:{}, waist:{}, bia:{}, dayType:{}, foods:BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }),
       settings:{ dailyKcal:null, proteinTarget:null, weightKg:null, workoutTypes:DEFAULT_TYPES.slice(), lastPortion:{}, updatedAt:null },
       meta:{ lastSync:null } };
   }
@@ -476,6 +476,8 @@
     if(!s.oura || typeof s.oura!=='object') s.oura={days:{}};
     if(!s.oura.days) s.oura.days={};
     if(!s.weights || typeof s.weights!=='object') s.weights={};
+    if(!s.waist || typeof s.waist!=='object') s.waist={};
+    if(!s.bia || typeof s.bia!=='object') s.bia={};
     if(!s.settings) s.settings={};
     if(!Array.isArray(s.settings.workoutTypes) || !s.settings.workoutTypes.length) s.settings.workoutTypes=DEFAULT_TYPES.slice();
     if(s.settings.workoutTypes.indexOf('Sixpad 腹帶')<0) s.settings.workoutTypes.splice(2,0,'Sixpad 腹帶');
@@ -1085,6 +1087,7 @@
     // 體重
     var wk=state.weights[curDate]||'';
     h+='<div class="wrow"><span style="font-size:20px">⚖️</span><div class="t"><b>體重（每星期磅一次）</b>校準基礎代謝用，唔使日日</div><input type="number" inputmode="decimal" step="0.1" id="weightIn" placeholder="'+(s.weightKg||'75')+'" value="'+wk+'"><span class="u">kg</span></div>';
+    h+='<div class="wrow"><span style="font-size:20px">📏</span><div class="t"><b>腰圍（每星期一次）</b>朝早如廁後、呼氣末、放鬆唔收腹、平繞肚臍</div><input type="number" inputmode="decimal" step="0.1" id="waistIn" placeholder="89" value="'+(state.waist[curDate]||'')+'"><span class="u">cm</span></div>';
     // 能量收支對照
     h+='<div class="ocard"><div class="lb"><span>能量收支對照</span><span class="tag">App vs Oura</span></div>';
     h+='<div class="obal"><div><b class="num">'+r0(intake).toLocaleString()+'</b><span>食物攝取（你記嘅）</span></div><div class="o"><b class="num">'+r0(d.activeCal).toLocaleString()+'</b><span>Oura 活動卡（量出嚟）</span></div>';
@@ -1126,6 +1129,8 @@
       means: Math.abs(d.tempDev)>=0.5?'<b>偏差大。</b>可能開始病或者過勞，今日唔要谷。':'<b>一日唔使理。</b>連續三日 +0.3 以上先當訊號。'});
     return h;
   }
+  document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='waistIn'){ var wv=parseFloat(el.value); if(waistTimer) clearTimeout(waistTimer); waistTimer=setTimeout(function(){ if(wv>0){ state.waist[curDate]=wv; markDirty(); } },1200); } });
+  var waistTimer=null;
   document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='weightIn'){ var v=parseFloat(el.value); if(stepsTimer) clearTimeout(stepsTimer); stepsTimer=setTimeout(function(){ if(v>0){ state.weights[curDate]=v; state.settings.weightKg=v; markDirty(); } },1200); } });
   // ---------- sheets ----------
   function openSheet(html){ $('sheet').innerHTML=html; $('sheet').className='sheet show'; $('veil').className='veil show'; }

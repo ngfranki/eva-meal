@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>健康數據唯讀分享 · AI 分析用</title>
+<style>
+  :root{
+    --bg:#FAF6EB; --ink:#3B3A19; --gold:#CEB991; --warn:#C0553B;
+    --card:#FFFFFF; --line:#E8E2D2; --muted:#8A8770; --ok:#6E7A4F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"PingFang HK","Helvetica Neue",sans-serif;
+    -webkit-text-size-adjust:100%}
+  .wrap{max-width:480px;margin:0 auto;padding:16px 14px 40px}
+  h1{font-size:19px;margin:0 0 2px}
+  .gen{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .gen b{color:var(--ink);font-weight:600}
+  .ro{display:inline-block;background:var(--gold);color:#fff;font-size:11px;font-weight:700;
+    padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:2px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);
+    padding:14px;margin-bottom:12px}
+  .card h2{font-size:15px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+  .card h2 span{font-size:11px;color:var(--muted);font-weight:500}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+  .tile{background:var(--bg);border-radius:12px;padding:10px 8px;text-align:center}
+  .tile b{display:block;font-size:20px;line-height:1.15;font-variant-numeric:tabular-nums}
+  .tile small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+  .tile.warn b{color:var(--warn)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:6px 4px;text-align:right;border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{font-size:11px;color:var(--muted);font-weight:600}
+  tr:last-child td{border-bottom:none}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv:last-child{border-bottom:none}
+  .kv span:first-child{color:var(--muted)}
+  .kv b{font-weight:600;font-variant-numeric:tabular-nums}
+  .kv .est{font-size:10px;color:var(--gold);font-weight:700;margin-left:4px}
+  .food{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:8px;
+    padding-top:8px;border-top:1px solid var(--line)}
+  .food b{color:var(--ink);font-weight:600}
+  .hit{color:var(--ok);font-weight:700}
+  .over{color:var(--warn);font-weight:700}
+  .note{font-size:11.5px;color:var(--muted);line-height:1.6;
+    background:var(--card);border-radius:12px;padding:11px 13px;margin-bottom:12px;
+    border-left:3px solid var(--gold)}
+  .btns{display:grid;gap:8px;margin-top:16px}
+  button,a.btn{font:inherit;font-weight:600;padding:12px;border-radius:12px;border:none;
+    background:var(--ink);color:var(--bg);cursor:pointer;text-align:center;
+    text-decoration:none;display:block}
+  button.ghost,a.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  #msg{font-size:12px;color:var(--ok);text-align:center;min-height:18px;margin-top:8px;font-weight:600}
+  .err{background:var(--card);border-radius:16px;padding:20px;text-align:center;color:var(--warn)}
+  .foot{font-size:10.5px;color:var(--muted);text-align:center;margin-top:22px;line-height:1.7}
+  @media(prefers-color-scheme:dark){body{background:var(--bg);color:var(--ink)}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="card">載入中…</div></div>
+
+<script>
+(function(){
+  var D=null;
+  var $=function(id){ return document.getElementById(id); };
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function n(v,d){ if(v==null||v==='') return '—';
+    var x=Number(v); if(isNaN(x)) return '—';
+    return x.toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+  function sgn(v,d){ if(v==null) return '—'; var x=Number(v); if(isNaN(x)) return '—';
+    return (x>0?'+':(x<0?'−':''))+n(Math.abs(x),d); }
+  function defTxt(v){ if(v==null) return '—'; var x=Number(v);
+    return (x>=0?'−':'+')+n(Math.abs(x),0); }
+
+  function kv(label,val,estimate){
+    return '<div class="kv"><span>'+esc(label)+'</span><b>'+val+
+      (estimate?'<span class="est">估算</span>':'')+'</b></div>';
+  }
+  function macro(label,val,target,lowerIsBetter){
+    var mark='';
+    if(val!=null&&target!=null){
+      var hit = lowerIsBetter ? (val<=target) : (val>=target);
+      mark = hit ? ' <span class="hit">✓</span>' : (lowerIsBetter?' <span class="over">超</span>':'');
+    }
+    return '<div class="kv"><span>'+esc(label)+'</span><b>'+n(val,0)+
+      ' / '+n(target,0)+mark+'</b></div>';
+  }
+
+  function render(){
+    var p=D.profile||{}, L=D.latest||{}, T=D.today||{}, A=D.today_activity||{},
+        r7=D.rolling_7d||{}, r30=D.rolling_30d||{}, tg=D.targets||{};
+    var h='';
+    h+='<h1>健康數據唯讀分享<span class="ro">READ ONLY</span></h1>';
+    h+='<div class="gen">產生時間 <b>'+esc(D.generated_at_hk||'—')+'</b> · 時區 '+
+       esc(D.timezone||'Asia/Hong_Kong')+'</div>';
+
+    h+='<div class="note">'+esc(D.disclaimer||'')+'</div>';
+
+    // 一眼睇到
+    h+='<div class="card"><h2>今日一眼睇到<span>'+esc(T.date||'—')+'</span></h2><div class="tiles">'+
+      '<div class="tile"><b>'+n(T.calories_in,0)+'</b><small>攝取 kcal</small></div>'+
+      '<div class="tile"><b>'+n(T.protein_g,0)+'</b><small>蛋白 g</small></div>'+
+      '<div class="tile"><b>'+defTxt(A.estimated_deficit)+'</b><small>赤字 kcal</small></div>'+
+      '<div class="tile"><b>'+n(A.steps,0)+'</b><small>步數</small></div>'+
+      '<div class="tile"><b>'+n(L.weight_kg,1)+'</b><small>體重 kg</small></div>'+
+      '</div></div>';
+
+    // 基本身體資料
+    h+='<div class="card"><h2>基本身體資料<span>'+esc(L.measured_on||'')+'</span></h2>'+
+      kv('性別', p.sex==='male'?'男':esc(p.sex))+
+      kv('年齡', n(p.age,0)+' 歲')+
+      kv('身高', n(p.height_cm,0)+' cm')+
+      kv('最新體重', n(L.weight_kg,1)+' kg')+
+      kv('最新腰圍', L.waist_cm==null?'未量度':n(L.waist_cm,1)+' cm')+
+      kv('BIA 體脂率', n(L.bia_body_fat_percent,1)+' %', true)+
+      kv('目測體脂範圍', esc(L.visual_body_fat_estimate_range||'—'), true)+
+      kv('脂肪量', n(L.fat_mass_kg,1)+' kg', true)+
+      kv('骨骼肌', n(L.skeletal_muscle_kg,1)+' kg', true)+
+      kv('身體水分', n(L.body_water_kg,1)+' kg', true)+
+      kv('內臟脂肪等級', n(L.visceral_fat_level,0), true)+
+      kv('BMR（計算用）', n(L.bmr_kcal,0)+' kcal')+
+      kv('減脂目標', esc(p.goal_note||('體脂 '+n(p.goal_body_fat_percent,0)+'%')))+
+      kv('目標日期', esc(p.goal_date||'—'))+
+      '<div class="food"><b>BIA 註記：</b>'+esc(L.bia_note||'')+'<br><b>目測註記：</b>'+
+      esc(L.visual_estimate_note||'')+'</div></div>';
+
+    // 今日飲食
+    h+='<div class="card"><h2>今日飲食<span>'+esc(T.date||'')+'</span></h2>'+
+      macro('Calories', T.calories_in, tg.daily_kcal, true)+
+      macro('Protein g', T.protein_g, tg.protein_g, false)+
+      macro('Carbs g', T.carbs_g, tg.carb_g, true)+
+      macro('Fat g', T.fat_g, tg.fat_g, true)+
+      macro('Fiber g', T.fiber_g, tg.fiber_g, false)+
+      '<div class="kv"><span>'+(T.kcal_remaining>=0?'尚餘':'超出')+' Calories</span><b class="'+
+      (T.kcal_remaining<0?'over':'hit')+'">'+n(Math.abs(T.kcal_remaining),0)+' kcal</b></div>';
+    if(T.items&&T.items.length){
+      h+='<div class="food"><b>今日記錄（'+T.items.length+' 項）：</b><br>';
+      var bySlot={};
+      T.items.forEach(function(it){ (bySlot[it.slot]=bySlot[it.slot]||[]).push(it); });
+      Object.keys(bySlot).forEach(function(sl){
+        h+='<b>'+esc(sl)+'</b>　'+bySlot[sl].map(function(it){
+          return esc(it.name)+' '+n(it.grams,0)+'g ('+n(it.kcal,0)+')'; }).join('、')+'<br>';
+      });
+      h+='</div>';
+    } else {
+      h+='<div class="food">今日暫未有飲食記錄。</div>';
+    }
+    h+='</div>';
+
+    // 今日活動
+    h+='<div class="card"><h2>今日活動<span>'+esc(A.day_type_label||'')+'</span></h2>'+
+      kv('Oura Active Burn', n(A.oura_active_burn,0)+' kcal', true)+
+      kv('Oura Total Burn', n(A.oura_total_burn,0)+' kcal', true)+
+      kv('步數', n(A.steps,0))+
+      kv('Zone 2 時間', n(A.zone2_minutes,0)+' 分鐘')+
+      kv('阻力訓練時間', n(A.resistance_minutes,0)+' 分鐘')+
+      kv('手動記錄 Workout kcal', A.workout_kcal==null?'—':n(A.workout_kcal,0)+' kcal')+
+      kv('估算 TDEE', n(A.estimated_tdee,0)+' kcal', true)+
+      kv('估算赤字', defTxt(A.estimated_deficit)+' kcal', true)+
+      '<div class="food"><b>赤字計法：</b>'+esc(A.deficit_formula||'')+'</div></div>';
+
+    // 7 日
+    h+='<div class="card"><h2>7 日趨勢<span>'+esc(r7.range||'')+'</span></h2>'+
+      kv('平均攝取', n(r7.avg_calories_in,0)+' kcal')+
+      kv('平均 Protein', n(r7.avg_protein_g,0)+' g')+
+      kv('平均 Carbs', n(r7.avg_carbs_g,0)+' g')+
+      kv('平均 Fat', n(r7.avg_fat_g,0)+' g')+
+      kv('平均 Fiber', n(r7.avg_fiber_g,0)+' g')+
+      kv('平均步數', n(r7.avg_steps,0))+
+      kv('平均 Active Burn', n(r7.avg_active_burn,0)+' kcal', true)+
+      kv('平均估算 TDEE', n(r7.avg_tdee,0)+' kcal', true)+
+      kv('平均估算赤字', defTxt(r7.avg_deficit)+' kcal', true)+
+      kv('7 日總赤字', defTxt(r7.total_deficit)+' kcal', true)+
+      kv('有記錄日數', n(r7.logged_days,0)+' / 7')+
+      kv('平均體重', r7.avg_weight_kg==null?'—':n(r7.avg_weight_kg,2)+' kg')+
+      kv('較上一個 7 日', r7.weight_change_vs_previous_7d_kg==null?'—':
+         sgn(r7.weight_change_vs_previous_7d_kg,2)+' kg')+
+      kv('每週估算減重速度', r7.est_weekly_rate_kg==null?'—':
+         sgn(r7.est_weekly_rate_kg,2)+' kg/週', true)+
+      '</div>';
+
+    // 30 日
+    h+='<div class="card"><h2>30 日趨勢<span>'+esc(r30.range||'')+'</span></h2>'+
+      kv('平均攝取', n(r30.avg_calories_in,0)+' kcal')+
+      kv('平均估算赤字', defTxt(r30.avg_deficit)+' kcal', true)+
+      kv('30 日累積赤字', defTxt(r30.total_deficit)+' kcal', true)+
+      kv('有記錄日數', n(r30.logged_days,0)+' / 30')+
+      kv('體重變化', r30.weight_change_kg==null?'—':sgn(r30.weight_change_kg,1)+' kg')+
+      kv('腰圍變化', r30.waist_change_cm==null?'未夠數據':sgn(r30.waist_change_cm,1)+' cm')+
+      kv('累積赤字折算脂肪', r30.total_deficit==null?'—':
+         sgn(-(r30.total_deficit/7700),2)+' kg', true)+
+      '<div class="food">折算用 7,700 kcal ≈ 1 kg 脂肪，屬理論換算，未計代謝適應。</div></div>';
+
+    // 體重歷史
+    var wh=D.weight_history||[];
+    h+='<div class="card"><h2>量度歷史<span>'+wh.length+' 筆</span></h2><div class="scroll"><table>'+
+      '<tr><th>日期</th><th>體重</th><th>腰圍</th><th>體脂%</th><th>脂肪</th><th>骨骼肌</th><th>水分</th><th>備註</th></tr>';
+    if(!wh.length) h+='<tr><td colspan="8" style="text-align:center;color:var(--muted)">未有記錄</td></tr>';
+    wh.slice().reverse().forEach(function(r){
+      h+='<tr><td>'+esc(r.date)+'</td><td>'+n(r.weight_kg,1)+'</td><td>'+n(r.waist_cm,1)+
+        '</td><td>'+n(r.bia_body_fat_percent,1)+'</td><td>'+n(r.fat_mass_kg,1)+
+        '</td><td>'+n(r.skeletal_muscle_kg,1)+'</td><td>'+n(r.body_water_kg,1)+
+        '</td><td style="white-space:normal;font-size:11.5px;color:var(--muted)">'+
+        esc(r.note||'')+'</td></tr>';
+    });
+    h+='</table></div></div>';
+
+    h+='<div class="btns">'+
+      '<button id="bSum">📋 Copy AI Summary</button>'+
+      '<button class="ghost" id="bJson">⧉ Copy JSON</button>'+
+      '<a class="btn ghost" href="data.json" target="_blank" rel="noopener">↗ Open raw JSON</a>'+
+      '</div><div id="msg"></div>';
+
+    h+='<div class="foot">此頁為唯讀快照，無登入、無寫入功能，不含任何帳戶資料、金鑰或聯絡資料。<br>'+
+       '快照由後台定時產生，資料截至上方產生時間。</div>';
+
+    $('app').innerHTML=h;
+    $('bSum').onclick=function(){ copy(D.ai_summary||'', 'AI Summary'); };
+    $('bJson').onclick=function(){ copy(JSON.stringify(D,null,2), 'JSON'); };
+  }
+
+  function copy(txt,label){
+    var done=function(){ $('msg').textContent='已複製 '+label+'（'+txt.length.toLocaleString()+' 字）';
+      setTimeout(function(){ $('msg').textContent=''; },3500); };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(fallback);
+    } else fallback();
+    function fallback(){
+      var ta=document.createElement('textarea'); ta.value=txt;
+      ta.style.cssText='position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); done(); }
+      catch(e){ $('msg').textContent='複製唔到，請用 Open raw JSON'; }
+      ta.remove();
+    }
+  }
+
+  fetch('data.json?t='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(j){ D=j; render(); })
+    .catch(function(e){
+      $('app').innerHTML='<div class="err"><b>載入唔到快照</b><br><br>'+esc(e.message)+
+        '<br><br><a href="data.json">直接開 data.json</a></div>';
+    });
+})();
+</script>
+</body>
+</html>
