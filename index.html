@@ -413,7 +413,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260912-1006';
+  var APP_VER = '20260912-1011';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -628,6 +628,16 @@
     if(!m.time) m.time=nowTime();
     state.settings.lastPortion[f.id]={label:portionLabel, grams:grams};
     markDirty();
+  }
+  // 🔴 出街冇磅：有單位嘅食物一律先顯示件／隻／碗，克數退做括號
+  function portionOf(it){
+    var g=+it.grams||0, f=(it.foodId && it.foodId.indexOf('set:')!==0) ? foodById(it.foodId) : null;
+    if(f && f.unit && +f.unit.grams>0){
+      var n=g/(+f.unit.grams);
+      var nn=(Math.abs(n-Math.round(n))<0.05)? Math.round(n) : Math.round(n*10)/10;
+      if(nn>0) return nn+' '+f.unit.name+'（'+r0(g)+'g）';
+    }
+    return r0(g)+'g';
   }
   function setItems(st){
     var out=[]; (st.items||[]).forEach(function(x){ var f=foodById(x.foodId); if(f) out.push(makeItem(f, x.grams)); });
@@ -885,10 +895,10 @@
             var open=expandedId===cid;
             h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?' · 撳收埋':' · 撳睇明細')+'</span></div>';
           } else
-          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+it.grams+'g · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+' · 撳改</span></div>';
+          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+portionOf(it)+' · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+' · 撳改</span></div>';
           h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
           h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
-          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+p.grams+'g ✎</span><span>'+p.kcal+'</span></li>'; }); h+='<li class="tap" data-act="toggleparts" data-cid="'+cid+'" style="justify-content:center;color:var(--muted);padding-top:6px"><span>▲ 收埋明細</span></li></ul></li>'; }
+          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+portionOf(p)+' ✎</span><span>'+p.kcal+'</span></li>'; }); h+='<li class="tap" data-act="toggleparts" data-cid="'+cid+'" style="justify-content:center;color:var(--muted);padding-top:6px"><span>▲ 收埋明細</span></li></ul></li>'; }
         });
         h+='</ul>';
         h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
@@ -991,7 +1001,7 @@
     });
     return rows;
   }
-  function fmtItems(items){ return items.map(function(i){ return (i.parts?('['+i.name+'] '+i.parts.map(function(p){return p.name+' '+p.grams+'g';}).join('、')):(i.name+' '+i.grams+'g'))+' '+i.kcal; }).join('；'); }
+  function fmtItems(items){ return items.map(function(i){ return (i.parts?('['+i.name+'] '+i.parts.map(function(p){return p.name+' '+portionOf(p);}).join('、')):(i.name+' '+portionOf(i)))+' '+i.kcal; }).join('；'); }
   function reportHTML(rows,from,to){
     var s=state.settings, logged=rows.filter(function(r){return r.intake>0;});
     var avg=function(arr,k){ var v=arr.map(function(r){return r[k];}).filter(function(x){return x!=null&&!isNaN(x);}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null; };
