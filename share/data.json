@@ -1,8 +1,8 @@
 {
-  "ai_summary": "日期：2026-09-12（香港時間 08:45）\n體重：73.8 kg（量於 2026-09-12）\n腰圍：— cm（未量度）\n最新 BIA 體脂率：32.5%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：24.0 kg｜骨骼肌：27.8 kg｜水分：36.3 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：914 kcal（目標 1,800）\nProtein：66 g（目標 ≥150）\nCarbs：89 g（目標 ≤190）\nFat：34 g（目標 ≤50）\nFiber：11 g（目標 ≥30）\n步數：6,966\nOura Active Burn：431 kcal\n估算 TDEE：2,049 kcal\n估算赤字：−1,135 kcal\n今日類型：運動日\n\n7 日平均攝取：1,701 kcal（6/7 日有記錄）\n7 日平均 Protein：142 g\n7 日平均步數：9,838\n7 日平均赤字：−691 kcal\n7 日總赤字：−4,144 kcal\n7 日平均體重：73.8 kg\n較上一個 7 日平均：−1.9 kg\n\n30 日平均攝取：1,701 kcal\n30 日平均赤字：−691 kcal\n30 日累積赤字：−4,144 kcal\n30 日體重變化：−1.9 kg\n30 日腰圍變化：— cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
+  "ai_summary": "日期：2026-09-12（香港時間 09:15）\n體重：73.8 kg（量於 2026-09-12）\n腰圍：— cm（未量度）\n最新 BIA 體脂率：32.5%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：24.0 kg｜骨骼肌：27.8 kg｜水分：36.3 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：914 kcal（目標 1,800）\nProtein：66 g（目標 ≥150）\nCarbs：89 g（目標 ≤190）\nFat：34 g（目標 ≤50）\nFiber：11 g（目標 ≥30）\n步數：6,974\nOura Active Burn：431 kcal\n估算 TDEE：2,049 kcal\n估算赤字：−1,135 kcal\n今日類型：運動日\n\n7 日平均攝取：1,701 kcal（6/7 日有記錄）\n7 日平均 Protein：142 g\n7 日平均步數：9,840\n7 日平均赤字：−691 kcal\n7 日總赤字：−4,144 kcal\n7 日平均體重：73.8 kg\n較上一個 7 日平均：−1.9 kg\n\n30 日平均攝取：1,701 kcal\n30 日平均赤字：−691 kcal\n30 日累積赤字：−4,144 kcal\n30 日體重變化：−1.9 kg\n30 日腰圍變化：— cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
   "disclaimer": "BIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
-  "generated_at": "2026-09-12T08:45:27+08:00",
-  "generated_at_hk": "2026-09-12 08:45",
+  "generated_at": "2026-09-12T09:15:30+08:00",
+  "generated_at_hk": "2026-09-12 09:15",
   "latest": {
     "bia_body_fat_percent": 32.5,
     "bia_measured_on": "2026-09-12",
@@ -44,7 +44,7 @@
     "avg_fat_g": 62,
     "avg_fiber_g": 14,
     "avg_protein_g": 142,
-    "avg_steps": 9838,
+    "avg_steps": 9840,
     "avg_tdee": 2391,
     "avg_weight_kg": 73.8,
     "est_weekly_rate_kg": null,
@@ -106,10 +106,10 @@
     "kcal_remaining": 886,
     "oura_active_burn": 431,
     "oura_total_burn": 2273,
-    "partial_day_note": "快照於 08:45 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
+    "partial_day_note": "快照於 09:15 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
     "protein_g": 66,
-    "snapshot_time": "08:45",
-    "steps": 6966,
+    "snapshot_time": "09:15",
+    "steps": 6974,
     "weekday": "六"
   },
   "today_activity": {
@@ -122,7 +122,7 @@
     "oura_total_burn": 2273,
     "oura_total_burn_note": "Oura 的 Total Burn 由日初即計入全日 BMR，因此屬全日預測值，並非「已經燒掉」的數字。本 App 的赤字計算不使用此欄，只用 active calories。",
     "resistance_minutes": 12,
-    "steps": 6966,
+    "steps": 6974,
     "workout_kcal": null,
     "zone2_minutes": 40
   },
