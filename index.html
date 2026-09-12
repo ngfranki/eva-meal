@@ -271,6 +271,15 @@
   .lchart .ln{fill:none; stroke:var(--gold); stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round}
   .lchart .ln.df{stroke:var(--ink)}
   .lchart .ln.avg{stroke:var(--gold); stroke-dasharray:5 4; stroke-width:2; opacity:.8}
+  .hrbars{display:flex; align-items:flex-end; gap:1px; height:92px; margin:10px 0 4px}
+  .hrbars i{flex:1; border-radius:2px 2px 0 0; background:var(--line); min-height:2px}
+  .hrbars i.r,.hrbars i.s{background:#C9D2C0}
+  .hrbars i.a{background:var(--gold)}
+  .hrbars i.w,.hrbars i.e{background:var(--ink)}
+  .hrax{display:flex; justify-content:space-between; font-size:9px; color:var(--muted); margin-bottom:2px}
+  .hrleg{display:flex; gap:12px; font-size:10.5px; color:var(--muted); margin-top:6px; flex-wrap:wrap}
+  .hrleg span{display:flex; align-items:center; gap:4px}
+  .hrleg em{width:9px; height:9px; border-radius:2px; font-style:normal; display:inline-block}
   .lchart .pt{fill:var(--ink)} .lchart .pt.over{fill:var(--warn)}
   .lchart .vl{font-size:10px; font-weight:700; fill:var(--ink)} .lchart .vl.over{fill:var(--warn)}
   .lchart .xl{font-size:9px; fill:var(--muted)}
@@ -413,7 +422,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260912-1011';
+  var APP_VER = '20260912-2122';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1102,6 +1111,43 @@
     var wk=state.weights[curDate]||'';
     h+='<div class="wrow"><span style="font-size:20px">⚖️</span><div class="t"><b>體重（每星期磅一次）</b>校準基礎代謝用，唔使日日</div><input type="number" inputmode="decimal" step="0.1" id="weightIn" placeholder="'+(s.weightKg||'75')+'" value="'+wk+'"><span class="u">kg</span></div>';
     h+='<div class="wrow"><span style="font-size:20px">📏</span><div class="t"><b>腰圍（每星期一次）</b>朝早如廁後、呼氣末、放鬆唔收腹、平繞肚臍</div><input type="number" inputmode="decimal" step="0.1" id="waistIn" placeholder="89" value="'+(state.waist[curDate]||'')+'"><span class="u">cm</span></div>';
+    // ---- 壓力（Oura 官方全日數）----
+    if(d.stressHighMin!=null || d.recoveryHighMin!=null){
+      var sh=+d.stressHighMin||0, rc=+d.recoveryHighMin||0, bs=b.stressHighMin, sum=d.stressSummary||'';
+      var sumTxt={restored:'已恢復',normal:'正常',stressed:'偏緊張'}[sum]||sum||'—';
+      var stSt=(bs!=null&&sh>bs*2&&sh>=60)?'bad':((bs!=null&&sh>bs*1.3)?'mid':'ok');
+      var fmtM=function(m){ return m>=60?(Math.floor(m/60)+'h'+(m%60?(' '+(m%60)+'m'):'')):(m+' 分鐘'); };
+      h+=ocard({label:'日間壓力（Oura 全日）', value:fmtM(sh), unit:'高壓時間',
+        st:stSt, tag:'Oura 判定：'+sumTxt,
+        base:bs, delta:(bs!=null?r0(sh-bs):null), deltaUnit:' 分鐘',
+        explain:'Oura 用心率同心率變異推算，將全日分成高壓、正常、恢復三種狀態。今日高壓 '+fmtM(sh)+
+          '、恢復 '+fmtM(rc)+(bs!=null?('，你前 7 日平均高壓 '+fmtM(Math.round(bs))):'')+'。',
+        means:(stSt==='bad'?'今日高壓時間明顯多過你平時。呢個唔一定係壞事，運動同工作都會計入高壓，但如果同時見到恢復時間短、靜止心率升，就係身體未回氣嘅訊號。':
+               (stSt==='mid'?'略高過你平時，屬正常波動範圍。':'同你平時差唔多。'))});
+    }
+    // ---- 30 分鐘心率（唔係壓力指數）----
+    var h30=(state.oura.hr30||{})[curDate];
+    if(h30&&h30.bpm){
+      var bp=h30.bpm, sc=h30.src||'', vals=bp.filter(function(v){return v;});
+      if(vals.length){
+        var mx=Math.max.apply(null,vals), mn=Math.min.apply(null,vals), rng=(mx-mn)||1;
+        h+='<div class="ocard"><div class="lb"><span>30 分鐘心率</span><span class="tag ok">'+vals.length+' 格有數</span></div>';
+        h+='<div class="hrax"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>';
+        h+='<div class="hrbars">'+bp.map(function(v,i){
+            if(!v) return '<i style="height:2px"></i>';
+            var pct=8+((v-mn)/rng)*92;
+            return '<i class="'+(sc[i]||'-')+'" style="height:'+pct.toFixed(0)+'%" title="'+
+              (Math.floor(i/2))+':'+(i%2?'30':'00')+' · '+v+' bpm"></i>';
+          }).join('')+'</div>';
+        h+='<div class="hrleg"><span><em style="background:#C9D2C0"></em>休息／睡眠</span>'+
+           '<span><em style="background:var(--gold)"></em>清醒</span>'+
+           '<span><em style="background:var(--ink)"></em>運動</span>'+
+           '<span>最高 '+mx+' · 最低 '+mn+' bpm</span></div>';
+        h+='<div class="ex"><span class="k">解釋</span>每條 = 半個鐘嘅平均心率，由 Oura 原始心率數據砌。'+
+           '🔴 呢個唔係 Oura 嘅壓力指數：Oura 嘅 API 只提供上面嗰個全日總結，冇提供半小時壓力數值，所以呢度用心率代替。</div>';
+        h+='<div class="ex"><span class="k">代表</span>你嘅靜止心率係 '+(d.rhr||'—')+'。清醒時段（金色）如果長時間高過靜止心率 20 下以上，通常對應緊張、咖啡、消化或者未回氣。</div></div>';
+      }
+    }
     // 能量收支對照
     h+='<div class="ocard"><div class="lb"><span>能量收支對照</span><span class="tag">App vs Oura</span></div>';
     h+='<div class="obal"><div><b class="num">'+r0(intake).toLocaleString()+'</b><span>食物攝取（你記嘅）</span></div><div class="o"><b class="num">'+r0(d.activeCal).toLocaleString()+'</b><span>Oura 活動卡（量出嚟）</span></div>';
