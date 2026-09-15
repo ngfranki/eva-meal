@@ -271,6 +271,12 @@
   .lchart .ln{fill:none; stroke:var(--gold); stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round}
   .lchart .ln.df{stroke:var(--ink)}
   .lchart .ln.avg{stroke:var(--gold); stroke-dasharray:5 4; stroke-width:2; opacity:.8}
+  .lchart .ln.cum{stroke:var(--ink); stroke-width:2.5}
+  .lchart .cumfill{fill:var(--gold); opacity:.16; stroke:none}
+  .lchart .pace{stroke:var(--muted); stroke-dasharray:2 4; stroke-width:1.5; opacity:.55; fill:none}
+  .lchart .goal{stroke:var(--warn); stroke-width:2; stroke-dasharray:6 4}
+  .lchart .gl{font-size:10px; font-weight:700; fill:var(--warn)}
+  .lchart .endv{font-size:12px; font-weight:800; fill:var(--ink)}
   .hrbars{display:flex; align-items:flex-end; gap:1px; height:92px; margin:10px 0 4px}
   .hrbars i{flex:1; border-radius:2px 2px 0 0; background:var(--line); min-height:2px}
   .hrbars i.r,.hrbars i.s{background:#C9D2C0}
@@ -422,7 +428,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260912-2124';
+  var APP_VER = '20260915-1845';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -985,6 +991,53 @@
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 卡路里攝取（唔扣運動）</h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
       '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
+    // ---------- 月度累積赤字（橫線＝月目標，爬升線＝逐日累積）----------
+    (function(){
+      var ym=curDate.slice(0,7), yy=+ym.slice(0,4), mm=+ym.slice(5,7);
+      var nd=new Date(yy, mm, 0).getDate();
+      var goal=+s.monthTarget||16000;
+      var todayN=(curDate.slice(0,7)===today().slice(0,7))? +today().slice(8) : nd;
+      var cum=[], run=0, logged=0;
+      for(var i=1;i<=nd;i++){
+        var dd=ym+'-'+(i<10?'0'+i:''+i), it=dayItems(dd);
+        if(it.length){ run+=dayDeficit(dd, totals(it).kcal); logged++; }
+        cum.push(i<=todayN? run : null);
+      }
+      var cur=run, left=nd-todayN, short=goal-cur;
+      var W=320,Hh=170,padL=6,padR=40,padT=20,padB=18;
+      var hi=Math.max(goal,cur)*1.12||1;
+      var X=function(i){ return padL+(i/(nd-1))*(W-padL-padR); };
+      var Y=function(v){ return padT+(1-v/hi)*(Hh-padT-padB); };
+      var hh='<div class="lchart"><svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">';
+      // 目標橫線
+      hh+='<line class="goal" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+Y(goal).toFixed(1)+'" y2="'+Y(goal).toFixed(1)+'"/>';
+      hh+='<text class="gl" x="'+(W-padR+3)+'" y="'+(Y(goal)+3.5).toFixed(1)+'">'+r0(goal/1000)+'k</text>';
+      // 配速虛線（由 1 號 0 去到月尾剛好掂線）
+      hh+='<polyline class="pace" points="'+X(0).toFixed(1)+','+Y(0).toFixed(1)+' '+X(nd-1).toFixed(1)+','+Y(goal).toFixed(1)+'"/>';
+      // 累積面積＋線
+      var pts=[]; cum.forEach(function(v,i){ if(v!=null) pts.push(X(i).toFixed(1)+','+Y(v).toFixed(1)); });
+      if(pts.length>1){
+        hh+='<polygon class="cumfill" points="'+X(0).toFixed(1)+','+Y(0).toFixed(1)+' '+pts.join(' ')+' '+X(todayN-1).toFixed(1)+','+Y(0).toFixed(1)+'"/>';
+        hh+='<polyline class="ln cum" points="'+pts.join(' ')+'"/>';
+      }
+      // 今日點＋數字
+      var lx=X(todayN-1), ly=Y(cur);
+      hh+='<circle class="pt'+(cur>=goal?'':' over')+'" cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="4"/>';
+      hh+='<text class="endv" x="'+Math.min(lx+6,W-padR-4).toFixed(1)+'" y="'+(ly-8).toFixed(1)+'">'+r0(cur).toLocaleString()+'</text>';
+      [1,5,10,15,20,25,nd].forEach(function(dnum){
+        hh+='<text class="xl" x="'+X(dnum-1).toFixed(1)+'" y="'+(Hh-4)+'" text-anchor="middle">'+dnum+'</text>';
+      });
+      hh+='</svg></div>';
+      var hit=cur>=goal;
+      h+='<div class="card"><h2>'+mm+' 月累積赤字'+(hit?' ✓':'')+'<span>目標 '+r0(goal).toLocaleString()+' kcal</span></h2>';
+      h+='<div class="hint" style="margin:-4px 0 2px">紅色橫線＝月目標　·　黑線＝逐日累積　·　點虛線＝均速配速</div>';
+      h+=hh;
+      h+='<div class="stat"><div><b'+(hit?' style="color:var(--ok,#6E7A4F)"':'')+'>'+r0(cur).toLocaleString()+'</b><span>已累積</span></div>'+
+         '<div><b>'+(hit?'✓ 達標':r0(short).toLocaleString())+'</b><span>'+(hit?'超咗 '+r0(cur-goal).toLocaleString():'仲爭')+'</span></div>'+
+         '<div><b>'+(hit?'—':(left>0? r0(short/left).toLocaleString() : '—'))+'</b><span>'+(left>0?'餘下 '+left+' 日每日要':'月尾')+'</span></div></div>';
+      h+='<div class="hint" style="margin-top:6px">本月有記錄 '+logged+' 日。冇記錄嘅日子當 0，所以條線會平。</div>';
+      h+='</div>';
+    })();
     h+='<div class="card"><h2>近 14 日 體重</h2>';
     if(!wpts.length){
       h+='<div class="hint">期內未有體重記錄。喺「今日」頁最下面輸入體重，呢度就會畫線。</div>';
