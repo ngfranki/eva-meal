@@ -1,8 +1,8 @@
 {
-  "ai_summary": "日期：2026-09-18（香港時間 10:57）\n體重：73.8 kg（量於 2026-09-12）\n腰圍：89.0 cm\n最新 BIA 體脂率：32.5%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：24 kg｜骨骼肌：27.8 kg｜水分：36.3 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：1,091 kcal（目標 1,800）\nProtein：83 g（目標 ≥150）\nCarbs：102 g（目標 ≤190）\nFat：40 g（目標 ≤50）\nFiber：14 g（目標 ≥30）\n步數：6,843\nOura Active Burn：356 kcal\n估算 TDEE：1,992 kcal\n估算赤字：−901 kcal\n今日類型：運動日\n\n7 日平均攝取：1,690 kcal（7/7 日有記錄）\n7 日平均 Protein：146 g\n7 日平均步數：10,207\n7 日平均赤字：−643 kcal\n7 日總赤字：−4,501 kcal\n7 日平均體重：73.8 kg\n較上一個 7 日平均：−1.9 kg\n\n30 日平均攝取：1,718 kcal\n30 日平均赤字：−663 kcal\n30 日累積赤字：−7,957 kcal\n30 日體重變化：−1.9 kg\n30 日腰圍變化：— cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
+  "ai_summary": "日期：2026-09-18（香港時間 11:27）\n體重：73.8 kg（量於 2026-09-12）\n腰圍：89.0 cm\n最新 BIA 體脂率：32.5%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：24 kg｜骨骼肌：27.8 kg｜水分：36.3 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：1,091 kcal（目標 1,800）\nProtein：83 g（目標 ≥150）\nCarbs：102 g（目標 ≤190）\nFat：40 g（目標 ≤50）\nFiber：14 g（目標 ≥30）\n步數：6,843\nOura Active Burn：356 kcal\n估算 TDEE：1,992 kcal\n估算赤字：−901 kcal\n今日類型：運動日\n\n7 日平均攝取：1,690 kcal（7/7 日有記錄）\n7 日平均 Protein：146 g\n7 日平均步數：10,207\n7 日平均赤字：−643 kcal\n7 日總赤字：−4,501 kcal\n7 日平均體重：73.8 kg\n較上一個 7 日平均：−1.9 kg\n\n30 日平均攝取：1,718 kcal\n30 日平均赤字：−663 kcal\n30 日累積赤字：−7,957 kcal\n30 日體重變化：−1.9 kg\n30 日腰圍變化：— cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
   "disclaimer": "BIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
-  "generated_at": "2026-09-18T10:57:07+08:00",
-  "generated_at_hk": "2026-09-18 10:57",
+  "generated_at": "2026-09-18T11:27:10+08:00",
+  "generated_at_hk": "2026-09-18 11:27",
   "latest": {
     "bia_body_fat_percent": 32.5,
     "bia_measured_on": "2026-09-12",
@@ -100,9 +100,9 @@
     "kcal_remaining": 709,
     "oura_active_burn": 356,
     "oura_total_burn": 2224,
-    "partial_day_note": "快照於 10:57 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
+    "partial_day_note": "快照於 11:27 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
     "protein_g": 83,
-    "snapshot_time": "10:57",
+    "snapshot_time": "11:27",
     "steps": 6843,
     "weekday": "五"
   },
