@@ -428,7 +428,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260920-2110';
+  var APP_VER = '20260920-2112';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -940,50 +940,75 @@
   }
   var wtRange='all';
   function dnum(ds){ var a=ds.split('-'); return Date.UTC(+a[0],+a[1]-1,+a[2])/864e5; }
-  function weightCard(){
-    var t=today(), all=Object.keys(state.weights||{}).filter(function(d){ var v=state.weights[d]; return v!=null&&v!==''&&+v>0; }).sort();
-    var cut = wtRange==='all' ? '0000-00-00' : shiftDate(t, -(+wtRange));
-    var ds=all.filter(function(d){ return d>=cut; });
+  function rangeChips(){
     var RG=[['30','30 日'],['90','90 日'],['180','半年'],['all','全部']];
-    var h='<div class="card"><h2>體重走勢<span>'+(ds.length||0)+' 次量度</span></h2>';
-    h+='<div class="chips" style="margin:2px 0 6px">'+RG.map(function(r){ return '<button data-act="wtrange" data-v="'+r[0]+'" class="'+(wtRange===r[0]?'on':'')+'">'+r[1]+'</button>'; }).join('')+'</div>';
-    if(ds.length<2){ h+='<div class="hint">呢個範圍得 '+ds.length+' 次記錄，唔夠畫線。揀「全部」睇長線，或者喺「今日」頁最下面入返體重。</div></div>'; return h; }
-    var bd=Object.keys(state.bia||{}).filter(function(d){ return d>=cut && state.bia[d] && state.bia[d].fat!=null; }).sort();
+    return '<div class="chips" style="margin:2px 0 6px">'+RG.map(function(r){ return '<button data-act="wtrange" data-v="'+r[0]+'" class="'+(wtRange===r[0]?'on':'')+'">'+r[1]+'</button>'; }).join('')+'</div>';
+  }
+  function tlKeys(obj, pick){
+    var t=today(), cut = wtRange==='all' ? '0000-00-00' : shiftDate(t, -(+wtRange));
+    return Object.keys(obj||{}).filter(function(d){ var v=pick?pick(obj[d]):obj[d]; return d>=cut && v!=null && v!=='' && +v>0; }).sort();
+  }
+  function tlPlot(ds, vals, opt){
+    opt=opt||{};
     var W=320,Hh=170,padL=8,padR=8,padT=24,padB=20;
     var x0=dnum(ds[0]), x1=dnum(ds[ds.length-1]); if(x1===x0) x1=x0+1;
-    var vals=ds.map(function(d){ return +state.weights[d]; });
-    var fats=bd.map(function(d){ return +state.bia[d].fat; });
-    var goalHi=+((state.settings||{}).goalKg)||71;
-    var lo=Math.min.apply(null,vals.concat(fats.length?[Math.min.apply(null,fats)]:[]).concat([goalHi-1]));
-    var hi=Math.max.apply(null,vals.concat(fats.length?[Math.max.apply(null,fats)]:[]));
+    var ex=opt.extra&&opt.extra.ds.length>1?opt.extra:null;
+    var pool=vals.concat(ex?ex.vals:[]).concat(opt.goalHi!=null?[opt.goalLo,opt.goalHi]:[]);
+    var lo=Math.min.apply(null,pool), hi=Math.max.apply(null,pool);
     var sp=(hi-lo)||1; lo-=sp*0.12; hi+=sp*0.16; var span=hi-lo;
     var X=function(d){ return padL+((dnum(d)-x0)/(x1-x0))*(W-padL-padR); };
     var Y=function(v){ return padT+(1-(v-lo)/span)*(Hh-padT-padB); };
     var g='<div class="lchart"><svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">';
-    var yA=Y(goalHi), yB=Y(goalHi-1);
-    g+='<rect x="'+padL+'" y="'+yA.toFixed(1)+'" width="'+(W-padL-padR)+'" height="'+Math.abs(yB-yA).toFixed(1)+'" fill="var(--warn)" opacity=".12"/>';
-    g+='<line class="tgt" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+yA.toFixed(1)+'" y2="'+yA.toFixed(1)+'"/><text class="tl" x="'+(W-padR)+'" y="'+(yA-3).toFixed(1)+'" text-anchor="end">目標 '+(goalHi-1)+'–'+goalHi+' kg</text>';
+    if(opt.goalHi!=null){
+      var yA=Y(opt.goalHi), yB=Y(opt.goalLo);
+      if(Math.abs(yB-yA)>0.5) g+='<rect x="'+padL+'" y="'+Math.min(yA,yB).toFixed(1)+'" width="'+(W-padL-padR)+'" height="'+Math.abs(yB-yA).toFixed(1)+'" fill="var(--warn)" opacity=".12"/>';
+      g+='<line class="tgt" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+yA.toFixed(1)+'" y2="'+yA.toFixed(1)+'"/><text class="tl" x="'+(W-padR)+'" y="'+(yA-3).toFixed(1)+'" text-anchor="end">'+opt.goalLabel+'</text>';
+    }
     g+='<polyline class="ln" points="'+ds.map(function(d,i){ return X(d).toFixed(1)+','+Y(vals[i]).toFixed(1); }).join(' ')+'"/>';
-    if(fats.length>1) g+='<polyline class="ln avg" points="'+bd.map(function(d,i){ return X(d).toFixed(1)+','+Y(fats[i]).toFixed(1); }).join(' ')+'"/>';
+    if(ex) g+='<polyline class="ln avg" points="'+ex.ds.map(function(d,i){ return X(d).toFixed(1)+','+Y(ex.vals[i]).toFixed(1); }).join(' ')+'"/>';
     var lastX=-99;
     ds.forEach(function(d,i){
       var x=X(d), y=Y(vals[i]);
       g+='<circle class="pt" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2"/>';
       if(x-lastX>26 || i===ds.length-1){
-        g+='<text class="vl" x="'+x.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle">'+r1(vals[i])+'</text>';
+        g+='<text class="vl" x="'+x.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle">'+(opt.fmt?opt.fmt(vals[i]):r1(vals[i]))+'</text>';
         g+='<text class="xl" x="'+x.toFixed(1)+'" y="'+(Hh-5)+'" text-anchor="middle">'+(+d.slice(5,7))+'/'+(+d.slice(8))+'</text>';
         lastX=x;
       }
     });
-    bd.forEach(function(d,i){ g+='<circle class="pt" style="fill:var(--gold)" cx="'+X(d).toFixed(1)+'" cy="'+Y(fats[i]).toFixed(1)+'" r="2.6"/>'; });
-    g+='</svg></div>';
-    h+='<div class="hint" style="margin:-2px 0 2px">黑線＝體重逐次量度'+(fats.length>1?'　·　金虛線＝BIA 脂肪 kg':'')+'　·　黃帶＝目標 '+(goalHi-1)+'–'+goalHi+' kg</div>'+g;
-    var first=vals[0], last=vals[vals.length-1], chg=last-first;
-    var wks=(dnum(ds[ds.length-1])-dnum(ds[0]))/7;
-    h+='<div class="stat"><div><b>'+r1(first)+'</b><span>'+ds[0].slice(5).replace('-','/')+'</span></div><div><b>'+r1(last)+'</b><span>'+ds[ds.length-1].slice(5).replace('-','/')+'</span></div><div><b>'+(chg>0?'+':'')+r1(chg)+'</b><span>變化 kg</span></div><div><b>'+(wks>=1?((chg/wks>0?'+':'')+r1(chg/wks)):'—')+'</b><span>每週 kg</span></div></div>';
+    if(ex) ex.ds.forEach(function(d,i){ g+='<circle class="pt" style="fill:var(--gold)" cx="'+X(d).toFixed(1)+'" cy="'+Y(ex.vals[i]).toFixed(1)+'" r="2.6"/>'; });
+    return g+'</svg></div>';
+  }
+  function tlStat(ds, vals, unit){
+    var first=vals[0], last=vals[vals.length-1], chg=last-first, wks=(dnum(ds[ds.length-1])-dnum(ds[0]))/7;
+    return '<div class="stat"><div><b>'+r1(first)+'</b><span>'+ds[0].slice(5).replace('-','/')+'</span></div><div><b>'+r1(last)+'</b><span>'+ds[ds.length-1].slice(5).replace('-','/')+'</span></div><div><b>'+(chg>0?'+':'')+r1(chg)+'</b><span>變化 '+unit+'</span></div><div><b>'+(wks>=1?((chg/wks>0?'+':'')+r1(chg/wks)):'—')+'</b><span>每週 '+unit+'</span></div></div>';
+  }
+  function weightCard(){
+    var ds=tlKeys(state.weights);
+    var h='<div class="card"><h2>體重走勢<span>'+ds.length+' 次量度</span></h2>'+rangeChips();
+    if(ds.length<2) return h+'<div class="hint">呢個範圍得 '+ds.length+' 次記錄，唔夠畫線。揀「全部」睇長線，或者喺「今日」頁最下面入返體重。</div></div>';
+    var vals=ds.map(function(d){ return +state.weights[d]; });
+    var bd=tlKeys(state.bia, function(b){ return b&&b.fat; }), fats=bd.map(function(d){ return +state.bia[d].fat; });
+    var goalHi=+((state.settings||{}).goalKg)||71;
+    h+='<div class="hint" style="margin:-2px 0 2px">黑線＝體重逐次量度'+(fats.length>1?'　·　金虛線＝BIA 脂肪 kg':'')+'　·　黃帶＝目標 '+(goalHi-1)+'–'+goalHi+' kg</div>';
+    h+=tlPlot(ds, vals, {goalLo:goalHi-1, goalHi:goalHi, goalLabel:'目標 '+(goalHi-1)+'–'+goalHi+' kg', extra:{ds:bd, vals:fats}});
+    h+=tlStat(ds, vals, 'kg');
     if(fats.length>1){ var fc=fats[fats.length-1]-fats[0]; h+='<div class="hint" style="margin-top:6px">同期 BIA 脂肪：'+r1(fats[0])+' → '+r1(fats[fats.length-1])+' kg（'+(fc>0?'+':'')+r1(fc)+'）。體重跌得快過脂肪＝當中有水分同食物殘餘，唔好當晒係脂肪。</div>'; }
-    h+='</div>';
-    return h;
+    return h+'</div>';
+  }
+  function waistCard(){
+    var ds=tlKeys(state.waist);
+    var h='<div class="card"><h2>腰圍走勢<span>'+ds.length+' 次量度</span></h2>'+rangeChips();
+    if(ds.length<2) return h+'<div class="hint">呢個範圍得 '+ds.length+' 次記錄，唔夠畫線。揀「全部」睇長線，或者喺 Oura 頁入返腰圍。</div></div>';
+    var vals=ds.map(function(d){ return +state.waist[d]; });
+    var goal=+((state.settings||{}).goalWaist)||88;
+    h+='<div class="hint" style="margin:-2px 0 2px">黑線＝腰圍　·　黃線＝平肚門檻 '+goal+' cm　·　朝早空腹、肚臍位、平常呼氣完、尺貼實唔勒</div>';
+    h+=tlPlot(ds, vals, {goalLo:goal-1, goalHi:goal, goalLabel:'平肚門檻 '+goal+' cm'});
+    h+=tlStat(ds, vals, 'cm');
+    var plateau=0, last=vals[vals.length-1];
+    for(var i=vals.length-1;i>=0;i--){ if(Math.abs(vals[i]-last)<=0.5) plateau=Math.round((dnum(ds[ds.length-1])-dnum(ds[i]))/7); else break; }
+    if(plateau>=4) h+='<div class="hint" style="margin-top:6px">⚠️ 腰圍喺 '+r1(last)+' cm 左右已經卡咗大約 '+plateau+' 個星期。要留意腰圍同 BIA 脂肪有冇齊步走。</div>';
+    return h+'</div>';
   }
   function renderTrend(){
     var days=[], t=today(); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
@@ -1086,6 +1111,7 @@
       h+='</div>';
     })();
     h+=weightCard();
+    h+=waistCard();
     return h;
   }
   // ---------- 匯出 ----------
