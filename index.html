@@ -428,7 +428,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260915-1845';
+  var APP_VER = '20260920-1525';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -929,7 +929,7 @@
     if(!ws.length) h+='<div class="empty">未記</div>';
     ws.forEach(function(w){
       var conf=confirmId===w.id;
-      h+='<div class="wk"><div class="n tap" data-act="editwk" data-id="'+w.id+'"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+(w.type==='跑步機'?' · '+(w.steps?w.steps.toLocaleString()+' 步':'約 '+r0((+w.minutes||0)*CADENCE).toLocaleString()+' 步（估）'):'')+'</span>';
+      h+='<div class="wk"><div class="n tap" data-act="editwk" data-id="'+w.id+'"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+(w.type==='跑步機'?' · '+(w.steps?w.steps.toLocaleString()+' 步':'約 '+r0((+w.minutes||0)*CADENCE).toLocaleString()+' 步（估）'):'')+(w.level!=null&&w.level!==''?' · 強度 '+w.level+' 級':'')+'</span>';
       if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ var repTxt=s.repsList&&s.repsList.length>1?s.repsList.join(' / ')+' 下（'+s.repsList.length+' 組）':((s.reps||'—')+(s.sets?' × '+s.sets+' 組':'')); h+='<div>'+esc(s.exercise||'')+(s.exerciseEn?' <span class="m">'+esc(s.exerciseEn.replace(/（.*?）/,''))+'</span>':'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+repTxt+'</div>'; }); h+='</div>'; }
       if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
       h+='<div class="hintedit">撳一下改</div>';
@@ -1075,7 +1075,7 @@
     rows.forEach(function(r){ var o=r.oura; h+='<tr><td>'+r.date.slice(5).replace('-','/')+'</td><td>'+(r.intake?r0(r.intake).toLocaleString():'—')+'</td><td>'+(r.intake?r0(r.p):'—')+'</td><td>'+(r.intake?r0(r.c):'—')+'</td><td>'+(r.intake?r0(r.f):'—')+'</td><td>'+(r.intake?r0(r.fb):'—')+'</td><td>'+(r.burn?r0(r.burn):'—')+'</td><td>'+(r.deficit!=null?((r.deficit>=0?'−':'+')+r0(Math.abs(r.deficit))):'—')+'</td><td>'+(r.steps?r.steps.toLocaleString():'—')+'</td><td>'+(o.readiness||'—')+'</td><td>'+(o.totalSleepMin?Math.floor(o.totalSleepMin/60)+'h'+(o.totalSleepMin%60):'—')+'</td><td>'+(o.deepMin||'—')+'</td><td>'+(o.rhr||'—')+'</td><td>'+(o.hrv||'—')+'</td><td>'+(r.weight||'—')+'</td></tr>'; });
     h+='</table>';
     h+='<h2>每餐明細</h2><div class="meals">';
-    rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; h+='<div class="day"><b>'+r.date.slice(5).replace('-','/')+' · '+r0(r.intake)+' kcal</b>'; r.meals.forEach(function(m){ h+='<div><span>'+m.slot+(m.time?' '+m.time:'')+'</span> '+esc(fmtItems(m.items))+'</div>'; }); r.workouts.forEach(function(w){ h+='<div><span>運動</span> '+esc(w.type)+' '+w.minutes+'分'+(w.sets&&w.sets[0]?' · '+esc(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?' · '+esc(w.note):'')+'</div>'; }); h+='</div>'; });
+    rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; h+='<div class="day"><b>'+r.date.slice(5).replace('-','/')+' · '+r0(r.intake)+' kcal</b>'; r.meals.forEach(function(m){ h+='<div><span>'+m.slot+(m.time?' '+m.time:'')+'</span> '+esc(fmtItems(m.items))+'</div>'; }); r.workouts.forEach(function(w){ h+='<div><span>運動</span> '+esc(w.type)+' '+w.minutes+'分'+(w.level!=null&&w.level!==''?'·強度'+w.level:'')+(w.sets&&w.sets[0]?' · '+esc(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?' · '+esc(w.note):'')+'</div>'; }); h+='</div>'; });
     h+='</div>';
     h+='<div class="foot">數字來源：食物營養值出自內建食物庫（USDA FoodData Central／香港食安中心／台灣食藥署／日本文部科學省）或包裝標籤；份量由使用者輸入或 AI 目測估算；活動消耗為 Oura 量度之 active calories；BMR 為 Mifflin-St Jeor 公式估算。赤字＝BMR ＋ 攝取×10% ＋ 活動 − 攝取。Oura 總消耗與 BIA 體脂率未採用。由 eva-meal 匯出。</div>';
     return h;
@@ -1086,7 +1086,7 @@
     L.push('| 日期 | 攝取kcal | 蛋白g | 碳水g | 脂肪g | 纖維g | 活動kcal | 赤字 | 步數 | 準備度 | 睡眠分鐘 | 深層分鐘 | RHR | HRV | 體重kg |'); L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
     rows.forEach(function(r){ var o=r.oura; L.push('| '+r.date+' | '+(r.intake?r0(r.intake):'')+' | '+(r.intake?r0(r.p):'')+' | '+(r.intake?r0(r.c):'')+' | '+(r.intake?r0(r.f):'')+' | '+(r.intake?r0(r.fb):'')+' | '+(r.burn?r0(r.burn):'')+' | '+(r.deficit!=null?r0(r.deficit):'')+' | '+(r.steps||'')+' | '+(o.readiness||'')+' | '+(o.totalSleepMin||'')+' | '+(o.deepMin||'')+' | '+(o.rhr||'')+' | '+(o.hrv||'')+' | '+(r.weight||'')+' |'); });
     L.push(''); L.push('## 每餐明細');
-    rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; L.push('### '+r.date+'（'+r0(r.intake)+' kcal）'); r.meals.forEach(function(m){ L.push('- '+m.slot+(m.time?' '+m.time:'')+'：'+fmtItems(m.items)); }); r.workouts.forEach(function(w){ L.push('- 運動：'+w.type+' '+w.minutes+'分'+(w.sets&&w.sets[0]?' '+(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?'（'+w.note+'）':'')); }); });
+    rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; L.push('### '+r.date+'（'+r0(r.intake)+' kcal）'); r.meals.forEach(function(m){ L.push('- '+m.slot+(m.time?' '+m.time:'')+'：'+fmtItems(m.items)); }); r.workouts.forEach(function(w){ L.push('- 運動：'+w.type+' '+w.minutes+'分'+(w.level!=null&&w.level!==''?'（強度 '+w.level+' 級）':'')+(w.sets&&w.sets[0]?' '+(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?'（'+w.note+'）':'')); }); });
     return L.join('\n');
   }
   function loadScript(src){ return new Promise(function(res,rej){ if(document.querySelector('script[src="'+src+'"]')) return res(); var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
@@ -1375,6 +1375,7 @@
     if(oU){ h+='<div class="hint">卡數由 Oura 計，唔使填。呢度只記做咗乜、幾耐、幾重。'+(wkType==='負重'?'冇計時就填組數，時長自動當每組 2 分鐘。':'')+'</div>'; if(wkType==='負重') h+='<div id="est" hidden></div>'; }
     else if(wkType==='負重'){ h+='<div class="est" id="est"></div><div class="hint">時長＝由第一組開始到最後一組完，連中間休息（MET 3.5 本身就係連休息計）。冇計時就用「組數 × 2 分鐘」，填組數會自動幫你填。</div>'; }
     else if(wkType==='Sixpad 腹帶'){ h+='<div class="hint">EMS 腹帶嘅耗能 Eva 查唔到可信研究數，唔估；有手錶數就入，冇就留空當 0。</div>'; }
+    if(wkType==='Sixpad 腹帶'){ h+='<label>強度（機上第幾級）</label><input id="w_level" type="number" inputmode="numeric" placeholder="例：12" value="'+esc(first&&wkEdit&&wkEdit.level!=null?wkEdit.level:'')+'"><div class="hint">研究顯示高強度組 6 星期腹肌力量升 29%，低強度組明顯差一截（Porcari, IJKSS）。記低級數，夾埋每週腰圍就睇到你自己身體嘅關係。</div>'; }
     else { h+='<div class="hint">消耗卡數照 Apple Watch／跑步機顯示嘅數入，app 唔會自己估。</div>'; }
     el.innerHTML=h; updateEst();
   }
@@ -1400,7 +1401,8 @@
     }
     var wk=parseInt($('w_kcal').value,10); if(isNaN(wk)||wk<0) wk=null;
     var stp=$('w_steps')?parseInt($('w_steps').value,10):NaN;
-    var rec={id:wkEdit?wkEdit.id:uid(), date:wkEdit?wkEdit.date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, steps:isNaN(stp)?null:stp, kcalSrc:(wk!=null&&$('w_kcal').getAttribute('data-est')==='1')?'MET估':(wk!=null?'手動':null), sets:sets, note:($('w_note').value||'').trim()};
+    var lv=$('w_level')?parseFloat($('w_level').value):NaN;
+    var rec={id:wkEdit?wkEdit.id:uid(), date:wkEdit?wkEdit.date:curDate, time:$('w_time').value||nowTime(), type:type, minutes:mins, kcal:wk, level:isNaN(lv)?(wkEdit&&$('w_level')?null:(wkEdit?wkEdit.level:null)):lv, steps:isNaN(stp)?null:stp, kcalSrc:(wk!=null&&$('w_kcal').getAttribute('data-est')==='1')?'MET估':(wk!=null?'手動':null), sets:sets, note:($('w_note').value||'').trim()};
     if(wkEdit){ var ix=state.workouts.findIndex(function(w){return w.id===wkEdit.id;}); if(ix>=0) state.workouts[ix]=rec; else state.workouts.push(rec); } else state.workouts.push(rec);
     wkEdit=null; markDirty(); closeSheet();
   }
