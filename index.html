@@ -428,7 +428,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260920-2114';
+  var APP_VER = '20260920-2117';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -968,14 +968,14 @@
     }
     g+='<polyline class="ln" points="'+ds.map(function(d,i){ return X(d).toFixed(1)+','+Y(vals[i]).toFixed(1); }).join(' ')+'"/>';
     if(ex) g+='<polyline class="ln avg" points="'+ex.ds.map(function(d,i){ return X(d).toFixed(1)+','+Y(ex.vals[i]).toFixed(1); }).join(' ')+'"/>';
-    var lastX=-99;
+    var show={}, nextX=1e9;
+    for(var k=ds.length-1;k>=0;k--){ var xk=X(ds[k]); if(nextX-xk>26){ show[k]=1; nextX=xk; } }
     ds.forEach(function(d,i){
       var x=X(d), y=Y(vals[i]);
       g+='<circle class="pt" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2"/>';
-      if(x-lastX>26 || i===ds.length-1){
+      if(show[i]){
         g+='<text class="vl" x="'+x.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle">'+(opt.fmt?opt.fmt(vals[i]):r1(vals[i]))+'</text>';
         g+='<text class="xl" x="'+x.toFixed(1)+'" y="'+(Hh-5)+'" text-anchor="middle">'+(+d.slice(5,7))+'/'+(+d.slice(8))+'</text>';
-        lastX=x;
       }
     });
     if(ex) ex.ds.forEach(function(d,i){ g+='<circle class="pt" style="fill:var(--gold)" cx="'+X(d).toFixed(1)+'" cy="'+Y(ex.vals[i]).toFixed(1)+'" r="2.6"/>'; });
