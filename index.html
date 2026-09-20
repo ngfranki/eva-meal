@@ -291,6 +291,12 @@
   .lchart .xl{font-size:9px; fill:var(--muted)}
   .lchart .tgt{stroke:var(--warn); stroke-dasharray:4 3; opacity:.6} .lchart .tl{font-size:9px; fill:var(--warn)}
   .lchart .zero{stroke:var(--line)}
+  .r90v{font-size:13px; line-height:1.7; margin:6px 0 2px; padding:10px 12px; background:var(--soft); border-radius:10px}
+  .r90rows{margin:8px 0 2px}
+  .r90r{display:flex; gap:8px; align-items:flex-start; padding:5px 0; border-top:1px solid var(--line); font-size:12px; line-height:1.5}
+  .r90r i{width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; background:var(--muted)}
+  .r90r i.ok{background:#6E7A4F} .r90r i.mid{background:var(--gold)} .r90r i.bad{background:var(--warn)}
+  .r90r .k{color:var(--muted); min-width:74px; flex:none}
   .lchart .grid{stroke:var(--line); stroke-width:1}
   .lchart .gv{font-size:8px; fill:var(--muted); opacity:.85}
   .chart{display:flex; align-items:flex-end; gap:4px; height:130px; padding-top:10px; position:relative}
@@ -430,7 +436,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260920-2118';
+  var APP_VER = '20260921-0751';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1230,6 +1236,86 @@
       (o.spark||'')+
       '<div class="ex"><span class="k">解釋</span>'+o.explain+'</div><div class="ex"><span class="k">代表</span>'+o.means+'</div></div>';
   }
+  // ---------- R90 睡眠評估（Nick Littlehales《Sleep》·以週期計唔以鐘數計）----------
+  function r90Cycle(){ return +((state.settings||{}).cycleMin)||85; }
+  function hhmm2m(x){ if(!x) return null; var a=x.split(':'); return +a[0]*60+ +a[1]; }
+  function m2hhmm(m){ m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.round(m%60)).padStart(2,'0'); }
+  function r90Anchor(){
+    var D=state.oura.days||{}, v=[];
+    Object.keys(D).sort().slice(-21).forEach(function(k){
+      var w=D[k]&&D[k].wake; if(!w) return;
+      if(new Date(k+'T00:00:00').getDay()===0) return;
+      var m=hhmm2m(w); if(m!=null&&m<12*60) v.push(m);
+    });
+    if(!v.length) return null;
+    v.sort(function(a,b){return a-b;});
+    return v[Math.floor(v.length/2)];
+  }
+  function r90Week(date){
+    var D=state.oura.days||{}, n=0, cyc=r90Cycle(), tot=0;
+    for(var i=0;i<7;i++){ var k=shiftDate(date,-i), d=D[k]; if(d&&d.totalSleepMin){ tot+=d.totalSleepMin/cyc; n++; } }
+    return {cycles:tot, nights:n};
+  }
+  function r90Verdict(d, c, anchor, wkd){
+    var cyc=r90Cycle(), S=[];
+    var gap=5-c, mins=r0(Math.abs(gap)*cyc), cd=Math.floor(c*10)/10;
+    if(c>=5) S.push('呢晚完成 '+r1(c)+' 個週期，夠晒 5 個，係你嘅目標水平。');
+    else if(c>=4.75) S.push('呢晚 '+cd+' 個週期，差 '+mins+' 分鐘就夠 5 個，接近達標。');
+    else if(c>=4.25) S.push('呢晚得 '+cd+' 個週期，爭 '+mins+' 分鐘先到 5 個。');
+    else S.push('呢晚只有 '+cd+' 個週期，爭成 '+mins+' 分鐘，屬於明顯唔夠。');
+    var why=[];
+    if(d.bedtime&&d.wake&&anchor!=null){
+      var bm=hhmm2m(d.bedtime); if(bm>12*60) bm-=1440;
+      var ideal=anchor-5*cyc-(d.latencyMin||10);
+      var late=bm-ideal;
+      if(late>=20) why.push('主因係上床遲咗——'+d.bedtime+' 先瞓，比「'+m2hhmm(ideal)+'上床、'+m2hhmm(anchor)+'起身」嘅 5 週期班次遲咗 '+r0(late)+' 分鐘');
+      else if(late<=-20&&c<4.75) why.push('你上床唔算遲（'+d.bedtime+'），係起身太早（'+d.wake+'）令週期唔夠');
+    }
+    if(d.latencyMin>15) why.push('入睡用咗 '+d.latencyMin+' 分鐘，偏慢，通常代表過咗個週期入口先上床');
+    if(d.wakeStage==='deep') why.push('而且你係由深層睡眠被扯醒，就算瞓夠都會覺得散');
+    var awake=(d.tibMin!=null&&d.totalSleepMin!=null)?(d.tibMin-d.totalSleepMin):null;
+    if(awake!=null&&awake>=80) why.push('你臥床 '+Math.floor(d.tibMin/60)+' 小時 '+(d.tibMin%60)+' 分，但當中有 '+awake+' 分鐘係醒住（效率 '+(d.efficiency||'—')+'%），即係躺得夠但瞓唔實');
+    if(why.length) S.push(why.slice(0,2).join('；')+'。');
+    else if(c>=4.75) S.push('上床時間、入睡速度同醒嗰陣嘅階段都冇問題，係一晚乾淨嘅睡眠。');
+    else S.push('上床同起身都冇明顯偏差，純粹係臥床時間本身唔夠長，早 '+mins+' 分鐘上床就補得返。');
+    if(wkd&&wkd.nights>=4){
+      if(wkd.cycles>=35) S.push('近 7 晚累積 '+r1(wkd.cycles)+' 個週期，超過 35 嘅週目標，身體有儲備。');
+      else if(wkd.cycles>=30) S.push('近 7 晚累積 '+r1(wkd.cycles)+' 個週期，仲喺 30–35 嘅下限帶，即係冇儲備但頂得住。');
+      else S.push('近 7 晚累積得 '+r1(wkd.cycles)+' 個週期，跌穿 30，要喺跟住幾晚補返。');
+    }
+    return S.join('');
+  }
+  function r90Card(d){
+    if(!d||!d.totalSleepMin) return '';
+    var cyc=r90Cycle(), c=d.totalSleepMin/cyc, anchor=r90Anchor(), h='';
+    var st = c>=4.75?'ok':(c>=4.25?'mid':'bad');
+    var tag = c>=4.75?'夠週期':(c>=4.25?'差少少':'唔夠週期');
+    h+='<div class="ocard"><div class="lb"><span>R90 睡眠週期</span><span class="tag '+st+'">'+tag+'</span></div>';
+    h+='<div class="big"><b class="num">'+r1(c)+'</b><small>個週期 / 目標 5</small><span class="dl '+(c>=5?'up':'dn')+'">'+(c>=5?'↑ ':'↓ ')+r1(Math.abs(5-c))+' 個</span></div>';
+    h+='<div class="r90v">'+r90Verdict(d, c, anchor, r90Week(curDate))+'</div>';
+    var rows=[];
+    if(d.wake){
+      var wm=hhmm2m(d.wake), dv=anchor!=null?wm-anchor:null;
+      rows.push(['起身', d.wake+(dv!=null?'（錨 '+m2hhmm(anchor)+'，'+(dv===0?'啱錨':(dv>0?'遲 '+dv+' 分':'早 '+(-dv)+' 分'))+'）':''), dv==null?'':(Math.abs(dv)<=20?'ok':(Math.abs(dv)<=45?'mid':'bad'))]);
+      if(d.bedtime){
+        var trains=[], base=wm; for(var n=6;n>=3;n--) trains.push({n:n, m:base-n*cyc-(d.latencyMin||10)});
+        var bm=hhmm2m(d.bedtime); if(bm>12*60) bm-=1440;
+        var best=null; trains.forEach(function(t){ var diff=bm-t.m; if(best==null||Math.abs(diff)<Math.abs(best.diff)) best={t:t,diff:diff}; });
+        rows.push(['上床', d.bedtime+'（最就手係 '+best.t.n+' 週期班車 '+m2hhmm(best.t.m)+'，'+(Math.abs(best.diff)<=10?'啱班次':(best.diff>0?'遲咗 '+r0(best.diff)+' 分':'早咗 '+r0(-best.diff)+' 分'))+'）', Math.abs(best.diff)<=10?'ok':(Math.abs(best.diff)<=25?'mid':'bad')]);
+      }
+    }
+    var WS={deep:['深層睡眠','bad','⚠️ 由深層被扯醒，會有「好似被車撞」嘅睡眠慣性，成朝散'],light:['淺層睡眠','ok','喺淺層醒，冇睡眠慣性'],rem:['REM','mid','喺造夢期醒，可能覺得矇但唔算差'],awake:['清醒','ok','週期行完自然浮上嚟醒，最理想']};
+    if(d.wakeStage&&WS[d.wakeStage]) rows.push(['醒嗰陣階段', WS[d.wakeStage][0]+'　'+WS[d.wakeStage][2], WS[d.wakeStage][1]]);
+    if(d.latencyMin!=null) rows.push(['入睡用咗', d.latencyMin+' 分鐘'+(d.latencyMin>15?'（偏慢＝好可能過咗班車先上床）':'（正常）'), d.latencyMin<=15?'ok':'mid']);
+    var wkd=r90Week(curDate);
+    if(wkd.nights>=4) rows.push(['近 7 晚累積', r1(wkd.cycles)+' 個週期 / 35（'+wkd.nights+' 晚有記錄）'+(wkd.cycles>=35?'　達標':(wkd.cycles>=30?'　喺 30–35 下限':'　跌穿 30')), wkd.cycles>=35?'ok':(wkd.cycles>=30?'mid':'bad')]);
+    h+='<div class="r90rows">'+rows.map(function(r){ return '<div class="r90r"><i class="'+(r[2]||'mid')+'"></i><span class="k">'+r[0]+'</span><span>'+r[1]+'</span></div>'; }).join('')+'</div>';
+    var act = c<4.25 ? '今晚 '+m2hhmm(( anchor!=null?anchor:hhmm2m('05:07') )-5*cyc-(d.latencyMin||10))+' 上床，就夠 5 個週期。' :
+              (c<4.75 ? '再早 '+r0((5-c)*cyc)+' 分鐘上床就夠 5 個週期。' : '呢晚夠數，照呢個時間維持。');
+    h+='<div class="ex"><span class="k">解釋</span>用 Nick Littlehales《Sleep》R90 方法：唔數鐘數，數完成咗幾多個睡眠週期。你嘅實測週期係 '+cyc+' 分鐘（由 REM 段間距計），所以 5 個週期 ＝ '+Math.floor(5*cyc/60)+' 小時 '+(5*cyc%60)+' 分。</div>';
+    h+='<div class="ex"><span class="k">行動</span>'+act+'　單晚唔達標唔緊要，睇近 7 晚嗰個總數先係真相。</div></div>';
+    return h;
+  }
   function renderOura(){
     var od=ouraToday();
     if(od.none){
@@ -1298,6 +1384,7 @@
     h+=ocard({label:'準備度 Readiness', value:d.readiness, unit:'／100', delta:b.readiness!=null?d.readiness-b.readiness:null, base:b.readiness, st:stR, spark:spark(d.hist&&d.hist.readiness,b.readiness),
       explain:'Oura 綜合你昨晚睡眠、靜止心率、HRV、體溫，畀出「今日身體承受得幾多」。85 以上係好，70–84 一般，70 以下要輕手。',
       means: d.readiness>=85?'<b>今日可以照常訓練同保持赤字。</b>':(d.readiness>=70?'<b>可以照常，唔要加碼。</b>低過 7 日平均 '+Math.abs(d.readiness-b.readiness)+' 分，今日赤字大過 700 嘅話第二朝多數更攰。':'<b>身體要休息。</b>今日赤字唔要超過 500，訓練改輕。')});
+    h+=r90Card(d);
     // 深層睡眠
     h+=ocard({label:'深層睡眠', value:d.deepMin, unit:'分鐘', delta:b.deepMin!=null?d.deepMin-b.deepMin:null, deltaUnit:'分', base:b.deepMin, st:stD, spark:spark(d.hist&&d.hist.deepMin,b.deepMin),
       explain:'身體修補肌肉、清理腦部代謝廢物嘅時段，主要喺上半夜。成年人一般 60–110 分。',
