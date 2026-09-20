@@ -291,6 +291,8 @@
   .lchart .xl{font-size:9px; fill:var(--muted)}
   .lchart .tgt{stroke:var(--warn); stroke-dasharray:4 3; opacity:.6} .lchart .tl{font-size:9px; fill:var(--warn)}
   .lchart .zero{stroke:var(--line)}
+  .lchart .grid{stroke:var(--line); stroke-width:1}
+  .lchart .gv{font-size:8px; fill:var(--muted); opacity:.85}
   .chart{display:flex; align-items:flex-end; gap:4px; height:130px; padding-top:10px; position:relative}
   .chart .c{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%}
   .chart .b{width:100%; background:var(--gold); border-radius:6px; min-height:3px}
@@ -428,7 +430,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260920-2117';
+  var APP_VER = '20260920-2118';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -961,6 +963,14 @@
     var X=function(d){ return padL+((dnum(d)-x0)/(x1-x0))*(W-padL-padR); };
     var Y=function(v){ return padT+(1-(v-lo)/span)*(Hh-padT-padB); };
     var g='<div class="lchart"><svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">';
+    var STEPS=[0.2,0.5,1,2,5,10], step=STEPS[STEPS.length-1];
+    for(var si=0;si<STEPS.length;si++){ if(span/STEPS[si]<=6){ step=STEPS[si]; break; } }
+    var g0=Math.ceil(lo/step)*step;
+    for(var gv=g0; gv<=hi; gv+=step){
+      var gy=Y(gv); if(gy<padT-2||gy>Hh-padB+2) continue;
+      g+='<line class="grid" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+gy.toFixed(1)+'" y2="'+gy.toFixed(1)+'"/>';
+      g+='<text class="gv" x="'+padL+'" y="'+(gy-2).toFixed(1)+'">'+(step<1?gv.toFixed(1):Math.round(gv))+'</text>';
+    }
     if(goalIn){
       var yA=Y(opt.goalHi), yB=Y(opt.goalLo);
       if(Math.abs(yB-yA)>0.5) g+='<rect x="'+padL+'" y="'+Math.min(yA,yB).toFixed(1)+'" width="'+(W-padL-padR)+'" height="'+Math.abs(yB-yA).toFixed(1)+'" fill="var(--warn)" opacity=".12"/>';
