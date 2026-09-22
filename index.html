@@ -294,6 +294,12 @@
   .r90v{font-size:13px; line-height:1.7; margin:6px 0 2px; padding:10px 12px; background:var(--soft); border-radius:10px}
   .tagp{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:var(--soft); color:var(--muted); margin-left:8px; vertical-align:middle}
   .tagp.ok{background:var(--gold-soft); color:var(--ink)} .tagp.mid{background:var(--f-soft); color:#7A5C10} .tagp.bad{background:#F6E0DA; color:var(--warn)}
+  .jrow{display:flex; gap:10px; align-items:center; padding:9px 0; border-top:1px solid var(--line)}
+  .jrow:first-of-type{border-top:0}
+  .jt{flex:1; min-width:0} .jt b{display:block; font-size:14px} .jt span{font-size:12px; color:var(--muted)} .jt span em{font-style:normal; font-weight:800; color:var(--ink)} .jt small{display:block; font-size:11px; color:var(--muted); margin-top:2px}
+  .jp{width:96px; flex:none; text-align:right} .jp b{display:block; font-size:16px; margin-bottom:4px}
+  .jbar{height:8px; background:var(--soft); border-radius:99px; overflow:hidden} .jbar i{display:block; height:100%; background:var(--gold); border-radius:99px} .jbar i.ok{background:#6E7A4F}
+  .jsum{margin-top:10px; padding:10px 12px; background:var(--soft); border-radius:10px; font-size:13px; line-height:1.6} .jsum b{font-size:18px}
   .r90rows{margin:8px 0 2px}
   .r90r{display:flex; gap:8px; align-items:flex-start; padding:5px 0; border-top:1px solid var(--line); font-size:12px; line-height:1.5}
   .r90r i{width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; background:var(--muted)}
@@ -426,6 +432,7 @@
   <button data-tab="workout"><i>🏋️</i>運動</button>
   <button data-tab="trend"><i>📊</i>趨勢</button>
   <button data-tab="oura"><i>💍</i>Oura</button>
+  <button data-tab="journey"><i>🗺️</i>旅程</button>
 </div></div>
 
 <div class="veil" id="veil"></div>
@@ -438,7 +445,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260922-1657';
+  var APP_VER = '20260922-2017';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -501,6 +508,7 @@
     if(!s.oura || typeof s.oura!=='object') s.oura={days:{}};
     if(!s.oura.days) s.oura.days={};
     if(!s.pinch || typeof s.pinch!=='object') s.pinch={};
+    if(!s.settings.journey) s.settings.journey={startDate:'2026-01-12', startWeight:80, startWaist:98, startVisceral:13.5, targetWaist:88, visceralTarget:9};
     if(!s.weights || typeof s.weights!=='object') s.weights={};
     if(!s.waist || typeof s.waist!=='object') s.waist={};
     if(!s.bia || typeof s.bia!=='object') s.bia={};
@@ -838,15 +846,16 @@
   function render(){
     if(!state) return;
     if(document.activeElement&&(document.activeElement.id==='stepsIn'||document.activeElement.id==='stepsYIn')){ var aid=document.activeElement.id, aval=document.activeElement.value; setTimeout(function(){ var el=$(aid); if(el){ el.value=aval; el.focus(); } },0); }
-    var nav=$('datenav'); nav.style.display = (tab==='trend')?'none':'';
+    var nav=$('datenav'); nav.style.display = (tab==='trend'||tab==='journey')?'none':'';
     $('dateLbl').innerHTML=dateLabel(curDate);
     $('week').innerHTML=weekStrip();
-    $('title').textContent = tab==='today'?'飲食記錄':tab==='workout'?'運動':tab==='trend'?'趨勢':'Oura 解讀';
+    $('title').textContent = tab==='today'?'飲食記錄':tab==='workout'?'運動':tab==='trend'?'趨勢':tab==='journey'?'你嘅旅程':'Oura 解讀';
     document.querySelectorAll('.tabbar button').forEach(function(b){ b.className = b.getAttribute('data-tab')===tab?'on':''; });
     var v=$('view');
     if(tab==='today') v.innerHTML=renderToday();
     else if(tab==='workout') v.innerHTML=renderWorkout();
     else if(tab==='oura') v.innerHTML=renderOura();
+    else if(tab==='journey') v.innerHTML=renderJourney();
     else v.innerHTML=renderTrend();
   }
   var CAT_EMOJI={'飯麵':'🍚','肉類':'🍗','蛋奶豆':'🥚','蔬菜':'🥦','水果':'🍎','油脂堅果':'🫒','飲品':'☕','港式外食':'🍜','自訂':'🍽'};
@@ -964,9 +973,10 @@
   function tlPlot(ds, vals, opt){
     opt=opt||{};
     var W=320,Hh=170,padL=8,padR=8,padT=24,padB=20;
-    var x0=dnum(ds[0]), x1=dnum(ds[ds.length-1]); if(x1===x0) x1=x0+1;
+    var x0=dnum(ds[0]), x1=dnum(opt.xMax||ds[ds.length-1]); if(x1<=x0) x1=x0+1;
     var ex=opt.extra&&opt.extra.ds.length>1?opt.extra:null;
-    var pool=vals.concat(ex?ex.vals:[]);
+    var pj=opt.proj&&opt.proj.ds.length>1?opt.proj:null;
+    var pool=vals.concat(ex?ex.vals:[]).concat(pj?pj.vals:[]);
     var dLo=Math.min.apply(null,pool), dHi=Math.max.apply(null,pool), dSp=(dHi-dLo)||1;
     var goalIn = opt.goalHi!=null && opt.goalHi>=dLo-dSp*0.25 && opt.goalLo<=dHi+dSp*0.25;
     var lo=goalIn?Math.min(dLo,opt.goalLo):dLo, hi=goalIn?Math.max(dHi,opt.goalHi):dHi;
@@ -989,6 +999,7 @@
     }
     g+='<polyline class="ln" points="'+ds.map(function(d,i){ return X(d).toFixed(1)+','+Y(vals[i]).toFixed(1); }).join(' ')+'"/>';
     if(ex) g+='<polyline class="ln avg" points="'+ex.ds.map(function(d,i){ return X(d).toFixed(1)+','+Y(ex.vals[i]).toFixed(1); }).join(' ')+'"/>';
+    if(pj){ g+='<polyline class="pace" style="stroke:var(--warn);stroke-dasharray:5 4;stroke-width:2;opacity:.9" points="'+pj.ds.map(function(d,i){ return X(d).toFixed(1)+','+Y(pj.vals[i]).toFixed(1); }).join(' ')+'"/>'; var pe=pj.ds.length-1; g+='<circle cx="'+X(pj.ds[pe]).toFixed(1)+'" cy="'+Y(pj.vals[pe]).toFixed(1)+'" r="3.2" fill="var(--warn)"/><text class="gl" x="'+(X(pj.ds[pe])-4).toFixed(1)+'" y="'+(Y(pj.vals[pe])-8).toFixed(1)+'" text-anchor="end">'+r1(pj.vals[pe])+' ('+(+pj.ds[pe].slice(5,7))+'/'+(+pj.ds[pe].slice(8))+')</text>'; }
     var show={}, nextX=1e9;
     for(var k=ds.length-1;k>=0;k--){ var xk=X(ds[k]); if(nextX-xk>26){ show[k]=1; nextX=xk; } }
     ds.forEach(function(d,i){
@@ -1147,6 +1158,71 @@
     h+=tlPlot(ds, vals, {goalLo:1.5, goalHi:2, goalLabel:'平肚門檻 1.5–2 cm'});
     h+=tlStat(ds, vals, 'cm'); return h+'</div>';
   }
+  // ---------- 旅程（大圖）----------
+  function vFmt(v){ v=+v; return v%1?Math.floor(v)+'–'+Math.ceil(v):String(v); }
+  function bar(pct, cls){ var p=Math.max(0,Math.min(100,pct)); return '<div class="jbar"><i class="'+(cls||'')+'" style="width:'+p.toFixed(0)+'%"></i></div>'; }
+  function journeyProgress(){
+    var s=state.settings, J=s.journey||{}, goalHi=+s.goalKg||71, goalMid=goalHi-0.5;
+    var wks=Object.keys(state.weights||{}).sort(), aks=Object.keys(state.waist||{}).sort();
+    var wNow=wks.length?+state.weights[wks[wks.length-1]]:null, wDate=wks.length?wks[wks.length-1]:null;
+    var aNow=aks.length?+state.waist[aks[aks.length-1]]:null, aDate=aks.length?aks[aks.length-1]:null;
+    var bks=Object.keys(state.bia||{}).filter(function(d){ return state.bia[d]&&state.bia[d].visceral!=null; }).sort();
+    var vNow=bks.length?+state.bia[bks[bks.length-1]].visceral:null;
+    var rows=[];
+    if(wNow!=null){ var wTot=(+J.startWeight)-goalMid, wDone=(+J.startWeight)-wNow; rows.push({k:'體重', s:r1(J.startWeight)+' kg', n:r1(wNow)+' kg', e:(goalHi-1)+'–'+goalHi, pct:wDone/wTot*100, note:'減咗 '+r1(wDone)+' kg，仲有 '+r1(Math.max(0,wNow-goalMid))+' kg', date:wDate}); }
+    if(aNow!=null){ var aTot=(+J.startWaist)-(+J.targetWaist), aDone=(+J.startWaist)-aNow; rows.push({k:'腰圍', s:J.startWaist+' cm', n:aNow+' cm', e:'≤ '+J.targetWaist, pct:aDone/aTot*100, note:'減咗 '+r1(aDone)+' cm，仲有 '+r1(Math.max(0,aNow-J.targetWaist))+' cm', date:aDate}); }
+    if(vNow!=null){ var vTot=(+J.startVisceral)-(+J.visceralTarget), vDone=(+J.startVisceral)-vNow; rows.push({k:'內臟脂肪', s:vFmt(J.startVisceral)+' 級', n:vNow+' 級', e:'≤ '+J.visceralTarget, pct:vDone/vTot*100, note:vNow<=J.visceralTarget?'已到目標，守住':'仲有 '+(vNow-J.visceralTarget)+' 級', date:bks[bks.length-1]}); }
+    return rows;
+  }
+  function journeyCard(){
+    var s=state.settings, J=s.journey||{}, rows=journeyProgress(), t=today();
+    var days=dnum(t)-dnum(J.startDate||'2026-01-12'), left=Math.max(0,dnum(s.goalDate||'2026-12-01')-dnum(t));
+    var h='<div class="card"><h2>你嘅旅程<span>'+(J.startDate||'').slice(5).replace('-','/')+' 出發 · 第 '+days+' 日 · 仲有 '+left+' 日</span></h2>';
+    rows.forEach(function(r){ var done=r.pct>=100; h+='<div class="jrow"><div class="jt"><b>'+r.k+'</b><span>'+r.s+' → <em>'+r.n+'</em> → '+r.e+'</span><small>'+esc(r.note)+(r.date?' · '+r.date.slice(5).replace('-','/')+' 量':'')+'</small></div><div class="jp"><b>'+(done?'✓':r0(r.pct)+'%')+'</b>'+bar(r.pct, done?'ok':'')+'</div></div>'; });
+    var avgPct=rows.length?rows.reduce(function(a,r){return a+Math.min(100,r.pct);},0)/rows.length:0;
+    h+='<div class="jsum">成條路已行 <b>'+r0(avgPct)+'%</b>。剩低嘅係你用 '+Math.round(days/30)+' 個月證明咗自己做得到嘅嘢嘅一部分。</div>';
+    // 下一個里程碑
+    var wks=Object.keys(state.weights||{}).sort(); if(wks.length){ var wNow=+state.weights[wks[wks.length-1]], minW=Math.min.apply(null,wks.map(function(d){return +state.weights[d];})); var next=Math.floor(wNow*2)/2; if(next>=wNow) next-=0.5; h+='<div class="hint" style="margin-top:8px">下一個里程碑：BIA 見到 <b>'+r1(next)+' kg</b>'+(next<minW?'（基準磅有紀錄以來最低）':'')+'。之後每 0.5 kg 一格，去到 '+((+s.goalKg||71)-0.5)+'。</div>'; }
+    return h+'</div>';
+  }
+  function futureCard(){
+    var s=state.settings, goalHi=+s.goalKg||71, goalDate=s.goalDate||'2026-12-01', t=today();
+    var ds=tlKeys(Object.assign({}, state.weights)); wtRange='all'; ds=Object.keys(state.weights||{}).filter(function(d){ return +state.weights[d]>0; }).sort();
+    if(ds.length<2) return '';
+    var vals=ds.map(function(d){ return +state.weights[d]; });
+    var bd=Object.keys(state.bia||{}).filter(function(d){ return state.bia[d]&&state.bia[d].fat!=null&&state.weights[d]; }).sort();
+    var proj=null, note='';
+    if(bd.length){ var a=bd[bd.length-1], aW=+state.weights[a]; var d=shiftDate(a,1), sum=0, n=0; while(d<t){ var kc=totals(dayItems(d)).kcal; if(kc>0){ sum+=dayDeficit(d,kc); n++; } d=shiftDate(d,1); }
+      var avg=n?sum/n:0, predNow=aW-sum/7700, left=Math.max(0,dnum(goalDate)-dnum(t)); var predGoal=predNow-avg*left/7700;
+      if(n>=1&&left>0){ proj={ds:[t,goalDate], vals:[predNow,predGoal]}; note='虛線＝由最近 BIA（'+a.slice(5).replace('-','/')+'）起，用之後 '+n+' 日嘅日均赤字 '+r0(avg)+' kcal 推到 '+goalDate.slice(5).replace('-','/')+'：'+r1(predGoal)+' kg。'+(n<21?'樣本得 '+n+' 日，條線會擺，等 10-10 校準後先當真。':''); } }
+    var h='<div class="card"><h2>未來線<span>去到 '+goalDate.slice(5).replace('-','/')+'</span></h2>';
+    h+='<div class="hint" style="margin:-2px 0 2px">黑線＝實磅　·　橙虛線＝照而家步伐　·　黃帶＝目標 '+(goalHi-1)+'–'+goalHi+' kg</div>';
+    h+=tlPlot(ds, vals, {goalLo:goalHi-1, goalHi:goalHi, goalLabel:'目標 '+(goalHi-1)+'–'+goalHi+' kg', xMax:goalDate, proj:proj});
+    if(note) h+='<div class="hint" style="margin-top:6px">'+note+'</div>';
+    return h+'</div>';
+  }
+  function dividendCard(){
+    var D=state.oura.days||{}, ks=Object.keys(D).filter(function(k){ return D[k].rhr&&D[k].hrv&&D[k].totalSleepMin; }).sort();
+    var rows=[];
+    if(ks.length>=10){ var f7=ks.slice(0,7), l7=ks.slice(-7); var av=function(g,f){ var v=g.map(function(k){return D[k][f];}).filter(function(x){return x!=null;}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null; };
+      var r0_=av(f7,'rhr'), r1_=av(l7,'rhr'), h0=av(f7,'hrv'), h1=av(l7,'hrv'), s0=av(f7,'steps'), s1=av(l7,'steps'), d0=av(f7,'deepMin'), d1=av(l7,'deepMin');
+      rows.push(['靜息心率', r1(r0_)+' → '+r1(r1_), r1_<r0_?'每日少跳 '+r0((r0_-r1_)*1440).toLocaleString()+' 下——心臟做少咗嘢':'持平', r1_<=r0_?'ok':'mid']);
+      rows.push(['HRV', r0(h0)+' → '+r0(h1), h1>h0?'恢復力升 '+r0((h1/h0-1)*100)+'%——赤字之下仲升，係身體頂得順嘅證據':'持平', h1>=h0?'ok':'mid']);
+      rows.push(['深層睡眠', r0(d0)+' → '+r0(d1)+' 分鐘', d1>=60?'喺正常範圍':'偏少', d1>=60?'ok':'mid']);
+      rows.push(['日均步數', r0(s0).toLocaleString()+' → '+r0(s1).toLocaleString(), s1>=9000?'長期企喺 9,000 以上':'', s1>=9000?'ok':'mid']);
+    }
+    var bks=Object.keys(state.bia||{}).filter(function(d){ return state.bia[d]&&state.bia[d].visceral!=null; }).sort();
+    var J=state.settings.journey||{};
+    if(bks.length){ var v=+state.bia[bks[bks.length-1]].visceral; rows.unshift(['內臟脂肪', vFmt(J.startVisceral)+' → '+v+' 級', '心血管風險最直接嗰種脂肪，已跌 '+r1(J.startVisceral-v)+' 級——呢個係 4 至 9 月腰圍冇郁嗰段時間做到嘅', 'ok']); }
+    var fks=Object.keys(state.bia||{}).filter(function(d){ return state.bia[d]&&state.bia[d].fat!=null; }).sort();
+    if(fks.length>=2){ var f0=+state.bia[fks[0]].fat, f1=+state.bia[fks[fks.length-1]].fat; rows.push(['脂肪（BIA）', r1(f0)+' → '+r1(f1)+' kg', '由 '+fks[0].slice(5).replace('-','/')+' 起真減脂 '+r1(f0-f1)+' kg', f1<f0?'ok':'mid']); }
+    if(!rows.length) return '';
+    var h='<div class="card"><h2>健康紅利<span>12 月之後都帶得走嘅嘢</span></h2>';
+    h+='<div class="r90rows">'+rows.map(function(r){ return '<div class="r90r"><i class="'+r[3]+'"></i><span class="k">'+r[0]+'</span><span><b>'+esc(r[1])+'</b>'+(r[2]?'<br><small style="color:var(--muted)">'+esc(r[2])+'</small>':'')+'</span></div>'; }).join('')+'</div>';
+    h+='<div class="hint" style="margin-top:6px">體重會上落，呢啲唔會走。減脂停滯嗰啲星期，返嚟睇呢張卡。</div></div>';
+    return h;
+  }
+  function renderJourney(){ return journeyCard()+futureCard()+dividendCard(); }
   function renderTrend(){
     var days=[], t=today(); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
     var s=state.settings, target=+s.dailyKcal||0, tdee=+s.tdee||2300;
