@@ -292,8 +292,6 @@
   .lchart .tgt{stroke:var(--warn); stroke-dasharray:4 3; opacity:.6} .lchart .tl{font-size:9px; fill:var(--warn)}
   .lchart .zero{stroke:var(--line)}
   .r90v{font-size:13px; line-height:1.7; margin:6px 0 2px; padding:10px 12px; background:var(--soft); border-radius:10px}
-  .tagp{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:var(--soft); color:var(--muted); margin-left:8px; vertical-align:middle}
-  .tagp.ok{background:var(--gold-soft); color:var(--ink)} .tagp.mid{background:var(--f-soft); color:#7A5C10} .tagp.bad{background:#F6E0DA; color:var(--warn)}
   .r90rows{margin:8px 0 2px}
   .r90r{display:flex; gap:8px; align-items:flex-start; padding:5px 0; border-top:1px solid var(--line); font-size:12px; line-height:1.5}
   .r90r i{width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; background:var(--muted)}
@@ -438,7 +436,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260922-1657';
+  var APP_VER = '20260921-0751';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -500,7 +498,6 @@
     if(!s.settings.monthTarget) s.settings.monthTarget=16000;
     if(!s.oura || typeof s.oura!=='object') s.oura={days:{}};
     if(!s.oura.days) s.oura.days={};
-    if(!s.pinch || typeof s.pinch!=='object') s.pinch={};
     if(!s.weights || typeof s.weights!=='object') s.weights={};
     if(!s.waist || typeof s.waist!=='object') s.waist={};
     if(!s.bia || typeof s.bia!=='object') s.bia={};
@@ -908,8 +905,6 @@
     for(var i=0;i<left;i++){ if(isRestDay(dd)) rLeft++; else gLeft++; dd=shiftDate(dd,1); }
     var short=mt-md.sum, unit=(gLeft*2+rLeft)>0?short/(gLeft*2+rLeft):0, hit=md.sum>=mt;
     h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月累計 '+r0(md.sum).toLocaleString()+' / '+mt.toLocaleString()+'（'+(md.sum/7700).toFixed(2)+' / '+(mt/7700).toFixed(1)+' kg）<small>'+(hit?'已達標 ✓ 超出 '+r0(md.sum-mt).toLocaleString():'仲爭 '+r0(short).toLocaleString()+' · 餘 '+left+' 日每日要 運動 '+r0(unit*2)+'／休息 '+r0(unit))+'</small></span><span class="nm num" style="color:'+(hit?'var(--ink)':'var(--warn)')+'">'+(hit?'✓':r0(short).toLocaleString())+'</span></div>';
-    h+=sodiumLine(curDate);
-    h+=suggestCard(t, target);
     h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
     SLOTS.forEach(function(slot){
       var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
@@ -1043,110 +1038,6 @@
     if(plateau>=4) h+='<div class="hint" style="margin-top:6px">⚠️ 腰圍喺 '+r1(last)+' cm 左右已經卡咗大約 '+plateau+' 個星期。要留意腰圍同 BIA 脂肪有冇齊步走。</div>';
     return h+'</div>';
   }
-  // ---------- 鈉／留水 ----------
-  function daySodium(date){
-    var mg=0, known=0, high=[];
-    dayItems(date).forEach(function(it){ (it.parts||[it]).forEach(function(p){ var f=foodById(p.foodId); if(!f) return; if(f.per100g&&f.per100g.sodium!=null){ mg+=f.per100g.sodium*p.grams/100; known++; } if(f.highNa&&high.indexOf(f.name)<0) high.push(f.name); }); });
-    return {mg:r0(mg), known:known, high:high, flag:(mg>=1500||high.length>=1)};
-  }
-  function shortName(x){ return String(x).split('（')[0]; }
-  function sodiumLine(date){
-    var sd=daySodium(date); if(!sd.known&&!sd.high.length) return '';
-    var txt='鈉：'+(sd.known?'已知 '+sd.mg.toLocaleString()+' mg（'+sd.known+' 樣有標籤）':'今日食物冇鈉標籤')+(sd.high.length?' · 高鈉食物 '+sd.high.length+' 樣（'+sd.high.slice(0,3).map(shortName).join('、')+'）':'');
-    return '<div class="hint" style="margin:6px 2px 0">'+(sd.flag?'💧 ':'')+esc(txt)+(sd.flag?'　→ 聽朝體重／腰圍偏高多數係留水，唔好當倒退':'')+'</div>';
-  }
-  function waterBanner(date){
-    var y=shiftDate(date,-1), sd=daySodium(y); if(!sd.flag) return '';
-    return '<div class="card" style="background:var(--soft);padding:10px 14px;font-size:13px;line-height:1.6">💧 <b>昨日高鈉日</b>（'+esc(sd.high.slice(0,3).map(shortName).join('、'))+(sd.known?'；已知鈉 '+sd.mg.toLocaleString()+' mg':'')+'）。今朝體重／腰圍如果偏高 0.3–0.5 kg／0.5–1 cm，多數係留水，唔係脂肪——等 24–48 小時再睇。</div>';
-  }
-  // ---------- 而家仲食得乜 ----------
-  function slotNow(){ var hh=+nowTime().slice(0,2); return hh<10?'早':(hh<15?'午':(hh<17?'下午':'晚')); }
-  function suggestCard(t, target){
-    if(curDate!==today()||!target) return '';
-    var s=state.settings, remK=target-t.kcal, remP=(+s.proteinTarget||150)-t.protein, remF=(+s.fatTarget||50)-t.fat;
-    var h='<div class="card"><h2>而家仲食得乜<span>剩 '+r0(remK)+' kcal · 蛋白爭 '+r0(Math.max(0,remP))+' g · 脂肪剩 '+r0(remF)+' g</span></h2>';
-    if(remK<120){ h+='<div class="hint">今日額度已經用晒'+(remK<0?'（超出 '+r0(-remK)+'）':'')+'。真係肚餓就揀零脂肪高蛋白：蝦、帶子、雞胸、蛋白粉，加灼菜。</div></div>'; return h; }
-    var cands=state.sets.map(function(st){ var its=setItems(st); if(!its.length) return null; return {st:st, tt:totals(its)}; }).filter(Boolean)
-      .filter(function(x){ return x.tt.kcal<=remK+60 && x.tt.kcal>=100; });
-    cands.forEach(function(x){ var pFill=Math.min(x.tt.protein, Math.max(remP,0)); x.fOver=Math.max(0,x.tt.fat-remF); x.kOver=Math.max(0,x.tt.kcal-remK); x.score=pFill*3 - x.fOver*4 - x.kOver*0.5 + (x.st.out?0:2); });
-    cands.sort(function(a,b){ return b.score-a.score; });
-    if(!cands.length){ h+='<div class="hint">冇一個套餐塞得落剩餘額度。揀單品：蝦 100g（119 kcal·蛋白 23g）、帶子 60g（67 kcal）、雞胸 100g（165 kcal）。</div></div>'; return h; }
-    var slot=slotNow();
-    h+='<div class="sets">'+cands.slice(0,4).map(function(x){ var tag=x.fOver>0?'⚠️ 脂肪會超 '+r0(x.fOver)+' g':(x.kOver>0?'⚠️ 熱量超 '+r0(x.kOver):'✓ 啱晒'); return '<div class="sb"><button class="t" data-act="sugg-add" data-set="'+esc(x.st.id)+'" data-slot="'+slot+'"><b>'+esc(x.st.name)+'</b><span>'+(x.st.out?'🏪 出街 · ':'')+r0(x.tt.kcal)+' kcal · 蛋白 '+r0(x.tt.protein)+' · 脂 '+r1(x.tt.fat)+' · '+tag+'</span></button></div>'; }).join('')+'</div>';
-    h+='<div class="hint" style="margin-top:6px">按「剩餘熱量塞得落、蛋白補得最多、脂肪唔爆」排。撳一下就入'+slot+'餐。</div></div>';
-    return h;
-  }
-  // ---------- 達標預測 ----------
-  function forecastCard(){
-    var s=state.settings, goalHi=+s.goalKg||71, goalLo=goalHi-1, goalDate=s.goalDate||'2026-12-01', t=today();
-    var bd=Object.keys(state.bia||{}).filter(function(d){ return state.bia[d]&&state.bia[d].fat!=null&&state.weights[d]; }).sort();
-    if(!bd.length) return '';
-    var a=bd[bd.length-1], aW=+state.weights[a], aF=+state.bia[a].fat;
-    var d=shiftDate(a,1), sum=0, n=0;
-    while(d<t){ var kc=totals(dayItems(d)).kcal; if(kc>0){ sum+=dayDeficit(d,kc); n++; } d=shiftDate(d,1); }
-    var lost=sum/7700, predNow=aW-lost, avg=n?sum/n:0, left=Math.max(0,dnum(goalDate)-dnum(t));
-    var predGoal=predNow-avg*left/7700, needDay=left>0?Math.max(0,(predNow-goalHi))*7700/left:0;
-    var st=predGoal<=goalHi?'ok':(predGoal<=goalHi+0.7?'mid':'bad'), tag={ok:'照步伐達標',mid:'差少少',bad:'落後'}[st];
-    var md=function(x){ return x.slice(5).replace('-','/'); };
-    var calib='';
-    if(bd.length>=2){ var p=bd[bd.length-2], ps=0, dd=shiftDate(p,1); while(dd<=a){ var k2=totals(dayItems(dd)).kcal; if(k2>0) ps+=dayDeficit(dd,k2); dd=shiftDate(dd,1); }
-      var predLoss=ps/7700, measLoss=(+state.bia[p].fat)-aF;
-      calib='<div class="hint" style="margin-top:6px">校準：'+md(p)+'→'+md(a)+' 賬面預測減脂 '+predLoss.toFixed(2)+' kg，BIA 實測 '+measLoss.toFixed(2)+' kg'+(Math.abs(predLoss-measLoss)<=0.3?'——吻合，賬面可信。':'——差 '+Math.abs(predLoss-measLoss).toFixed(2)+' kg，10-10 校準要調 BMR。')+'</div>'; }
-    var h='<div class="card"><h2>'+md(goalDate)+' 達標預測<span class="tagp '+st+'">'+tag+'</span></h2>';
-    h+='<div class="stat"><div><b>'+r1(predGoal)+'</b><span>照步伐 '+md(goalDate)+' 體重</span></div><div><b>'+goalLo+'–'+goalHi+'</b><span>目標 kg</span></div><div><b>'+left+'</b><span>剩餘日數</span></div></div>';
-    h+='<div class="stat"><div><b>'+r0(avg).toLocaleString()+'</b><span>實際日均赤字（'+n+' 日）</span></div><div><b>'+r0(needDay).toLocaleString()+'</b><span>達標要每日</span></div><div><b>'+r1(predNow)+'</b><span>賬面現時 kg</span></div></div>';
-    h+='<div class="hint" style="margin-top:6px">起點＝最近 BIA（'+md(a)+'：'+r1(aW)+' kg、脂肪 '+r1(aF)+' kg）；之後每日赤字 ÷ 7,700 當脂肪減少，假設肌肉保得住；冇記錄嘅日子唔計，今日未完亦唔計。'+(left>0&&avg<needDay?'　每日仲爭 '+r0(needDay-avg)+' kcal。':'')+'</div>'+calib+'</div>';
-    return h;
-  }
-  // ---------- 週報 ----------
-  function weekReportCard(){
-    var t=today(), p=curDate.split('-'), dow=(new Date(+p[0],+p[1]-1,+p[2]).getDay()+6)%7;
-    var mon=shiftDate(curDate,-dow), days=[]; for(var i=0;i<7;i++){ var d=shiftDate(mon,i); if(d<=t) days.push(d); }
-    var s=state.settings, cyc=r90Cycle(), D=state.oura.days||{};
-    var sleepC=0, sleepN=0, def=0, defN=0, pHit=0, fOver=0, steps=0, stN=0, logged=0;
-    days.forEach(function(d){ var o=D[d]; if(o&&o.totalSleepMin){ sleepC+=o.totalSleepMin/cyc; sleepN++; } if(o&&o.steps){ steps+=o.steps; stN++; }
-      var tt=totals(dayItems(d)); if(tt.kcal>0){ logged++; def+=dayDeficit(d,tt.kcal); defN++; if(tt.protein>=(+s.proteinTarget||150)) pHit++; if(tt.fat>(+s.fatTarget||50)) fOver++; } });
-    var wTarget=0; for(var j=0;j<days.length;j++) wTarget+=dayDeficitTarget(days[j]);
-    var waistW=days.filter(function(d){ return state.waist&&state.waist[d]; }), biaW=days.filter(function(d){ return state.bia&&state.bia[d]&&state.bia[d].fat!=null; });
-    var h='<div class="card"><h2>週報 '+mon.slice(5).replace('-','/')+'–'+shiftDate(mon,6).slice(5).replace('-','/')+'<span>'+(days.length<7?'本週至今 '+days.length+' 日':'成週')+'</span></h2>';
-    var sleepGoal=5*sleepN;
-    var rows=[
-      ['睡眠週期', r1(sleepC)+' / '+sleepGoal+'（'+sleepN+' 晚·每晚 5）', sleepC>=sleepGoal?'ok':(sleepC>=sleepGoal*0.8?'mid':'bad')],
-      ['赤字累計', r0(def).toLocaleString()+' / '+r0(wTarget).toLocaleString()+' kcal（'+defN+' 日有記錄）', def>=wTarget?'ok':(def>=wTarget*0.8?'mid':'bad')],
-      ['蛋白達標', pHit+' / '+logged+' 日', (logged&&pHit>=logged*0.8)?'ok':(pHit>=logged*0.5?'mid':'bad')],
-      ['脂肪超標', fOver+' / '+logged+' 日', fOver<=1?'ok':(fOver<=3?'mid':'bad')],
-      ['平均步數', stN?r0(steps/stN).toLocaleString():'—', (stN&&steps/stN>=9000)?'ok':'mid'],
-      ['量度', '腰圍 '+(waistW.length?waistW.map(function(d){return state.waist[d];}).join('、')+' cm':'未量')+' · BIA '+(biaW.length?'已做':'未做'), (waistW.length&&biaW.length)?'ok':'mid']
-    ];
-    h+='<div class="r90rows">'+rows.map(function(r){ return '<div class="r90r"><i class="'+r[2]+'"></i><span class="k">'+r[0]+'</span><span>'+r[1]+'</span></div>'; }).join('')+'</div>';
-    var bad=rows.filter(function(r){return r[2]==='bad';}).map(function(r){return r[0];});
-    h+='<div class="hint" style="margin-top:6px">'+(bad.length?'呢週要執嘅係：'+bad.join('、')+'。':'呢週六樣全部企得住，照跑。')+'</div></div>';
-    return h;
-  }
-  // ---------- Refeed 訊號 ----------
-  function refeedCard(){
-    var D=state.oura.days||{}, ks=Object.keys(D).filter(function(k){ return k<=curDate && D[k].hrv; }).sort();
-    var l7=ks.slice(-7), p7=ks.slice(-14,-7); if(l7.length<5||p7.length<5) return '';
-    var av=function(g,f){ var v=g.map(function(k){return D[k][f];}).filter(function(x){return x!=null;}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null; };
-    var temp=av(l7,'tempDev'), hrv=av(l7,'hrv'), hrvP=av(p7,'hrv'), rdy=av(l7,'readiness');
-    var c1=temp!=null&&temp<=-0.3, c2=!!hrvP&&hrv<hrvP*0.95, c3=rdy!=null&&rdy<75, n=[c1,c2,c3].filter(Boolean).length;
-    var st=n>=3?'bad':(n>=2?'mid':'ok'), tag={ok:'代謝訊號正常',mid:'留意',bad:'考慮安排 refeed'}[st];
-    var h='<div class="ocard"><div class="lb"><span>Refeed 訊號（7 日 vs 前 7 日）</span><span class="tag '+st+'">'+tag+'</span></div>';
-    var rows=[['體溫偏離', (temp!=null?(temp>0?'+':'')+temp.toFixed(2)+'°C':'—')+'（≤ −0.3 算訊號）', c1?'bad':'ok'],['HRV', r0(hrv)+' vs 前 7 日 '+r0(hrvP)+'（跌 5% 算訊號）', c2?'bad':'ok'],['準備度', r0(rdy)+'（< 75 算訊號）', c3?'bad':'ok']];
-    h+='<div class="r90rows">'+rows.map(function(r){ return '<div class="r90r"><i class="'+r[2]+'"></i><span class="k">'+r[0]+'</span><span>'+r[1]+'</span></div>'; }).join('')+'</div>';
-    h+='<div class="ex"><span class="k">解釋</span>長期赤字之下，體溫持續偏低＋HRV 跌＋準備度低，三樣一齊出現係代謝下調嘅典型組合；一樣單獨出現多數係正常波動。</div>';
-    h+='<div class="ex"><span class="k">行動</span>'+(st==='bad'?'安排 1–2 日 refeed：熱量食到維持水平（約 2,300），加嘅係碳水唔係脂肪，蛋白照舊，之後照返計劃。':(st==='mid'?'未使郁，下星期再睇；第三樣都出現就 refeed。':'照計劃行，唔使 refeed。'))+'</div></div>';
-    return h;
-  }
-  // ---------- 捏厚 ----------
-  function pinchCard(){
-    var ds=tlKeys(state.pinch); if(ds.length<2) return '';
-    var vals=ds.map(function(d){ return +state.pinch[d]; });
-    var h='<div class="card"><h2>捏厚走勢<span>'+ds.length+' 次量度</span></h2>'+rangeChips();
-    h+='<div class="hint" style="margin:-2px 0 2px">肚臍側兩吋捏起嘅皮摺厚度。平肚門檻 ≤ 1.5–2 cm。腸氣、留水影響唔到佢。</div>';
-    h+=tlPlot(ds, vals, {goalLo:1.5, goalHi:2, goalLabel:'平肚門檻 1.5–2 cm'});
-    h+=tlStat(ds, vals, 'cm'); return h+'</div>';
-  }
   function renderTrend(){
     var days=[], t=today(); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
     var s=state.settings, target=+s.dailyKcal||0, tdee=+s.tdee||2300;
@@ -1194,8 +1085,6 @@
     var defs=deficit.filter(function(v){return v!=null;}); var defAvg=defs.length?r0(defs.reduce(function(a,b){return a+b;},0)/defs.length):0, defSum=r0(defs.reduce(function(a,b){return a+b;},0));
     var fromD=state.settings.expFrom||shiftDate(t,-13), toD=state.settings.expTo||t;
     var h='<div class="card"><div class="lb" style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">匯出報告</h2><span class="hint" style="margin:0">PDF 靚版／文字版畀 ChatGPT</span></div><div class="exp" style="margin-top:10px"><input type="date" id="expFrom" value="'+fromD+'"><span class="arrow">→</span><input type="date" id="expTo" value="'+toD+'"><div class="btns"><button data-act="exp-pdf">📄 匯出 PDF</button><button class="ghost" data-act="exp-txt">📋 複製文字版</button></div></div><div class="hint" id="expMsg"></div></div>';
-    h+=forecastCard();
-    h+=weekReportCard();
     h+='<div class="card"><h2>近 14 日 卡路里赤字</h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     h+='<div class="card"><h2>近 14 日 行路步數</h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
@@ -1252,7 +1141,6 @@
     h+=weightCard();
     h+=fatCard();
     h+=waistCard();
-    h+=pinchCard();
     return h;
   }
   // ---------- 匯出 ----------
@@ -1448,13 +1336,6 @@
     var wk=state.weights[curDate]||'';
     h+='<div class="wrow"><span style="font-size:20px">⚖️</span><div class="t"><b>體重（每星期磅一次）</b>校準基礎代謝用，唔使日日</div><input type="number" inputmode="decimal" step="0.1" id="weightIn" placeholder="'+(s.weightKg||'75')+'" value="'+wk+'"><span class="u">kg</span></div>';
     h+='<div class="wrow"><span style="font-size:20px">📏</span><div class="t"><b>腰圍（每星期一次）</b>朝早如廁後、呼氣末、放鬆唔收腹、平繞肚臍</div><input type="number" inputmode="decimal" step="0.1" id="waistIn" placeholder="89" value="'+(state.waist[curDate]||'')+'"><span class="u">cm</span></div>';
-    h+='<div class="wrow"><span style="font-size:20px">🤏</span><div class="t"><b>捏厚（每星期一次）</b>肚臍側兩吋，捏起皮摺量厚度</div><input type="number" inputmode="decimal" step="0.1" id="pinchIn" placeholder="2.0" value="'+((state.pinch||{})[curDate]||'')+'"><span class="u">cm</span></div>';
-    (function(){ var wk2=Object.keys(state.waist||{}).sort(), pk=Object.keys(state.pinch||{}).sort(); var lw=wk2.length?wk2[wk2.length-1]:null; var ago=lw?dnum(curDate)-dnum(lw):null; var msgs=[];
-      if(ago==null) msgs.push('未量過腰圍'); else if(ago>=7) msgs.push('腰圍上次係 '+lw.slice(5).replace('-','/')+'（'+ago+' 日前），今星期未量');
-      if(!pk.length) msgs.push('捏厚仲未有過任何記錄');
-      if(curDate===today()&&msgs.length) h+='<div class="hint" style="margin:-4px 2px 8px">📌 '+msgs.join('；')+'</div>'; })();
-    h+=waterBanner(curDate);
-    if(curDate===today()) h+=refeedCard();
     // ---- 壓力（Oura 官方全日數）----
     if(d.stressHighMin!=null || d.recoveryHighMin!=null){
       var sh=+d.stressHighMin||0, rc=+d.recoveryHighMin||0, bs=b.stressHighMin, sum=d.stressSummary||'';
@@ -1535,8 +1416,7 @@
     return h;
   }
   document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='waistIn'){ var wv=parseFloat(el.value); if(waistTimer) clearTimeout(waistTimer); waistTimer=setTimeout(function(){ if(wv>0){ state.waist[curDate]=wv; markDirty(); } },1200); } });
-  var waistTimer=null, pinchTimer=null;
-  document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='pinchIn'){ var pv=parseFloat(el.value); if(pinchTimer) clearTimeout(pinchTimer); pinchTimer=setTimeout(function(){ if(pv>0){ state.pinch=state.pinch||{}; state.pinch[curDate]=pv; markDirty(); } },1200); } });
+  var waistTimer=null;
   document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='weightIn'){ var v=parseFloat(el.value); if(stepsTimer) clearTimeout(stepsTimer); stepsTimer=setTimeout(function(){ if(v>0){ state.weights[curDate]=v; state.settings.weightKg=v; markDirty(); } },1200); } });
   // ---------- sheets ----------
   function openSheet(html){ $('sheet').innerHTML=html; $('sheet').className='sheet show'; $('veil').className='veil show'; }
@@ -1568,8 +1448,8 @@
     addSlot=slot; q='';
     var h='<div class="hd"><h2>加入 '+slot+'餐</h2><button class="close" data-act="close">✕</button></div>';
     // 套餐一律全部加得落任何時段：本時段嘅排前面，其餘照樣撳得
-    var mine=state.sets.filter(function(x){ return !x.out && (!x.slot || x.slot===slot); });
-    var other=state.sets.filter(function(x){ return !x.out && x.slot && x.slot!==slot; });
+    var mine=state.sets.filter(function(x){ return !x.slot || x.slot===slot; });
+    var other=state.sets.filter(function(x){ return x.slot && x.slot!==slot; });
     function setRow(st, showFrom){
       var its=setItems(st), tt=totals(its), conf=confirmId==='set:'+st.id;
       var from=(showFrom&&st.slot)?((SLOT_EMOJI[st.slot]||'')+st.slot+' · '):'';
@@ -1584,8 +1464,6 @@
     if(other.length){
       h+='<div class="sec">其他時段套餐 <span class="ai">一樣加得落'+slot+'餐</span></div><div class="sets">'+other.map(function(st){return setRow(st,true);}).join('')+'</div>';
     }
-    var outs=state.sets.filter(function(x){ return x.out; }).map(function(st){ return {st:st, tt:totals(setItems(st))}; }).sort(function(a,b){ return a.tt.kcal-b.tt.kcal; });
-    if(outs.length){ h+='<div class="sec">出街安全菜單 <span class="ai">計好數 · 一撳入</span></div><div class="sets">'+outs.map(function(x){ return '<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(x.st.id)+'"><b>'+esc(x.st.name)+'</b><span>'+r0(x.tt.kcal)+' kcal · 蛋白 '+r0(x.tt.protein)+'g · 脂 '+r1(x.tt.fat)+'g'+(x.tt.fat<=15?' · ✓ 低脂':'')+((x.tt.protein/x.tt.kcal*100)>=10?' · ✓ 高蛋白':'')+'</span></button></div>'; }).join('')+'</div>'; }
     h+='<div class="sec">影相認食物 <span class="ai">AI 估份量 · 數字仍出自食物庫 · 可改</span></div><div class="photo"><button class="dark" data-act="photo"><span>📷</span>影相</button><button data-act="photo-pick"><span>🖼</span>揀相</button></div><input type="file" id="photoIn" accept="image/*" capture="environment" hidden><input type="file" id="photoPick" accept="image/*" hidden><div id="photoRes"></div>';
     h+='<div class="sec">常食（一撳即加·用上次份量）</div><div class="quick">';
     quickFoods().forEach(function(f){
@@ -1751,7 +1629,6 @@
     h+='<div class="g2"><div><label>蛋白質 g（至少）</label><input id="s_p" type="number" inputmode="numeric" value="'+(s.proteinTarget||'')+'"></div><div><label>纖維 g（至少）</label><input id="s_fb" type="number" inputmode="numeric" value="'+(s.fiberTarget||'')+'"></div></div>';
     h+='<div class="g2"><div><label>碳水 g（上限）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（上限）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
     h+='<div class="hint">蛋白質、纖維達到就打 ✓；碳水、脂肪顯示剩幾多，超咗變紅。</div>';
-    h+='<div class="g3"><div><label>目標體重上限 kg</label><input id="s_goal" type="number" inputmode="decimal" step="0.1" value="'+(s.goalKg||71)+'"></div><div><label>目標日期</label><input id="s_gdate" type="date" value="'+(s.goalDate||'2026-12-01')+'"></div><div><label>睡眠週期 分鐘</label><input id="s_cyc" type="number" inputmode="numeric" value="'+(s.cycleMin||85)+'"></div></div><div class="hint">預測卡同 R90 卡用。週期 85 係由你 16 晚 REM 間距實測；書本標準係 90。</div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
     h+='<div class="hint">食物庫：'+BUILTIN.length+' 樣內建（每樣有來源）＋ '+state.foods.filter(function(f){return f.custom;}).length+' 樣自訂。撳食物名可睇來源。</div>';
@@ -1760,7 +1637,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.monthTarget=parseInt($('s_mt').value,10)||16000; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null; s.goalKg=parseFloat($('s_goal').value)||71; s.goalDate=$('s_gdate').value||'2026-12-01'; s.cycleMin=parseInt($('s_cyc').value,10)||85;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.monthTarget=parseInt($('s_mt').value,10)||16000; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
@@ -1816,7 +1693,6 @@
     else if(act==='wex'){ wkEx=[b.getAttribute('data-zh'), b.getAttribute('data-en')]; document.querySelectorAll('#exchips button').forEach(function(x){x.classList.toggle('on', x===b);}); }
     else if(act==='wex-add'){ var ne=prompt('動作名稱（中文，可加英文）'); if(ne&&ne.trim()){ state.settings.exercises.push(ne.trim()); markDirty(); wkEx=[ne.trim(),'']; renderWkBody(); } }
     else if(act==='useest'){ $('w_kcal').value=b.getAttribute('data-v'); $('w_kcal').setAttribute('data-est','1'); }
-    else if(act==='sugg-add'){ var st5=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st5){ var mm5=getMeal(curDate, b.getAttribute('data-slot'), true); mm5.items.push(bundleFromSet(st5)); if(!mm5.time) mm5.time=nowTime(); markDirty(); } }
     else if(act==='wtrange'){ wtRange=b.getAttribute('data-v'); render(); }
     else if(act==='savewk') saveWorkout();
     else if(act==='delwk'){
