@@ -445,7 +445,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260922-2017';
+  var APP_VER = '20260922-2018';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -508,7 +508,7 @@
     if(!s.oura || typeof s.oura!=='object') s.oura={days:{}};
     if(!s.oura.days) s.oura.days={};
     if(!s.pinch || typeof s.pinch!=='object') s.pinch={};
-    if(!s.settings.journey) s.settings.journey={startDate:'2026-01-12', startWeight:80, startWaist:98, startVisceral:13.5, targetWaist:88, visceralTarget:9};
+    if(!s.settings.journey) s.settings.journey={startDate:'2026-01-12', startWeight:80, startWaist:98, startVisceral:13.5, targetWaist:85, visceralTarget:9};
     if(!s.weights || typeof s.weights!=='object') s.weights={};
     if(!s.waist || typeof s.waist!=='object') s.waist={};
     if(!s.bia || typeof s.bia!=='object') s.bia={};
@@ -1045,9 +1045,9 @@
     var h='<div class="card"><h2>腰圍走勢<span>'+ds.length+' 次量度</span></h2>'+rangeChips();
     if(ds.length<2) return h+'<div class="hint">呢個範圍得 '+ds.length+' 次記錄，唔夠畫線。揀「全部」睇長線，或者喺 Oura 頁入返腰圍。</div></div>';
     var vals=ds.map(function(d){ return +state.waist[d]; });
-    var goal=+((state.settings||{}).goalWaist)||88;
-    h+='<div class="hint" style="margin:-2px 0 2px">黑線＝腰圍　·　黃線＝平肚門檻 '+goal+' cm　·　朝早空腹、肚臍位、平常呼氣完、尺貼實唔勒</div>';
-    h+=tlPlot(ds, vals, {goalLo:goal-1, goalHi:goal, goalLabel:'平肚門檻 '+goal+' cm'});
+    var goal=+(((state.settings||{}).journey||{}).targetWaist)||85;
+    h+='<div class="hint" style="margin:-2px 0 2px">黑線＝腰圍　·　黃線＝12 月目標 '+goal+' cm（平肚門檻 88）　·　朝早空腹、肚臍位、平常呼氣完、尺貼實唔勒</div>';
+    h+=tlPlot(ds, vals, {goalLo:goal-1, goalHi:goal, goalLabel:'目標 '+goal+' cm'});
     h+=tlStat(ds, vals, 'cm');
     var plateau=0, last=vals[vals.length-1];
     for(var i=vals.length-1;i>=0;i--){ if(Math.abs(vals[i]-last)<=0.5) plateau=Math.round((dnum(ds[ds.length-1])-dnum(ds[i]))/7); else break; }
@@ -1828,6 +1828,8 @@
     h+='<div class="g2"><div><label>碳水 g（上限）</label><input id="s_c" type="number" inputmode="numeric" value="'+(s.carbTarget||'')+'"></div><div><label>脂肪 g（上限）</label><input id="s_f" type="number" inputmode="numeric" value="'+(s.fatTarget||'')+'"></div></div>';
     h+='<div class="hint">蛋白質、纖維達到就打 ✓；碳水、脂肪顯示剩幾多，超咗變紅。</div>';
     h+='<div class="g3"><div><label>目標體重上限 kg</label><input id="s_goal" type="number" inputmode="decimal" step="0.1" value="'+(s.goalKg||71)+'"></div><div><label>目標日期</label><input id="s_gdate" type="date" value="'+(s.goalDate||'2026-12-01')+'"></div><div><label>睡眠週期 分鐘</label><input id="s_cyc" type="number" inputmode="numeric" value="'+(s.cycleMin||85)+'"></div></div><div class="hint">預測卡同 R90 卡用。週期 85 係由你 16 晚 REM 間距實測；書本標準係 90。</div>';
+    var J=s.journey||{};
+    h+='<div class="g3"><div><label>腰圍目標 cm</label><input id="s_jw" type="number" inputmode="decimal" step="0.5" value="'+(J.targetWaist||85)+'"></div><div><label>起點體重 kg</label><input id="s_jsw" type="number" inputmode="decimal" step="0.1" value="'+(J.startWeight||80)+'"></div><div><label>起點腰圍 cm</label><input id="s_jsa" type="number" inputmode="decimal" step="0.5" value="'+(J.startWaist||98)+'"></div></div><div class="hint">旅程頁進度條用。腰圍目標 85＝由你 1–4 月「每減 1 kg 跌 1.4 cm」推出嚟；平肚門檻 88 另計。</div>';
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
     h+='<div class="hint">食物庫：'+BUILTIN.length+' 樣內建（每樣有來源）＋ '+state.foods.filter(function(f){return f.custom;}).length+' 樣自訂。撳食物名可睇來源。</div>';
@@ -1836,7 +1838,7 @@
   }
   function saveSettings(){
     var s=state.settings;
-    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.monthTarget=parseInt($('s_mt').value,10)||16000; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null; s.goalKg=parseFloat($('s_goal').value)||71; s.goalDate=$('s_gdate').value||'2026-12-01'; s.cycleMin=parseInt($('s_cyc').value,10)||85;
+    s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.monthTarget=parseInt($('s_mt').value,10)||16000; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null; s.goalKg=parseFloat($('s_goal').value)||71; s.journey=s.journey||{}; s.journey.targetWaist=parseFloat($('s_jw').value)||85; s.journey.startWeight=parseFloat($('s_jsw').value)||80; s.journey.startWaist=parseFloat($('s_jsa').value)||98; s.goalDate=$('s_gdate').value||'2026-12-01'; s.cycleMin=parseInt($('s_cyc').value,10)||85;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
   }
