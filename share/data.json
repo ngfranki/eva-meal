@@ -1,8 +1,8 @@
 {
-  "ai_summary": "日期：2026-09-23（香港時間 22:09）\n體重：73.5 kg（量於 2026-09-19）\n腰圍：89.0 cm\n最新 BIA 體脂率：31.7%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：23.3 kg｜骨骼肌：28 kg｜水分：36.6 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：1,766 kcal（目標 1,800）\nProtein：129 g（目標 ≥150）\nCarbs：185 g（目標 ≤190）\nFat：57 g（目標 ≤50）\nFiber：18 g（目標 ≥30）\n步數：11,651\nOura Active Burn：632 kcal\n估算 TDEE：2,336 kcal\n估算赤字：−570 kcal\n今日類型：休息日\n\n7 日平均攝取：1,758 kcal（7/7 日有記錄）\n7 日平均 Protein：144 g\n7 日平均步數：10,806\n7 日平均赤字：−618 kcal\n7 日總赤字：−4,325 kcal\n7 日平均體重：73.5 kg\n較上一個 7 日平均：−0.3 kg\n\n30 日平均攝取：1,747 kcal\n30 日平均赤字：−646 kcal\n30 日累積赤字：−10,989 kcal\n30 日體重變化：−2.2 kg\n30 日腰圍變化：0.0 cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
+  "ai_summary": "日期：2026-09-23（香港時間 22:39）\n體重：73.5 kg（量於 2026-09-19）\n腰圍：89.0 cm\n最新 BIA 體脂率：31.7%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：23.3 kg｜骨骼肌：28 kg｜水分：36.6 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：1,766 kcal（目標 1,800）\nProtein：129 g（目標 ≥150）\nCarbs：185 g（目標 ≤190）\nFat：57 g（目標 ≤50）\nFiber：18 g（目標 ≥30）\n步數：11,651\nOura Active Burn：632 kcal\n估算 TDEE：2,336 kcal\n估算赤字：−570 kcal\n今日類型：休息日\n\n7 日平均攝取：1,758 kcal（7/7 日有記錄）\n7 日平均 Protein：144 g\n7 日平均步數：10,806\n7 日平均赤字：−618 kcal\n7 日總赤字：−4,325 kcal\n7 日平均體重：73.5 kg\n較上一個 7 日平均：−0.3 kg\n\n30 日平均攝取：1,747 kcal\n30 日平均赤字：−646 kcal\n30 日累積赤字：−10,989 kcal\n30 日體重變化：−2.2 kg\n30 日腰圍變化：0.0 cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
   "disclaimer": "BIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
-  "generated_at": "2026-09-23T22:09:06+08:00",
-  "generated_at_hk": "2026-09-23 22:09",
+  "generated_at": "2026-09-23T22:39:10+08:00",
+  "generated_at_hk": "2026-09-23 22:39",
   "latest": {
     "bia_body_fat_percent": 31.7,
     "bia_measured_on": "2026-09-19",
@@ -114,7 +114,7 @@
     "oura_total_burn": 2729,
     "partial_day_note": "當日記錄已接近完整。",
     "protein_g": 129,
-    "snapshot_time": "22:09",
+    "snapshot_time": "22:39",
     "steps": 11651,
     "weekday": "三"
   },
