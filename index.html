@@ -445,7 +445,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260922-2022';
+  var APP_VER = '20260924-1558';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1426,7 +1426,7 @@
   }
   function ocard(o){
     var tagTxt={ok:'喺你基線',mid:'偏離少少',bad:'注意'}[o.st];
-    var dl = (o.delta!=null && o.base!=null) ? '<span class="dl '+(o.delta>0?'up':(o.delta<0?'dn':''))+'">'+(o.delta>0?'↑':(o.delta<0?'↓':'＝'))+' '+Math.abs(o.delta)+(o.deltaUnit||'')+' <small style="color:var(--muted);font-weight:500">vs 你 7 日</small></span>' : '';
+    var dl = (o.delta!=null && o.base!=null) ? '<span class="dl '+(o.delta>0?'up':(o.delta<0?'dn':''))+'">'+(o.delta>0?'↑':(o.delta<0?'↓':'＝'))+' '+(Math.round(Math.abs(o.delta)*10)/10)+(o.deltaUnit||'')+' <small style="color:var(--muted);font-weight:500">vs 你 7 日</small></span>' : '';
     return '<div class="ocard"><div class="lb"><span>'+o.label+'</span><span class="tag '+o.st+'">'+(o.tag||tagTxt)+'</span></div>'+
       '<div class="big"><b class="num">'+o.value+'</b><small>'+(o.unit||'')+'</small>'+dl+'</div>'+
       (o.spark||'')+
