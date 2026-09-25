@@ -1,23 +1,23 @@
 {
-  "ai_summary": "日期：2026-09-26（香港時間 05:45）\n體重：73.5 kg（量於 2026-09-19）\n腰圍：89.0 cm\n最新 BIA 體脂率：31.7%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：23.3 kg｜骨骼肌：28 kg｜水分：36.6 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：0 kcal（目標 1,800）\nProtein：0 g（目標 ≥150）\nCarbs：0 g（目標 ≤190）\nFat：0 g（目標 ≤50）\nFiber：0 g（目標 ≥30）\n步數：0\nOura Active Burn：0 kcal\n估算 TDEE：1,527 kcal\n估算赤字：−1,527 kcal\n今日類型：運動日\n\n7 日平均攝取：1,907 kcal（6/7 日有記錄）\n7 日平均 Protein：155 g\n7 日平均步數：12,150\n7 日平均赤字：−548 kcal\n7 日總赤字：−3,286 kcal\n7 日平均體重：— kg\n較上一個 7 日平均：— kg\n\n30 日平均攝取：1,796 kcal\n30 日平均赤字：−628 kcal\n30 日累積赤字：−11,936 kcal\n30 日體重變化：−2.2 kg\n30 日腰圍變化：0.0 cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
+  "ai_summary": "日期：2026-09-26（香港時間 06:15）\n體重：72.8 kg（量於 2026-09-26）\n腰圍：89.0 cm\n最新 BIA 體脂率：30.7%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：22.3 kg｜骨骼肌：28.2 kg｜水分：36.8 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：0 kcal（目標 1,800）\nProtein：0 g（目標 ≥150）\nCarbs：0 g（目標 ≤190）\nFat：0 g（目標 ≤50）\nFiber：0 g（目標 ≥30）\n步數：0\nOura Active Burn：0 kcal\n估算 TDEE：1,527 kcal\n估算赤字：−1,527 kcal\n今日類型：運動日\n\n7 日平均攝取：1,907 kcal（6/7 日有記錄）\n7 日平均 Protein：155 g\n7 日平均步數：12,150\n7 日平均赤字：−548 kcal\n7 日總赤字：−3,286 kcal\n7 日平均體重：72.8 kg\n較上一個 7 日平均：−0.7 kg\n\n30 日平均攝取：1,796 kcal\n30 日平均赤字：−628 kcal\n30 日累積赤字：−11,936 kcal\n30 日體重變化：−2.9 kg\n30 日腰圍變化：0.0 cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
   "disclaimer": "BIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
-  "generated_at": "2026-09-26T05:45:07+08:00",
-  "generated_at_hk": "2026-09-26 05:45",
+  "generated_at": "2026-09-26T06:15:10+08:00",
+  "generated_at_hk": "2026-09-26 06:15",
   "latest": {
-    "bia_body_fat_percent": 31.7,
-    "bia_measured_on": "2026-09-19",
+    "bia_body_fat_percent": 30.7,
+    "bia_measured_on": "2026-09-26",
     "bia_note": "BIA device estimate only. 同期共識真實體脂約 22–28%，此機顯示值高報約 5 個百分點，不可作真實體脂率使用，只適合同一條件下的長期趨勢比較。",
     "bmr_kcal": 1527,
-    "body_water_kg": 36.6,
-    "fat_mass_kg": 23.3,
-    "measured_on": "2026-09-19",
-    "skeletal_muscle_kg": 28,
-    "visceral_fat_level": 9,
+    "body_water_kg": 36.8,
+    "fat_mass_kg": 22.3,
+    "measured_on": "2026-09-26",
+    "skeletal_muscle_kg": 28.2,
+    "visceral_fat_level": 8,
     "visual_body_fat_estimate_range": "25-29%",
     "visual_estimate_note": "非醫療量度，只作外觀工作估算（依 2026-09-05 相片，誤差約 ±3 個百分點）。",
     "waist_cm": 89.0,
     "waist_measured_on": "2026-09-22",
-    "weight_kg": 73.5
+    "weight_kg": 72.8
   },
   "profile": {
     "age": 47,
@@ -34,7 +34,7 @@
     "range": "2026-08-28 → 2026-09-26",
     "total_deficit": 11936,
     "waist_change_cm": 0.0,
-    "weight_change_kg": -2.2
+    "weight_change_kg": -2.9
   },
   "rolling_7d": {
     "avg_active_burn": 631,
@@ -46,15 +46,15 @@
     "avg_protein_g": 155,
     "avg_steps": 12150,
     "avg_tdee": 2454,
-    "avg_weight_kg": null,
+    "avg_weight_kg": 72.8,
     "est_weekly_rate_kg": null,
     "logged_days": 6,
     "previous_7d_readings": 1,
     "range": "2026-09-20 → 2026-09-26",
     "total_deficit": 3286,
-    "weight_change_vs_previous_7d_kg": null,
-    "weight_data_quality": "不足：本窗 0 次、上一窗 1 次讀數。每週減重速度需兩窗各 ≥3 次才輸出，因為單次讀數會把水分波動偽裝成減脂速度。",
-    "weight_readings": 0
+    "weight_change_vs_previous_7d_kg": -0.7,
+    "weight_data_quality": "不足：本窗 1 次、上一窗 1 次讀數。每週減重速度需兩窗各 ≥3 次才輸出，因為單次讀數會把水分波動偽裝成減脂速度。",
+    "weight_readings": 1
   },
   "source": "eva-meal read-only snapshot",
   "targets": {
@@ -81,9 +81,9 @@
     "kcal_remaining": 1800,
     "oura_active_burn": 0,
     "oura_total_burn": 1745,
-    "partial_day_note": "快照於 05:45 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
+    "partial_day_note": "快照於 06:15 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
     "protein_g": 0,
-    "snapshot_time": "05:45",
+    "snapshot_time": "06:15",
     "steps": 0,
     "weekday": "六"
   },
@@ -211,6 +211,17 @@
       "visceral_fat_level": null,
       "waist_cm": 89.0,
       "weight_kg": null
+    },
+    {
+      "bia_body_fat_percent": 30.7,
+      "body_water_kg": 36.8,
+      "date": "2026-09-26",
+      "fat_mass_kg": 22.3,
+      "note": "247 Fitness HowBody 06:01 空腹運動前（放題後 24 小時）。對比 09-19：體重 −0.7、脂肪 −1.0、骨骼肌 +0.2、去脂體重 50.2→50.4、水分 +0.2、軀幹脂肪 11.3→10.9、內臟脂肪 9→8、BMI 27.4、機報 BMR 1458、腰臀比 0.83、代謝年齡 52。",
+      "skeletal_muscle_kg": 28.2,
+      "visceral_fat_level": 8,
+      "waist_cm": null,
+      "weight_kg": 72.8
     }
   ]
 }
