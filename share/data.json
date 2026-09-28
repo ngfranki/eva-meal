@@ -1,8 +1,8 @@
 {
-  "ai_summary": "日期：2026-09-28（香港時間 13:52）\n體重：72.8 kg（量於 2026-09-26）\n腰圍：89.0 cm\n最新 BIA 體脂率：30.7%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：22.3 kg｜骨骼肌：28.2 kg｜水分：36.8 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：1,802 kcal（目標 1,800）\nProtein：126 g（目標 ≥150）\nCarbs：183 g（目標 ≤190）\nFat：63 g（目標 ≤50）\nFiber：17 g（目標 ≥30）\n步數：11,459\nOura Active Burn：702 kcal\n估算 TDEE：2,409 kcal\n估算赤字：−607 kcal\n今日類型：運動日\n\n7 日平均攝取：1,904 kcal（7/7 日有記錄）\n7 日平均 Protein：147 g\n7 日平均步數：12,187\n7 日平均赤字：−546 kcal\n7 日總赤字：−3,823 kcal\n7 日平均體重：72.8 kg\n較上一個 7 日平均：−0.7 kg\n\n30 日平均攝取：1,796 kcal\n30 日平均赤字：−615 kcal\n30 日累積赤字：−13,534 kcal\n30 日體重變化：−2.9 kg\n30 日腰圍變化：0.0 cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
+  "ai_summary": "日期：2026-09-28（香港時間 14:22）\n體重：72.8 kg（量於 2026-09-26）\n腰圍：89.0 cm\n最新 BIA 體脂率：30.7%（只作趨勢，此機高報約 5 點）\n目測體脂範圍：25-29%（非醫療量度）\n脂肪量：22.3 kg｜骨骼肌：28.2 kg｜水分：36.8 kg\nBMR（計算用）：1,527 kcal\n\n今日攝取：1,809 kcal（目標 1,800）\nProtein：126 g（目標 ≥150）\nCarbs：184 g（目標 ≤190）\nFat：63 g（目標 ≤50）\nFiber：17 g（目標 ≥30）\n步數：11,459\nOura Active Burn：702 kcal\n估算 TDEE：2,410 kcal\n估算赤字：−601 kcal\n今日類型：運動日\n\n7 日平均攝取：1,905 kcal（7/7 日有記錄）\n7 日平均 Protein：147 g\n7 日平均步數：12,187\n7 日平均赤字：−545 kcal\n7 日總赤字：−3,817 kcal\n7 日平均體重：72.8 kg\n較上一個 7 日平均：−0.7 kg\n\n30 日平均攝取：1,796 kcal\n30 日平均赤字：−615 kcal\n30 日累積赤字：−13,527 kcal\n30 日體重變化：−2.9 kg\n30 日腰圍變化：0.0 cm\n\n目標：17% 體脂為 stretch goal。主 KPI：2026-12-01 體重 70–71 kg、腰圍明顯下降、淨體組織保持。\n\nBIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
   "disclaimer": "BIA 體脂率、Oura 消耗熱量、App TDEE 及赤字均屬估算，只適合作趨勢追蹤，不代表醫療級實測值。",
-  "generated_at": "2026-09-28T13:52:21+08:00",
-  "generated_at_hk": "2026-09-28 13:52",
+  "generated_at": "2026-09-28T14:22:26+08:00",
+  "generated_at_hk": "2026-09-28 14:22",
   "latest": {
     "bia_body_fat_percent": 30.7,
     "bia_measured_on": "2026-09-26",
@@ -32,15 +32,15 @@
     "avg_deficit": 615,
     "logged_days": 22,
     "range": "2026-08-30 → 2026-09-28",
-    "total_deficit": 13534,
+    "total_deficit": 13527,
     "waist_change_cm": 0.0,
     "weight_change_kg": -2.9
   },
   "rolling_7d": {
     "avg_active_burn": 733,
-    "avg_calories_in": 1904,
-    "avg_carbs_g": 162,
-    "avg_deficit": 546,
+    "avg_calories_in": 1905,
+    "avg_carbs_g": 163,
+    "avg_deficit": 545,
     "avg_fat_g": 74,
     "avg_fiber_g": 18,
     "avg_protein_g": 147,
@@ -51,7 +51,7 @@
     "logged_days": 7,
     "previous_7d_readings": 1,
     "range": "2026-09-22 → 2026-09-28",
-    "total_deficit": 3823,
+    "total_deficit": 3817,
     "weight_change_vs_previous_7d_kg": -0.7,
     "weight_data_quality": "不足：本窗 1 次、上一窗 1 次讀數。每週減重速度需兩窗各 ≥3 次才輸出，因為單次讀數會把水分波動偽裝成減脂速度。",
     "weight_readings": 1
@@ -69,11 +69,11 @@
   },
   "timezone": "Asia/Hong_Kong",
   "today": {
-    "calories_in": 1802,
-    "carbs_g": 183,
+    "calories_in": 1809,
+    "carbs_g": 184,
     "date": "2026-09-28",
-    "estimated_deficit": 607,
-    "estimated_tdee": 2409,
+    "estimated_deficit": 601,
+    "estimated_tdee": 2410,
     "fat_g": 63,
     "fiber_g": 17,
     "is_partial_day": true,
@@ -103,18 +103,24 @@
         "slot": "午"
       },
       {
+        "grams": 50,
+        "kcal": 7,
+        "name": "蔬菜水（細杯·沙律菜）",
+        "slot": "午"
+      },
+      {
         "grams": 199,
         "kcal": 216,
         "name": "蝦 7 隻＋帶子 1 粒＋盈美雞扒 1 塊（無油）",
         "slot": "晚"
       }
     ],
-    "kcal_remaining": -2,
+    "kcal_remaining": -9,
     "oura_active_burn": 702,
     "oura_total_burn": 2619,
-    "partial_day_note": "快照於 13:52 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
+    "partial_day_note": "快照於 14:22 產生，當日未結束。攝取與赤字為截至此刻之累計，唔代表全日最終數字。",
     "protein_g": 126,
-    "snapshot_time": "13:52",
+    "snapshot_time": "14:22",
     "steps": 11459,
     "weekday": "一"
   },
@@ -122,8 +128,8 @@
     "day_type": "gym",
     "day_type_label": "運動日",
     "deficit_formula": "BMR + 攝取×10%（消化熱）+ Oura 量度 active calories − 攝取。Oura 為活動來源時不另加 NEAT%，亦不重複加手動記錄的運動卡數。",
-    "estimated_deficit": 607,
-    "estimated_tdee": 2409,
+    "estimated_deficit": 601,
+    "estimated_tdee": 2410,
     "oura_active_burn": 702,
     "oura_total_burn": 2619,
     "oura_total_burn_note": "Oura 的 Total Burn 由日初即計入全日 BMR，因此屬全日預測值，並非「已經燒掉」的數字。本 App 的赤字計算不使用此欄，只用 active calories。",
