@@ -315,6 +315,9 @@
   .cb img{display:block; max-width:180px; border-radius:10px; margin-bottom:6px}
   .chatprev{display:flex; align-items:center; gap:8px; margin-bottom:8px} .chatprev img{height:64px; border-radius:10px} .chatprev button{border:0; background:var(--soft); border-radius:99px; padding:4px 10px}
   .typing{align-self:flex-start; font-size:13px; color:var(--muted); padding:4px 8px}
+  .tpan .lchart{position:relative; overflow:hidden}
+  .tpan .lchart svg{will-change:transform}
+  .panov{position:absolute; inset:0; touch-action:pan-y; -webkit-user-select:none; user-select:none}
   .tnav{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px}
   .tnav button{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:99px; padding:7px 12px; font-size:13px; font-weight:700}
   .tnav button[disabled]{opacity:.3}
@@ -465,7 +468,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260929-1226';
+  var APP_VER = '20260929-1231';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -876,7 +879,7 @@
     else if(tab==='workout') v.innerHTML=renderWorkout();
     else if(tab==='oura') v.innerHTML=renderOura();
     else if(tab==='journey') v.innerHTML=renderJourney();
-    else v.innerHTML=renderTrend();
+    else { v.innerHTML=renderTrend(); addPanOverlays(); }
   }
   var CAT_EMOJI={'飯麵':'🍚','肉類':'🍗','蛋奶豆':'🥚','蔬菜':'🥦','水果':'🍎','油脂堅果':'🫒','飲品':'☕','港式外食':'🍜','自訂':'🍽'};
   var SLOT_EMOJI={'早':'🌅','午':'☀️','下午':'🥤','晚':'🌙','宵':'🌃'};
@@ -1307,11 +1310,11 @@
     h+=forecastCard();
     h+=weekReportCard();
     h+=trendNav(days);
-    h+='<div class="card"><h2>卡路里赤字<span>14 日</span></h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
+    h+='<div class="card tpan"><h2>卡路里赤字<span>14 日</span></h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
-    h+='<div class="card"><h2>行路步數<span>14 日</span></h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
+    h+='<div class="card tpan"><h2>行路步數<span>14 日</span></h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
-    h+='<div class="card"><h2>卡路里攝取（唔扣運動）<span>14 日</span></h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
+    h+='<div class="card tpan"><h2>卡路里攝取（唔扣運動）<span>14 日</span></h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
       '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
     // ---------- 月度累積赤字（橫線＝月目標，爬升線＝逐日累積）----------
     (function(){
@@ -2022,10 +2025,36 @@
   $('gearBtn').addEventListener('click', function(){ if(state) openSettings(); });
   document.querySelectorAll('.tabbar button').forEach(function(b){ b.addEventListener('click', function(){ tab=b.getAttribute('data-tab'); render(); }); });
   try{ $('evafab').addEventListener('click', openChat); }catch(e){}
-  (function(){ var sx=null, sy=null, onChart=false;
-    document.addEventListener('touchstart', function(e){ if(tab!=='trend') return; var t=e.touches[0]; onChart=!!(e.target.closest&&e.target.closest('.lchart')); sx=t.clientX; sy=t.clientY; }, {passive:true});
-    document.addEventListener('touchend', function(e){ if(tab!=='trend'||sx==null||!onChart) return; var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy; sx=null;
-      if(Math.abs(dx)>60 && Math.abs(dy)<45){ if(dx>0){ var b=document.querySelector('[data-act="tr-old"]'); if(b&&!b.disabled){ trendOffset+=7; render(); } } else if(trendOffset>0){ trendOffset=Math.max(0,trendOffset-7); render(); } } }, {passive:true});
+  // ---------- 趨勢 14 日圖：手指拖住順滑左右移 ----------
+  function trendMaxOffset(){ return Math.max(0, Math.round((dnum(today())-dnum(firstDataDate()))) - 13); }
+  function addPanOverlays(){ if(tab!=='trend') return; document.querySelectorAll('.tpan .lchart').forEach(function(lc){ if(!lc.querySelector('.panov')){ var o=document.createElement('div'); o.className='panov'; lc.appendChild(o); } }); }
+  function trendPartial(){
+    var tmp=document.createElement('div'); tmp.innerHTML=renderTrend();
+    var nw=tmp.querySelectorAll('.tpan'), cur=document.querySelectorAll('.tpan');
+    for(var i=0;i<cur.length&&i<nw.length;i++){
+      var ns=nw[i].querySelector('.lchart svg'), cs=cur[i].querySelector('.lchart svg'); if(ns&&cs) cs.outerHTML=ns.outerHTML;
+      var nst=nw[i].querySelector('.stat'), cst=cur[i].querySelector('.stat'); if(nst&&cst) cst.innerHTML=nst.innerHTML;
+    }
+    var nn=tmp.querySelector('.tnav'), cn=document.querySelector('.tnav'); if(nn&&cn) cn.innerHTML=nn.innerHTML;
+  }
+  (function(){ var drag=null;
+    function svgs(){ return document.querySelectorAll('.tpan .lchart svg'); }
+    function setX(px, anim){ svgs().forEach(function(sv){ sv.style.transition=anim?'transform .18s ease-out':'none'; sv.style.transform='translateX('+px+'px)'; }); }
+    document.addEventListener('touchstart', function(e){
+      if(tab!=='trend'||!e.target.classList||!e.target.classList.contains('panov')) return;
+      var t=e.touches[0], lc=e.target.parentNode;
+      drag={x0:t.clientX, y0:t.clientY, base:trendOffset, cur:trendOffset, ppd:Math.max(8,(lc.clientWidth||320)/13), max:trendMaxOffset(), horiz:null};
+    }, {passive:true});
+    document.addEventListener('touchmove', function(e){
+      if(!drag) return; var t=e.touches[0], dx=t.clientX-drag.x0, dy=t.clientY-drag.y0;
+      if(drag.horiz===null){ if(Math.abs(dx)<6&&Math.abs(dy)<6) return; drag.horiz=Math.abs(dx)>Math.abs(dy); }
+      if(!drag.horiz) return;
+      var want=drag.base+Math.round(dx/drag.ppd), off=Math.max(0,Math.min(drag.max,want));
+      if(off!==drag.cur){ drag.cur=off; trendOffset=off; trendPartial(); }
+      var resid=dx-(off-drag.base)*drag.ppd; if(want!==off) resid=Math.max(-24,Math.min(24,resid*0.3));
+      setX(resid, false);
+    }, {passive:true});
+    document.addEventListener('touchend', function(){ if(!drag) return; var moved=drag.horiz; drag=null; if(!moved) return; setX(0, true); setTimeout(function(){ render(); }, 190); }, {passive:true});
   })();
   document.addEventListener('change', function(e){ var el=e.target; if(el&&(el.id==='chatCam'||el.id==='chatPickIn')) chatPickFile(el); });
   $('sync').addEventListener('click', function(){ if(retryTimer) clearTimeout(retryTimer); boot(); });
