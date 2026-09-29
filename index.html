@@ -311,6 +311,9 @@
   .cb .tm{display:block; font-size:10px; opacity:.6; margin-top:4px}
   .chatin{display:flex; gap:8px; align-items:flex-end} .chatin textarea{flex:1; min-height:44px; max-height:140px; resize:none; font:inherit; font-size:15px; padding:10px 12px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--ink)}
   .chatin button{height:44px; padding:0 16px; border-radius:14px; border:0; background:var(--ink); color:var(--bg); font-weight:700}
+  .chatin .ib{width:44px; padding:0; background:var(--card); color:var(--ink); border:1px solid var(--line); font-size:18px}
+  .cb img{display:block; max-width:180px; border-radius:10px; margin-bottom:6px}
+  .chatprev{display:flex; align-items:center; gap:8px; margin-bottom:8px} .chatprev img{height:64px; border-radius:10px} .chatprev button{border:0; background:var(--soft); border-radius:99px; padding:4px 10px}
   .typing{align-self:flex-start; font-size:13px; color:var(--muted); padding:4px 8px}
   .r90rows{margin:8px 0 2px}
   .r90r{display:flex; gap:8px; align-items:flex-start; padding:5px 0; border-top:1px solid var(--line); font-size:12px; line-height:1.5}
@@ -458,7 +461,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260929-0537';
+  var APP_VER = '20260929-1110';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1649,8 +1652,8 @@
   function chatHTML(){
     var h='';
     chatRows.forEach(function(r){
-      if(r.role==='user') h+='<div class="cb u">'+esc(r.text).replace(/\n/g,'<br>')+'<span class="tm">'+r.created_at.slice(11,16)+'</span></div>';
-      else { var acts=(r.meta&&r.meta.actions)||[]; h+='<div class="cb e'+(r.status==='error'?' err':'')+'">'+mdLite(r.text)+(acts.length?'<div class="act">✓ 已改 app：'+esc(acts.join('；'))+'</div>':'')+'<span class="tm">'+r.created_at.slice(11,16)+'</span></div>'; }
+      if(r.role==='user') h+='<div class="cb u">'+(r.thumb?'<img src="'+esc(r.thumb)+'" alt="">':'')+esc(r.text).replace(/\n/g,'<br>')+'<span class="tm">'+r.created_at.slice(11,16)+'</span></div>';
+      else { var acts=r.actions||[]; h+='<div class="cb e'+(r.status==='error'?' err':'')+'">'+mdLite(r.text)+(acts.length?'<div class="act">✓ 已改 app：'+esc(acts.join('；'))+'</div>':'')+'<span class="tm">'+r.created_at.slice(11,16)+'</span></div>'; }
     });
     var last=chatRows[chatRows.length-1];
     if(last&&last.role==='user'&&last.status!=='error') h+='<div class="typing">Eva 諗緊…（大約 20–60 秒）</div>';
@@ -1659,10 +1662,10 @@
   }
   function chatPaint(){ var el=$('chatlog'); if(!el) return; var atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<80; el.innerHTML=chatHTML(); if(atBottom) el.scrollTop=el.scrollHeight; }
   function chatFetch(){
-    fetch(SB+'/rest/v1/eva_chat?select=*&order=id.desc&limit=40', {headers:hdr()})
+    fetch(SB+'/rest/v1/eva_chat?select=id,role,text,status,created_at,actions:meta->actions,thumb:meta->thumb&order=id.desc&limit=40', {headers:hdr()})
       .then(function(r){ if(!r.ok) throw 0; return r.json(); })
       .then(function(rows){
-        rows=rows.reverse(); var newEva=rows.filter(function(r){ return r.role==='eva' && r.id>chatLastSeen && r.meta && r.meta.actions && r.meta.actions.length; });
+        rows=rows.reverse(); var newEva=rows.filter(function(r){ return r.role==='eva' && r.id>chatLastSeen && r.actions && r.actions.length; });
         if(rows.length) chatLastSeen=Math.max(chatLastSeen, rows[rows.length-1].id);
         chatRows=rows; chatPaint();
         if(newEva.length) setTimeout(refreshIfChanged, 400);
@@ -1670,18 +1673,29 @@
   }
   function openChat(){
     chatOpen=true;
-    openSheet('<div class="hd"><h2>問 Eva</h2><button class="close" data-act="close">✕</button></div><div class="chatlog" id="chatlog"><div class="hint">載入緊…</div></div><div class="chatin"><textarea id="chatIn" rows="1" placeholder="例：晚餐加 1 隻煎蛋"></textarea><button data-act="chat-send">送出</button></div><div class="hint" style="margin-top:6px">Eva 可以入數、改數、答問題；改 app 版面要返 Claude Code 主 session。</div>');
+    openSheet('<div class="hd"><h2>問 Eva</h2><button class="close" data-act="close">✕</button></div><div class="chatlog" id="chatlog"><div class="hint">載入緊…</div></div><div id="chatPrev"></div><div class="chatin"><button class="ib" data-act="chat-cam" aria-label="影相">📷</button><button class="ib" data-act="chat-pick" aria-label="揀相">🖼</button><textarea id="chatIn" rows="1" placeholder="例：晚餐加 1 隻煎蛋"></textarea><button data-act="chat-send">送出</button></div><input type="file" id="chatCam" accept="image/*" capture="environment" hidden><input type="file" id="chatPickIn" accept="image/*" hidden><div class="hint" style="margin-top:6px">Eva 可以入數、改數、答問題；改 app 版面要返 Claude Code 主 session。</div>');
     chatFetch(); if(chatTimer) clearInterval(chatTimer); chatTimer=setInterval(function(){ if(!chatOpen||!$('chatlog')){ clearInterval(chatTimer); chatTimer=null; chatOpen=false; return; } chatFetch(); }, 3000);
     setTimeout(function(){ var el=$('chatlog'); if(el) el.scrollTop=el.scrollHeight; }, 600);
   }
+  var chatImg=null;
+  function shrink(file, max, q, cb){
+    var url=URL.createObjectURL(file), im=new Image();
+    im.onload=function(){ var k=Math.min(1, max/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(url); cb(c.toDataURL('image/jpeg', q)); };
+    im.onerror=function(){ URL.revokeObjectURL(url); alert('讀唔到呢張相'); }; im.src=url;
+  }
+  function chatPickFile(inp){
+    var f=inp.files&&inp.files[0]; if(!f) return;
+    shrink(f, 1280, 0.8, function(big){ shrink(f, 240, 0.7, function(th){ chatImg={image:big, thumb:th};
+      var pv=$('chatPrev'); if(pv) pv.innerHTML='<div class="chatprev"><img src="'+th+'" alt=""><span class="hint" style="margin:0">相片已附上，可以補一句說明</span><button data-act="chat-unimg">✕</button></div>'; }); });
+  }
   function sendChat(){
-    var el=$('chatIn'); if(!el) return; var t=(el.value||'').trim(); if(!t) return;
+    var el=$('chatIn'); if(!el) return; var t=(el.value||'').trim(); if(!t&&!chatImg) return; if(!t) t='（相）'; var img=chatImg; chatImg=null; var pv=$('chatPrev'); if(pv) pv.innerHTML='';
     el.value=''; el.disabled=true;
-    chatRows.push({role:'user', text:t, status:'pending', created_at:new Date(Date.now()+8*3600e3).toISOString()}); chatPaint();
+    chatRows.push({role:'user', text:t, thumb:img?img.thumb:null, status:'pending', created_at:new Date(Date.now()+8*3600e3).toISOString()}); chatPaint();
     var sc=$('chatlog'); if(sc) sc.scrollTop=sc.scrollHeight;
-    fetch(SB+'/rest/v1/eva_chat', {method:'POST', headers:Object.assign(hdr(),{Prefer:'return=minimal'}), body:JSON.stringify({role:'user', text:t})})
+    fetch(SB+'/rest/v1/eva_chat', {method:'POST', headers:Object.assign(hdr(),{Prefer:'return=minimal'}), body:JSON.stringify(img?{role:'user', text:t, meta:{image:img.image, thumb:img.thumb}}:{role:'user', text:t})})
       .then(function(r){ if(!r.ok) throw 0; el.disabled=false; chatFetch(); })
-      .catch(function(){ el.disabled=false; el.value=t; alert('送唔到，檢查網絡再試'); });
+      .catch(function(){ el.disabled=false; el.value=t; chatImg=img; alert('送唔到，檢查網絡再試'); });
   }
   function openSheet(html){ $('sheet').innerHTML=html; $('sheet').className='sheet show'; $('veil').className='veil show'; }
   function closeSheet(){ chatOpen=false; $('sheet').className='sheet'; $('veil').className='veil'; $('sheet').innerHTML=''; }
@@ -1964,6 +1978,9 @@
     else if(act==='useest'){ $('w_kcal').value=b.getAttribute('data-v'); $('w_kcal').setAttribute('data-est','1'); }
     else if(act==='sugg-add'){ var st5=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st5){ var mm5=getMeal(curDate, b.getAttribute('data-slot'), true); mm5.items.push(bundleFromSet(st5)); if(!mm5.time) mm5.time=nowTime(); markDirty(); } }
     else if(act==='chat-send') sendChat();
+    else if(act==='chat-cam'){ $('chatCam').value=''; $('chatCam').click(); }
+    else if(act==='chat-pick'){ $('chatPickIn').value=''; $('chatPickIn').click(); }
+    else if(act==='chat-unimg'){ chatImg=null; $('chatPrev').innerHTML=''; }
     else if(act==='wtrange'){ wtRange=b.getAttribute('data-v'); render(); }
     else if(act==='savewk') saveWorkout();
     else if(act==='delwk'){
@@ -1991,6 +2008,7 @@
   $('gearBtn').addEventListener('click', function(){ if(state) openSettings(); });
   document.querySelectorAll('.tabbar button').forEach(function(b){ b.addEventListener('click', function(){ tab=b.getAttribute('data-tab'); render(); }); });
   try{ $('evafab').addEventListener('click', openChat); }catch(e){}
+  document.addEventListener('change', function(e){ var el=e.target; if(el&&(el.id==='chatCam'||el.id==='chatPickIn')) chatPickFile(el); });
   $('sync').addEventListener('click', function(){ if(retryTimer) clearTimeout(retryTimer); boot(); });
 
   // 版本檢查：手機主畫面 app 會 cache 舊版，發現新版就畀個掣重載
