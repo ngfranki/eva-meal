@@ -315,6 +315,10 @@
   .cb img{display:block; max-width:180px; border-radius:10px; margin-bottom:6px}
   .chatprev{display:flex; align-items:center; gap:8px; margin-bottom:8px} .chatprev img{height:64px; border-radius:10px} .chatprev button{border:0; background:var(--soft); border-radius:99px; padding:4px 10px}
   .typing{align-self:flex-start; font-size:13px; color:var(--muted); padding:4px 8px}
+  .tnav{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px}
+  .tnav button{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:99px; padding:7px 12px; font-size:13px; font-weight:700}
+  .tnav button[disabled]{opacity:.3}
+  .tnav div{text-align:center} .tnav b{display:block; font-size:15px} .tnav small{font-size:11px; color:var(--muted)} .tnav a{color:var(--warn); text-decoration:underline}
   .r90rows{margin:8px 0 2px}
   .r90r{display:flex; gap:8px; align-items:flex-start; padding:5px 0; border-top:1px solid var(--line); font-size:12px; line-height:1.5}
   .r90r i{width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; background:var(--muted)}
@@ -461,7 +465,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260929-1110';
+  var APP_VER = '20260929-1226';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1247,8 +1251,14 @@
     return h;
   }
   function renderJourney(){ return journeyCard()+kpiCard()+futureCard()+dividendCard(); }
+  var trendOffset=0;
+  function firstDataDate(){ var d=today(); state.meals.forEach(function(m){ if(m.items&&m.items.length&&m.date<d) d=m.date; }); return d; }
+  function trendNav(days){
+    var first=firstDataDate(), canOld=days[0]>first, canNew=trendOffset>0, md=function(x){ return (+x.slice(5,7))+'/'+(+x.slice(8)); };
+    return '<div class="card tnav"><button data-act="tr-old" '+(canOld?'':'disabled')+'>‹ 前 7 日</button><div><b>'+md(days[0])+' – '+md(days[days.length-1])+'</b><small>'+(trendOffset?'<a data-act="tr-now">返今日</a>':'最近 14 日')+'</small></div><button data-act="tr-new" '+(canNew?'':'disabled')+'>後 7 日 ›</button></div>';
+  }
   function renderTrend(){
-    var days=[], t=today(); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
+    var days=[], t=shiftDate(today(),-trendOffset); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
     var s=state.settings, target=+s.dailyKcal||0, tdee=+s.tdee||2300;
     var kc=days.map(function(d){ return totals(dayItems(d)); });
     var steps=days.map(function(d){ return daySteps(d); });
@@ -1296,18 +1306,19 @@
     var h='<div class="card"><div class="lb" style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">匯出報告</h2><span class="hint" style="margin:0">PDF 靚版／文字版畀 ChatGPT</span></div><div class="exp" style="margin-top:10px"><input type="date" id="expFrom" value="'+fromD+'"><span class="arrow">→</span><input type="date" id="expTo" value="'+toD+'"><div class="btns"><button data-act="exp-pdf">📄 匯出 PDF</button><button class="ghost" data-act="exp-txt">📋 複製文字版</button></div></div><div class="hint" id="expMsg"></div></div>';
     h+=forecastCard();
     h+=weekReportCard();
-    h+='<div class="card"><h2>近 14 日 卡路里赤字</h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
+    h+=trendNav(days);
+    h+='<div class="card"><h2>卡路里赤字<span>14 日</span></h2><div class="hint" style="margin:-4px 0 4px">'+(modeB?'BMR '+(+s.bmr).toLocaleString()+' ＋ 消化熱 ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+tdee.toLocaleString()+' ＋ 活動 − 食物')+'</div>'+chart(deficit,'df',0,'',true)+
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
-    h+='<div class="card"><h2>近 14 日 行路步數</h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
+    h+='<div class="card"><h2>行路步數<span>14 日</span></h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
-    h+='<div class="card"><h2>近 14 日 卡路里攝取（唔扣運動）</h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
+    h+='<div class="card"><h2>卡路里攝取（唔扣運動）<span>14 日</span></h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
       '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
     // ---------- 月度累積赤字（橫線＝月目標，爬升線＝逐日累積）----------
     (function(){
-      var ym=curDate.slice(0,7), yy=+ym.slice(0,4), mm=+ym.slice(5,7);
+      var ym=t.slice(0,7), yy=+ym.slice(0,4), mm=+ym.slice(5,7);
       var nd=new Date(yy, mm, 0).getDate();
       var goal=+s.monthTarget||16000;
-      var todayN=(curDate.slice(0,7)===today().slice(0,7))? +today().slice(8) : nd;
+      var todayN=(t.slice(0,7)===today().slice(0,7))? +today().slice(8) : nd;
       var cum=[], run=0, logged=0;
       for(var i=1;i<=nd;i++){
         var dd=ym+'-'+(i<10?'0'+i:''+i), it=dayItems(dd);
@@ -1978,6 +1989,9 @@
     else if(act==='useest'){ $('w_kcal').value=b.getAttribute('data-v'); $('w_kcal').setAttribute('data-est','1'); }
     else if(act==='sugg-add'){ var st5=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st5){ var mm5=getMeal(curDate, b.getAttribute('data-slot'), true); mm5.items.push(bundleFromSet(st5)); if(!mm5.time) mm5.time=nowTime(); markDirty(); } }
     else if(act==='chat-send') sendChat();
+    else if(act==='tr-old'){ trendOffset+=7; render(); }
+    else if(act==='tr-new'){ trendOffset=Math.max(0,trendOffset-7); render(); }
+    else if(act==='tr-now'){ trendOffset=0; render(); }
     else if(act==='chat-cam'){ $('chatCam').value=''; $('chatCam').click(); }
     else if(act==='chat-pick'){ $('chatPickIn').value=''; $('chatPickIn').click(); }
     else if(act==='chat-unimg'){ chatImg=null; $('chatPrev').innerHTML=''; }
@@ -2008,6 +2022,11 @@
   $('gearBtn').addEventListener('click', function(){ if(state) openSettings(); });
   document.querySelectorAll('.tabbar button').forEach(function(b){ b.addEventListener('click', function(){ tab=b.getAttribute('data-tab'); render(); }); });
   try{ $('evafab').addEventListener('click', openChat); }catch(e){}
+  (function(){ var sx=null, sy=null, onChart=false;
+    document.addEventListener('touchstart', function(e){ if(tab!=='trend') return; var t=e.touches[0]; onChart=!!(e.target.closest&&e.target.closest('.lchart')); sx=t.clientX; sy=t.clientY; }, {passive:true});
+    document.addEventListener('touchend', function(e){ if(tab!=='trend'||sx==null||!onChart) return; var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy; sx=null;
+      if(Math.abs(dx)>60 && Math.abs(dy)<45){ if(dx>0){ var b=document.querySelector('[data-act="tr-old"]'); if(b&&!b.disabled){ trendOffset+=7; render(); } } else if(trendOffset>0){ trendOffset=Math.max(0,trendOffset-7); render(); } } }, {passive:true});
+  })();
   document.addEventListener('change', function(e){ var el=e.target; if(el&&(el.id==='chatCam'||el.id==='chatPickIn')) chatPickFile(el); });
   $('sync').addEventListener('click', function(){ if(retryTimer) clearTimeout(retryTimer); boot(); });
 
