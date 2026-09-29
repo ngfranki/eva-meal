@@ -468,7 +468,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260929-1231';
+  var APP_VER = '20260929-1321';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1542,6 +1542,25 @@
     h+='<div class="ex"><span class="k">行動</span>'+act+'　單晚唔達標唔緊要，睇近 7 晚嗰個總數先係真相。</div></div>';
     return h;
   }
+  // ---------- 父女挑戰（2026-09-29）：只讀 duo_share（每晚睡眠時數），其他數據兩邊唔互通 ----------
+  var duoData=null, duoAsked=0;
+  function loadDuo(){
+    if(!KEY||Date.now()-duoAsked<600000) return; duoAsked=Date.now();
+    fetch(SB+'/rest/v1/duo_share?select=owner,data',{headers:hdr()}).then(function(r){return r.json();})
+      .then(function(rs){ duoData={}; (rs||[]).forEach(function(x){duoData[x.owner]=x.data;}); if(tab==='oura') render(); }).catch(function(){});
+  }
+  function duoCard(){
+    loadDuo();
+    var me=duoData&&duoData.franki, mg=duoData&&duoData.ming;
+    function avg(x){var s=0,n=0;((x&&x.nights)||[]).forEach(function(v){if(v.h!=null){s+=v.h;n++;}});return n?Math.round(s/n*10)/10:null;}
+    function hit(x){return ((x&&x.nights)||[]).filter(function(v){return v.h>=7;}).length;}
+    var h='<div class="card"><div style="font-weight:800;font-size:16px;margin-bottom:8px">👨‍👧 父女挑戰：邊個瞓得夠</div>';
+    if(!mg) return h+'<div style="font-size:14px;color:var(--muted)">曉明未加入（佢喺自己 app 撳「加入挑戰」先會出現）。只比每晚睡眠時數，其他數據唔互通。</div></div>';
+    var a=avg(me), b=avg(mg);
+    h+='<div style="display:flex;gap:10px;text-align:center"><div style="flex:1"><div class="num" style="font-size:30px;font-weight:800">'+(a==null?'–':a)+'</div><div style="font-size:12px;color:var(--muted)">你 · 7 日平均（小時）· '+hit(me)+' 晚 ≥7</div></div>'+
+       '<div style="flex:1"><div class="num" style="font-size:30px;font-weight:800">'+(b==null?'–':b)+'</div><div style="font-size:12px;color:var(--muted)">曉明 · 7 日平均 · '+hit(mg)+' 晚 ≥7</div></div></div>';
+    return h+'<div style="font-size:12px;color:var(--muted);margin-top:8px">Oura 同 Ultrahuman 分數算法唔同，所以只比時數。</div></div>';
+  }
   function renderOura(){
     var od=ouraToday();
     if(od.none){
@@ -1646,6 +1665,7 @@
     h+=ocard({label:'體溫偏差', value:(d.tempDev>0?'+':'')+d.tempDev, unit:'°C', st:Math.abs(d.tempDev)>=0.5?'bad':(Math.abs(d.tempDev)>=0.3?'mid':'ok'), delta:null,
       explain:'瞓覺時皮膚溫度同你長期平均比。一日上落正常，連續三日同方向先係訊號。',
       means: Math.abs(d.tempDev)>=0.5?'<b>偏差大。</b>可能開始病或者過勞，今日唔要谷。':'<b>一日唔使理。</b>連續三日 +0.3 以上先當訊號。'});
+    h+=duoCard();
     return h;
   }
   document.addEventListener('input', function(e){ var el=e.target; if(el&&el.id==='waistIn'){ var wv=parseFloat(el.value); if(waistTimer) clearTimeout(waistTimer); waistTimer=setTimeout(function(){ if(wv>0){ state.waist[curDate]=wv; markDirty(); } },1200); } });
