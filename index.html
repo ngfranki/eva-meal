@@ -301,12 +301,12 @@
   .jbar{height:8px; background:var(--soft); border-radius:99px; overflow:hidden} .jbar i{display:block; height:100%; background:var(--gold); border-radius:99px} .jbar i.ok{background:#6E7A4F}
   .jsum{margin-top:10px; padding:10px 12px; background:var(--soft); border-radius:10px; font-size:13px; line-height:1.6} .jsum b{font-size:18px}
   .evafab{position:fixed; right:16px; bottom:calc(78px + env(safe-area-inset-bottom)); z-index:40; width:54px; height:54px; border-radius:50%; border:0; background:var(--ink); color:var(--bg); font-size:24px; box-shadow:0 6px 18px rgba(0,0,0,.22)}
-  .chatlog{max-height:56vh; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column; gap:10px; padding:4px 2px 10px}
-  .cb{max-width:86%; min-width:0; padding:10px 13px; border-radius:16px; font-size:14px; line-height:1.6; word-break:break-word; overflow-wrap:anywhere; overflow-x:auto}
+  .chatlog{max-height:56vh; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; display:flex; flex-direction:column; gap:10px; padding:4px 2px 10px}
+  .cb{max-width:86%; min-width:0; padding:10px 13px; border-radius:16px; font-size:14px; line-height:1.6; word-break:break-word; overflow-wrap:anywhere; flex:none}
   .cb.u{align-self:flex-end; background:var(--ink); color:var(--bg); border-bottom-right-radius:4px}
   .cb.e{align-self:flex-start; background:var(--card); border:1px solid var(--line); border-bottom-left-radius:4px}
   .cb.e.err{border-color:var(--warn)}
-  .cb table{border-collapse:collapse; margin:6px 0; font-size:12px; max-width:100%} .cb td,.cb th{border:1px solid var(--line); padding:3px 6px}
+  .cb table{display:block; overflow-x:auto; border-collapse:collapse; margin:6px 0; font-size:12px; max-width:100%} .cb td,.cb th{border:1px solid var(--line); padding:3px 6px}
   .cb .act{margin-top:6px; font-size:11px; color:var(--muted)}
   .cb .tm{display:block; font-size:10px; opacity:.6; margin-top:4px}
   .chatin{display:flex; gap:6px; align-items:flex-end; max-width:100%} .chatin textarea{flex:1; min-width:0; min-height:44px; max-height:140px; resize:none; font:inherit; font-size:16px; padding:10px 12px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--ink)}
@@ -314,7 +314,7 @@
   .chatin .ib{width:44px; padding:0; background:var(--card); color:var(--ink); border:1px solid var(--line); font-size:18px}
   .cb img{display:block; max-width:180px; border-radius:10px; margin-bottom:6px}
   .chatprev{display:flex; align-items:center; gap:8px; margin-bottom:8px} .chatprev img{height:64px; border-radius:10px} .chatprev button{border:0; background:var(--soft); border-radius:99px; padding:4px 10px}
-  .typing{align-self:flex-start; font-size:13px; color:var(--muted); padding:4px 8px}
+  .typing{flex:none; align-self:flex-start; font-size:13px; color:var(--muted); padding:4px 8px}
   .tpan .lchart{position:relative; overflow:hidden}
   .tpan .lchart svg{will-change:transform}
   #sheet{overflow-x:hidden}
@@ -470,7 +470,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20260929-1656';
+  var APP_VER = '20260929-1706';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
