@@ -470,7 +470,7 @@
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
   var TABLE = 'meal_log';
-  var APP_VER = '20261013-1512';
+  var APP_VER = '20261013-1518';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -1464,6 +1464,7 @@
   }
   function ocard(o){
     if(o.missing || o.value==null) return '<div class="ocard"><div class="lb"><span>'+o.label+'</span><span class="tag">未有資料</span></div><div class="big"><b class="num">—</b></div><div class="ex">此項尚未有 Oura 數據，不代表零值；請先同步戒指。</div></div>';
+    if(o.requiresBaseline && o.base==null) o=Object.assign({},o,{delta:null,tag:'未有基線',means:'尚未有足夠的 7 日基線，暫不作個人趨勢比較。'});
     var tagTxt={ok:'喺你基線',mid:'偏離少少',bad:'注意'}[o.st];
     var dl = (o.delta!=null && o.base!=null) ? '<span class="dl '+(o.delta>0?'up':(o.delta<0?'dn':''))+'">'+(o.delta>0?'↑':(o.delta<0?'↓':'＝'))+' '+(Math.round(Math.abs(o.delta)*10)/10)+(o.deltaUnit||'')+' <small style="color:var(--muted);font-weight:500">vs 你 7 日</small></span>' : '';
     return '<div class="ocard"><div class="lb"><span>'+o.label+'</span><span class="tag '+o.st+'">'+(o.tag||tagTxt)+'</span></div>'+
@@ -1645,7 +1646,7 @@
     h+='<div class="ex"><span class="k">解釋</span>活動部分：App（步行＋運動＋日常 10%）'+r0(appAct)+' 對 Oura '+r0(d.activeCal)+'，差 '+r0(Math.abs(appAct-d.activeCal))+'。真正分歧喺基礎代謝：App 用 '+(+s.bmr||0).toLocaleString()+'，Oura 用約 '+(d.totalCal&&d.activeCal?r0(d.totalCal-d.activeCal).toLocaleString():'—')+'。</div><div class="ex"><span class="k">代表</span>邊個近真，三星期後由磅裁決：累計赤字 ÷ 7,700 ＝ 應該跌幾多 kg。</div></div>';
     } else { h+='<div class="ocard"><div class="lb">Oura 能量資料尚未齊全</div><div class="ex">暫不計算 Oura 能量差額；缺少數據不代表零。</div></div>'; }
     // 準備度
-    h+=ocard({label:'準備度 Readiness', missing:d.readiness==null, value:d.readiness, unit:'／100', delta:b.readiness!=null?d.readiness-b.readiness:null, base:b.readiness, st:stR, spark:spark(d.hist&&d.hist.readiness,b.readiness),
+    h+=ocard({label:'準備度 Readiness', requiresBaseline:true, missing:d.readiness==null, value:d.readiness, unit:'／100', delta:b.readiness!=null?d.readiness-b.readiness:null, base:b.readiness, st:stR, spark:spark(d.hist&&d.hist.readiness,b.readiness),
       explain:'Oura 綜合你昨晚睡眠、靜止心率、HRV、體溫，畀出「今日身體承受得幾多」。85 以上係好，70–84 一般，70 以下要輕手。',
       means: d.readiness>=85?'<b>今日可以照常訓練同保持赤字。</b>':(d.readiness>=70?'<b>可以照常，唔要加碼。</b>低過 7 日平均 '+Math.abs(d.readiness-b.readiness)+' 分，今日赤字大過 700 嘅話第二朝多數更攰。':'<b>身體要休息。</b>今日赤字唔要超過 500，訓練改輕。')});
     h+=r90Card(d);
@@ -1657,18 +1658,18 @@
       explain:'實際瞓着嘅時間（唔計瞓前瞓後醒住）。效率 '+d.efficiency+'%，上床 '+d.bedtime+'。',
       means: d.totalSleepMin<390?'<b>少過 6.5 小時。</b>睡眠唔夠嗰日，飢餓感同對甜食嘅渴求會升，赤字更難守。':'<b>時長正常。</b>質素睇上面深層嗰格。'});
     // 靜止心率
-    h+=ocard({label:'靜止心率', missing:d.rhr==null, value:d.rhr, unit:'次/分', delta:b.rhr!=null?d.rhr-b.rhr:null, base:b.rhr, st:stH, spark:spark(d.hist&&d.hist.rhr,b.rhr),
+    h+=ocard({label:'靜止心率', requiresBaseline:true, missing:d.rhr==null, value:d.rhr, unit:'次/分', delta:b.rhr!=null?d.rhr-b.rhr:null, base:b.rhr, st:stH, spark:spark(d.hist&&d.hist.rhr,b.rhr),
       explain:'瞓覺時心臟最慢嘅速度，反映身體有幾多「未清嘅賬」（壓力、訓練、赤字、病）。',
       means: d.rhr>b.rhr+3?'<b>高於你基線 '+(d.rhr-b.rhr)+' 下。</b>連續 3 日咁樣＝身體處理緊壓力：赤字太大、瞓唔夠或者開始病，三選一。呢個訊號通常比磅同精神早一至兩星期。':'<b>喺你基線範圍。</b>身體頂得順而家嘅赤字同訓練。'});
     // HRV
-    h+=ocard({label:'HRV 心率變異', missing:d.hrv==null, value:d.hrv, unit:'ms', delta:b.hrv!=null?d.hrv-b.hrv:null, base:b.hrv, st:statusOf(d.hrv,b.hrv,false,8,15), spark:spark(d.hist&&d.hist.hrv,b.hrv),
+    h+=ocard({label:'HRV 心率變異', requiresBaseline:true, missing:d.hrv==null, value:d.hrv, unit:'ms', delta:b.hrv!=null?d.hrv-b.hrv:null, base:b.hrv, st:statusOf(d.hrv,b.hrv,false,8,15), spark:spark(d.hist&&d.hist.hrv,b.hrv),
       explain:'心跳之間嘅微細變化。越高＝神經系統越鬆、恢復越好。每個人數值唔同，只同自己比。',
       means: d.hrv<b.hrv*0.88?'<b>比基線低 '+r0((1-d.hrv/b.hrv)*100)+'%。</b>同靜止心率一齊睇：兩樣同時轉差，係「食太少或訓練太重」最可靠嘅訊號。':'<b>正常。</b>'});
     // 活動
     h+=ocard({label:'今日活動消耗（Oura 量）', missing:d.activeCal==null, value:r0(d.activeCal).toLocaleString(), unit:'kcal', delta:b.activeCal!=null?r0(d.activeCal-b.activeCal):null, base:b.activeCal, st:'ok', tag:'≈ '+r1(d.activeCal/180)+' 碗白飯',
       explain:'Oura 用心率同動作量出你今日「額外」燒嘅，唔包基礎代謝。步行 '+r0(stepsKcal(Math.max(0,d.steps-treadmillSteps(curDate))))+' ＋ 運動 '+r0(dayWorkoutBurn(curDate))+' ＋ 企／家務其餘。',
       means:'<b>你一日嘅努力就係呢個數。</b>1,800 目標入面有 '+r0(d.activeCal)+' 係郁返嚟嘅，其餘 '+r0(1800-d.activeCal)+' 靠基礎代謝。'});
-    h+=ocard({label:'步數', missing:d.steps==null, value:d.steps==null?null:d.steps.toLocaleString(), unit:'步', delta:b.steps!=null?r0(d.steps-b.steps):null, base:b.steps, st:'ok', tag:d.steps>=b.steps?'多過平時':'少過平時', spark:spark(d.hist&&d.hist.steps,b.steps),
+    h+=ocard({label:'步數', requiresBaseline:true, missing:d.steps==null, value:d.steps==null?null:d.steps.toLocaleString(), unit:'步', delta:b.steps!=null?r0(d.steps-b.steps):null, base:b.steps, st:'ok', tag:d.steps>=b.steps?'多過平時':'少過平時', spark:spark(d.hist&&d.hist.steps,b.steps),
       explain:'全日步數（Oura 戒指）。扣跑步機 '+treadmillSteps(curDate).toLocaleString()+' 步後，日常行路 '+Math.max(0,d.steps-treadmillSteps(curDate)).toLocaleString()+' 步。',
       means:b.steps==null?'尚未有 7 日步數基線，不作比較。':'<b>日常行路係你全日消耗第二大嘅一格，比 gym 更大。</b>7 日平均 '+(b.steps==null?'—':b.steps.toLocaleString())+'，今日'+(d.steps>=b.steps?'多':'少')+' '+Math.abs(d.steps-b.steps).toLocaleString()+'。'});
     h+=ocard({label:'久坐時間', missing:d.inactiveMin==null, value:r1(d.inactiveMin/60), unit:'小時', delta:b.inactiveMin!=null?r1((d.inactiveMin-b.inactiveMin)/60):null, deltaUnit:'h', base:b.inactiveMin, st:statusOf(d.inactiveMin,b.inactiveMin,true,8,15),
