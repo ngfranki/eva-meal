@@ -434,7 +434,7 @@
 (function(){
   'use strict';
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
-  var SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
+  var SBK = 'sb_publishable_YROUDaSxinrbHH4g7q8gmQ_4za7Ohfj';
   var TABLE = 'meal_log';
   var APP_VER = '20260921-0751';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
@@ -518,7 +518,7 @@
   function setSync(cls, txt){ var el=$('sync'); el.className='sync '+(cls||''); el.textContent=txt; }
   function setOffline(on){ offline=on; $('offline').className='offline'+(on?' show':''); }
 
-  function hdr(){ return {apikey:SBK, Authorization:'Bearer '+SBK, 'x-client-info':KEY, 'Content-Type':'application/json'}; }
+  function hdr(){ return {apikey:SBK, 'x-client-info':KEY, 'Content-Type':'application/json'}; }
 
   function fetchRow(cb){
     var done=false, ctrl=null; try{ ctrl=new AbortController(); }catch(e){}
@@ -722,7 +722,7 @@
     img.onerror=function(){ cb(null); }; img.src=url;
   }
   function visionCall(body, cb){
-    fetch(VISION_URL, {method:'POST', headers:{apikey:SBK, Authorization:'Bearer '+SBK, 'x-client-info':KEY, 'Content-Type':'application/json'}, body:JSON.stringify(body)})
+    fetch(VISION_URL, {method:'POST', headers:hdr(), body:JSON.stringify(body)})
       .then(function(r){ if(r.status===404) throw new Error('未開通'); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(j){ cb(null,j); }).catch(function(e){ cb(e); });
   }
