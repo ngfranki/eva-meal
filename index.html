@@ -469,10 +469,13 @@
   'use strict';
   var SB = 'https://lvwspnjysfyomuszzjay.supabase.co';
   // Publishable key（取代舊 anon JWT）。呢條唔係 JWT：只放 apikey header，
-  // 唔好放 Authorization: Bearer。RLS 仍然係 anon 角色 + x-client-info 暗號。
+  // 唔好放 Authorization: Bearer。RLS 用 anon 角色 + x-client-info 工作階段 token。
   var SBK = 'sb_publishable_YROUDaSxinrbHH4g7q8gmQ_4za7Ohfj';
   var TABLE = 'meal_log';
-  var APP_VER = '20261027-1410';
+  var APP = 'meal';
+  var SESSION_KEY = 'appSession.'+APP;
+  var AUTH = SB+'/functions/v1/app-auth';
+  var APP_VER = '20261027-1521';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -480,8 +483,31 @@
   var DEFAULT_QUICK = ['rice_white','egg','chicken_breast','choy_sum','coffee_black','banana','greek_yogurt_nonfat','oats'];
 
   var $ = function(id){ return document.getElementById(id); };
-  var KEY = '';
-  try{ KEY = localStorage.getItem('mealKey') || ''; }catch(e){}
+  var TOKEN = '';
+  var loggingIn = false;
+  var sessionDeadLock = false;
+  var hadMain = false;
+  function dropOldKey(){ try{ localStorage.removeItem('mealKey'); }catch(e){} }
+  dropOldKey();
+  function readSession(){
+    try{
+      var raw=localStorage.getItem(SESSION_KEY);
+      if(!raw) return null;
+      var s=JSON.parse(raw);
+      if(!s || typeof s.token!=='string' || !s.token){ localStorage.removeItem(SESSION_KEY); return null; }
+      if(s.expiresAt){
+        var exp=typeof s.expiresAt==='number' ? (s.expiresAt<1e12 ? s.expiresAt*1000 : s.expiresAt) : Date.parse(s.expiresAt);
+        if(!isNaN(exp) && exp<=Date.now()){ localStorage.removeItem(SESSION_KEY); return null; }
+      }
+      return {token:s.token, expiresAt:s.expiresAt||null};
+    }catch(e){
+      try{ localStorage.removeItem(SESSION_KEY); }catch(e2){}
+      return null;
+    }
+  }
+  function writeSession(token, expiresAt){
+    try{ localStorage.setItem(SESSION_KEY, JSON.stringify({token:token, expiresAt:expiresAt||null})); }catch(e){}
+  }
 
   var state = null, lastUpdated = null, dirty = false, persistTimer = null, retryTimer = null;
   var tab = 'today', curDate = today(), offline = false;
@@ -556,15 +582,83 @@
   function setSync(cls, txt){ var el=$('sync'); el.className='sync '+(cls||''); el.textContent=txt; }
   function setOffline(on){ offline=on; $('offline').className='offline'+(on?' show':''); }
 
-  function hdr(){ return {apikey:SBK, 'x-client-info':KEY, 'Content-Type':'application/json'}; }
+  function hdr(){ return {apikey:SBK, 'x-client-info':TOKEN, 'Content-Type':'application/json'}; }
+  function isAuth(e){ return !!(e && e.auth); }
+  function previouslyWorking(){
+    if(hadMain) return true;
+    var c=cacheLoad();
+    if(!c || !c.state) return false;
+    if(c.updated_at) return true;
+    var s=c.state;
+    if(Array.isArray(s.meals) && s.meals.length) return true;
+    if(Array.isArray(s.workouts) && s.workouts.length) return true;
+    return false;
+  }
+  function sessionDead(msg){
+    if(sessionDeadLock) return;
+    sessionDeadLock=true;
+    TOKEN='';
+    hadMain=false;
+    try{ localStorage.removeItem(SESSION_KEY); localStorage.removeItem('mealKey'); }catch(e){}
+    if(retryTimer) clearTimeout(retryTimer);
+    if(persistTimer) clearTimeout(persistTimer);
+    showGate(msg||'工作階段已失效，請再入暗號');
+  }
+  function authFail(){
+    sessionDead();
+    var err=new Error('unauthorized');
+    err.auth=true;
+    throw err;
+  }
+  // REST、Storage、Edge Function 一律帶工作階段 token。401 即清 session 返登入。
+  function sbFetch(url, opts){
+    opts=opts||{};
+    var live=readSession();
+    if(!live){
+      TOKEN='';
+      sessionDead('工作階段已過期，請再入暗號');
+      var expired=new Error('unauthorized'); expired.auth=true;
+      return Promise.reject(expired);
+    }
+    TOKEN=live.token;
+    var headers=Object.assign({}, hdr(), opts.headers||{});
+    var rest={};
+    Object.keys(opts).forEach(function(k){ if(k!=='headers') rest[k]=opts[k]; });
+    return fetch(url, Object.assign({headers:headers}, rest)).then(function(r){
+      if(r.status===401) authFail();
+      return r;
+    });
+  }
+  function loginMsg(status, body){
+    var err=body && typeof body.error==='string' ? body.error : '';
+    var code=body && body.code;
+    if(err && /[\u4e00-\u9fff]/.test(err)) return err;
+    if(status===401) return '暗號唔啱，再入一次';
+    if(status===429) return '試得太多次，請 15 分鐘後再試';
+    if(status===503 || code==='not_configured') return '新暗號未設定，請稍後再試';
+    if(status===403) return '呢個網址未獲允許，請用正式網址開啟';
+    if(status===400) return '應用設定有誤，請聯絡管理員';
+    return '登入失敗，請稍後再試';
+  }
+  function noRowsExpected(rows){
+    return Array.isArray(rows) && rows.length===0 && previouslyWorking();
+  }
 
   function fetchRow(cb){
     var done=false, ctrl=null; try{ ctrl=new AbortController(); }catch(e){}
     var t=setTimeout(function(){ if(done) return; done=true; try{ctrl&&ctrl.abort();}catch(e){} cb(null,false); }, 12000);
-    fetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=state,updated_at', {headers:hdr(), signal:ctrl?ctrl.signal:undefined})
+    sbFetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=state,updated_at', {signal:ctrl?ctrl.signal:undefined})
       .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-      .then(function(rows){ if(done) return; done=true; clearTimeout(t); cb(rows&&rows[0]?rows[0]:null, true); })
-      .catch(function(){ if(done) return; done=true; clearTimeout(t); cb(null,false); });
+      .then(function(rows){
+        if(done) return; done=true; clearTimeout(t);
+        if(noRowsExpected(rows)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
+        cb(rows&&rows[0]?rows[0]:null, true);
+      })
+      .catch(function(e){
+        if(done) return; done=true; clearTimeout(t);
+        if(isAuth(e)||sessionDeadLock) return;
+        cb(null,false);
+      });
   }
 
   function markDirty(){
@@ -574,38 +668,53 @@
     persistTimer=setTimeout(persist, 600);
   }
   function persist(){
-    if(!state || !KEY) return;
+    if(!state || !TOKEN || sessionDeadLock) return;
     var ts=new Date().toISOString(); state.meta.lastSync=ts;
-    fetch(SB+'/rest/v1/'+TABLE+'?on_conflict=id', {method:'POST',
-      headers:Object.assign(hdr(),{Prefer:'resolution=merge-duplicates,return=representation'}),
+    sbFetch(SB+'/rest/v1/'+TABLE+'?on_conflict=id', {method:'POST',
+      headers:{Prefer:'resolution=merge-duplicates,return=representation'},
       body:JSON.stringify([{id:'main', state:state, updated_at:ts}])})
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(rows){
-      dirty=false; if(rows&&rows[0]) lastUpdated=rows[0].updated_at; cacheSave(); setOffline(false);
+      if(sessionDeadLock) return;
+      if(noRowsExpected(rows) || (Array.isArray(rows) && !rows.length && hadMain)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
+      if(!rows || !rows[0]) throw 0;
+      dirty=false; lastUpdated=rows[0].updated_at; hadMain=true; cacheSave(); setOffline(false);
       setSync('ok','已儲低 '+nowTime());
     })
-    .catch(function(){ setOffline(true); setSync('err','離線，資料未同步'); setTimeout(persist, 8000); });
+    .catch(function(e){
+      if(isAuth(e)||sessionDeadLock) return;
+      setOffline(true); setSync('err','離線，資料未同步'); setTimeout(persist, 8000);
+    });
   }
   function refreshIfChanged(){
-    if(!state || dirty || !KEY) return;
-    fetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=updated_at', {headers:hdr()})
+    if(!state || dirty || !TOKEN || sessionDeadLock) return;
+    sbFetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=updated_at')
       .then(function(r){ if(!r.ok) throw 0; return r.json(); })
       .then(function(rows){
+        if(sessionDeadLock) return;
+        if(noRowsExpected(rows)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
         setOffline(false);
         if(rows&&rows[0]&&rows[0].updated_at!==lastUpdated){
-          fetchRow(function(row,reached){ if(row&&!dirty){ applyState(row); cacheSave(); render(); setSync('ok','已同步 '+nowTime()); } });
+          fetchRow(function(row,reached){ if(row&&!dirty){ hadMain=true; applyState(row); cacheSave(); render(); setSync('ok','已同步 '+nowTime()); } });
         }
-      }).catch(function(){ setOffline(true); setSync('err','離線，資料未同步'); });
+      }).catch(function(e){
+        if(isAuth(e)||sessionDeadLock) return;
+        setOffline(true); setSync('err','離線，資料未同步');
+      });
   }
 
   function boot(){
-    if(!KEY){ showGate(''); return; }
+    if(sessionDeadLock) return;
+    var live=readSession();
+    if(!live){ TOKEN=''; showGate(''); return; }
+    TOKEN=live.token;
     if(!state){
       var c=cacheLoad();
       if(c&&c.state){ applyState(c); render(); setSync('','上次嘅資料·更新緊…'); }
       else setSync('','載緊資料…');
     }
     fetchRow(function(row, reached){
+      if(sessionDeadLock) return;
       if(!row){
         if(!reached){
           // 連唔到 Supabase：用 cache／空 state 照開，標離線
@@ -614,21 +723,78 @@
           if(retryTimer) clearTimeout(retryTimer); retryTimer=setTimeout(boot, 10000);
           return;
         }
-        // 接通但冇資料 ＝ 暗號唔啱（RLS 閂住）
-        try{ localStorage.removeItem('mealKey'); }catch(e){}
-        KEY=''; showGate('暗號唔啱，再入一次'); return;
+        // 登入成功但未有 main 列：唔當暗號錯。有過資料先會喺 fetchRow 返登入。
+        if(!state){ applyState({state:defaultState(), updated_at:null}); render(); }
+        setOffline(false); setSync('','未有雲端紀錄');
+        return;
       }
+      hadMain=true;
       applyState(row); cacheSave(); setOffline(false); setSync('ok','已同步'); render();
       if(!row.state || !Array.isArray(row.state.meals)){ markDirty(); } // 第一次：寫入初始結構
     });
   }
+  function start(){
+    dropOldKey();
+    var live=readSession();
+    if(!live){ TOKEN=''; showGate(''); return; }
+    TOKEN=live.token;
+    sbFetch(AUTH+'/session', {method:'POST'})
+      .then(function(){ if(!sessionDeadLock) boot(); })
+      .catch(function(e){ if(isAuth(e)||sessionDeadLock) return; boot(); });
+  }
+  function doLogout(){
+    var tok=TOKEN;
+    var finish=function(){
+      TOKEN='';
+      sessionDeadLock=true;
+      try{ localStorage.removeItem(SESSION_KEY); localStorage.removeItem('mealKey'); }catch(e){}
+      location.reload();
+    };
+    if(!tok){ finish(); return; }
+    var done=false;
+    var timer=setTimeout(function(){ if(done) return; done=true; finish(); }, 4000);
+    fetch(AUTH+'/logout', {method:'POST', headers:{apikey:SBK, 'x-client-info':tok, 'Content-Type':'application/json'}, keepalive:true})
+      .then(function(){ if(done) return; done=true; clearTimeout(timer); finish(); })
+      .catch(function(){ if(done) return; done=true; clearTimeout(timer); finish(); });
+  }
 
   // ---------- gate ----------
-  function showGate(msg){ $('gate').className='gate show'; $('gateMsg').textContent=msg||''; setTimeout(function(){ try{$('gateKey').focus();}catch(e){} },50); }
+  function showGate(msg){
+    loggingIn=false;
+    var btn=$('gateGo'); if(btn) btn.disabled=false;
+    $('gate').className='gate show';
+    $('gateMsg').textContent=msg||'';
+    setTimeout(function(){ try{$('gateKey').focus();}catch(e){} },50);
+  }
   function gateGo(){
-    var k=($('gateKey').value||'').trim(); if(!k) return;
-    KEY=k; try{ localStorage.setItem('mealKey',KEY); }catch(e){}
-    $('gate').className='gate'; $('gateKey').value=''; boot();
+    if(loggingIn) return;
+    var input=$('gateKey');
+    var k=(input.value||'').trim();
+    if(!k) return;
+    input.value='';
+    loggingIn=true;
+    var btn=$('gateGo'); if(btn) btn.disabled=true;
+    $('gateMsg').textContent='檢查緊…';
+    fetch(AUTH+'/login', {method:'POST', headers:{apikey:SBK, 'Content-Type':'application/json'}, body:JSON.stringify({app:APP, passphrase:k})})
+      .then(function(r){ return r.text().then(function(t){ var body=null; try{ body=t?JSON.parse(t):null; }catch(e){} return {status:r.status, body:body}; }); })
+      .then(function(res){
+        k='';
+        loggingIn=false;
+        if(btn) btn.disabled=false;
+        if(res.status===200 && res.body && typeof res.body.token==='string' && res.body.token){
+          dropOldKey();
+          writeSession(res.body.token, res.body.expiresAt);
+          TOKEN=res.body.token;
+          sessionDeadLock=false;
+          hadMain=false;
+          $('gate').className='gate';
+          $('gateMsg').textContent='';
+          boot();
+          return;
+        }
+        showGate(loginMsg(res.status, res.body));
+      })
+      .catch(function(){ k=''; showGate('連唔到伺服器，請檢查網絡再試'); });
   }
   $('gateGo').addEventListener('click', gateGo);
   $('gateKey').addEventListener('keydown', function(e){ if(e.key==='Enter') gateGo(); });
@@ -760,9 +926,9 @@
     img.onerror=function(){ cb(null); }; img.src=url;
   }
   function visionCall(body, cb){
-    fetch(VISION_URL, {method:'POST', headers:hdr(), body:JSON.stringify(body)})
+    sbFetch(VISION_URL, {method:'POST', body:JSON.stringify(body)})
       .then(function(r){ if(r.status===404) throw new Error('未開通'); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(function(j){ cb(null,j); }).catch(function(e){ cb(e); });
+      .then(function(j){ cb(null,j); }).catch(function(e){ if(isAuth(e)||sessionDeadLock) return; cb(e instanceof Error?e:new Error('連唔到')); });
   }
   function photoStage1(){
     $('photoRes').innerHTML='<div class="nlrow"><div class="h"><b>AI 睇相中…</b><span>認食物＋估份量，約 10 秒</span></div></div>';
@@ -1557,9 +1723,13 @@
   // ---------- 父女挑戰（2026-09-29）：只讀 duo_share（每晚睡眠時數），其他數據兩邊唔互通 ----------
   var duoData=null, duoAsked=0;
   function loadDuo(){
-    if(!KEY||Date.now()-duoAsked<600000) return; duoAsked=Date.now();
-    fetch(SB+'/rest/v1/duo_share?select=owner,data',{headers:hdr()}).then(function(r){return r.json();})
-      .then(function(rs){ duoData={}; (rs||[]).forEach(function(x){duoData[x.owner]=x.data;}); if(tab==='oura') render(); }).catch(function(){});
+    if(!TOKEN||sessionDeadLock||Date.now()-duoAsked<600000) return; duoAsked=Date.now();
+    sbFetch(SB+'/rest/v1/duo_share?select=owner,data').then(function(r){
+      if(!r.ok) throw 0; return r.json();
+    }).then(function(rs){
+      if(sessionDeadLock||!rs) return;
+      duoData={}; rs.forEach(function(x){duoData[x.owner]=x.data;}); if(tab==='oura') render();
+    }).catch(function(e){ if(isAuth(e)) return; });
   }
   function duoCard(){
     loadDuo();
@@ -1712,14 +1882,15 @@
   }
   function chatPaint(){ var el=$('chatlog'); if(!el) return; var atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<80; el.innerHTML=chatHTML(); if(atBottom) el.scrollTop=el.scrollHeight; }
   function chatFetch(){
-    fetch(SB+'/rest/v1/eva_chat?select=id,role,text,status,created_at,actions:meta->actions,thumb:meta->thumb&order=id.desc&limit=40', {headers:hdr()})
+    sbFetch(SB+'/rest/v1/eva_chat?select=id,role,text,status,created_at,actions:meta->actions,thumb:meta->thumb&order=id.desc&limit=40')
       .then(function(r){ if(!r.ok) throw 0; return r.json(); })
       .then(function(rows){
+        if(sessionDeadLock||!rows) return;
         rows=rows.reverse(); var newEva=rows.filter(function(r){ return r.role==='eva' && r.id>chatLastSeen && r.actions && r.actions.length; });
         if(rows.length) chatLastSeen=Math.max(chatLastSeen, rows[rows.length-1].id);
         chatRows=rows; chatPaint();
         if(newEva.length) setTimeout(refreshIfChanged, 400);
-      }).catch(function(){ var el=$('chatlog'); if(el&&!chatRows.length) el.innerHTML='<div class="hint">連唔到 Eva（網絡或者暗號問題）。</div>'; });
+      }).catch(function(e){ if(isAuth(e)||sessionDeadLock) return; var el=$('chatlog'); if(el&&!chatRows.length) el.innerHTML='<div class="hint">連唔到 Eva（網絡問題）。</div>'; });
   }
   function openChat(){
     chatOpen=true;
@@ -1743,9 +1914,9 @@
     el.value=''; el.disabled=true;
     chatRows.push({role:'user', text:t, thumb:img?img.thumb:null, status:'pending', created_at:new Date().toISOString()}); chatPaint();
     var sc=$('chatlog'); if(sc) sc.scrollTop=sc.scrollHeight;
-    fetch(SB+'/rest/v1/eva_chat', {method:'POST', headers:Object.assign(hdr(),{Prefer:'return=minimal'}), body:JSON.stringify(img?{role:'user', text:t, meta:{image:img.image, thumb:img.thumb}}:{role:'user', text:t})})
+    sbFetch(SB+'/rest/v1/eva_chat', {method:'POST', headers:{Prefer:'return=minimal'}, body:JSON.stringify(img?{role:'user', text:t, meta:{image:img.image, thumb:img.thumb}}:{role:'user', text:t})})
       .then(function(r){ if(!r.ok) throw 0; el.disabled=false; chatFetch(); })
-      .catch(function(){ el.disabled=false; el.value=t; chatImg=img; alert('送唔到，檢查網絡再試'); });
+      .catch(function(e){ if(isAuth(e)||sessionDeadLock) return; el.disabled=false; el.value=t; chatImg=img; alert('送唔到，檢查網絡再試'); });
   }
   function openSheet(html){ $('sheet').innerHTML=html; $('sheet').className='sheet show'; $('veil').className='veil show'; }
   function closeSheet(){ chatOpen=false; $('sheet').className='sheet'; $('veil').className='veil'; $('sheet').innerHTML=''; }
@@ -1965,7 +2136,7 @@
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
     h+='<div class="hint">食物庫：'+BUILTIN.length+' 樣內建（每樣有來源）＋ '+state.foods.filter(function(f){return f.custom;}).length+' 樣自訂。撳食物名可睇來源。</div>';
-    h+='<button class="btn ghost" data-act="logout">登出（清除本機暗號）</button></div>';
+    h+='<button class="btn ghost" data-act="logout">登出</button></div>';
     openSheet(h);
   }
   function saveSettings(){
@@ -2044,7 +2215,7 @@
     else if(act==='asrc'){ document.querySelectorAll('#asrc button').forEach(function(x){x.classList.toggle('on', x===b);}); }
     else if(act==='dmode'){ document.querySelectorAll('#dmode button').forEach(function(x){x.classList.toggle('on', x===b);}); var isB=b.getAttribute('data-m')==='bmr'; $('modeA').hidden=isB; $('modeB').hidden=!isB; }
     else if(act==='savesettings') saveSettings();
-    else if(act==='logout'){ try{ localStorage.removeItem('mealKey'); localStorage.removeItem('mealCache'); }catch(e){} location.reload(); }
+    else if(act==='logout'){ doLogout(); }
   });
   var stepsTimer=null;
   var stepsYTimer=null;
@@ -2105,7 +2276,7 @@
   $('upd').addEventListener('click', function(){ location.replace(location.pathname+'?v='+Date.now()); });
   setTimeout(checkUpdate, 3000); setInterval(checkUpdate, 10*60*1000);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) checkUpdate(); });
-  boot();
+  start();
   setInterval(refreshIfChanged, 5000);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden){ if(curDate!==today() && tab!=='trend'){ /* 保持用戶揀嘅日子 */ } refreshIfChanged(); } });
 })();
