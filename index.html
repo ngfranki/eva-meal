@@ -475,7 +475,7 @@
   var APP = 'meal';
   var SESSION_KEY = 'appSession.'+APP;
   var AUTH = SB+'/functions/v1/app-auth';
-  var APP_VER = '20261027-1521';
+  var APP_VER = '20261029-0022';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -509,7 +509,7 @@
     try{ localStorage.setItem(SESSION_KEY, JSON.stringify({token:token, expiresAt:expiresAt||null})); }catch(e){}
   }
 
-  var state = null, lastUpdated = null, dirty = false, persistTimer = null, retryTimer = null;
+  var state = null, lastUpdated = null, dirty = false, saveGen = 0, syncEpoch = 0, persistBusy = false, conflictHold = false, persistTimer = null, retryTimer = null;
   var tab = 'today', curDate = today(), offline = false;
   var confirmId = null, confirmTimer = null, expandedId = null;
 
@@ -576,23 +576,41 @@
     s.foods = BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }).concat(custom);
     state = s; lastUpdated = row.updated_at || null;
   }
-  function cacheSave(){ try{ localStorage.setItem('mealCache', JSON.stringify({state:state, updated_at:lastUpdated})); }catch(e){} }
+  function cacheSave(){ try{ localStorage.setItem('mealCache', JSON.stringify({state:state, updated_at:lastUpdated, dirty:!!dirty})); }catch(e){} }
   function cacheLoad(){ try{ var s=localStorage.getItem('mealCache'); return s?JSON.parse(s):null; }catch(e){ return null; } }
 
   function setSync(cls, txt){ var el=$('sync'); el.className='sync '+(cls||''); el.textContent=txt; }
-  function setOffline(on){ offline=on; $('offline').className='offline'+(on?' show':''); }
+  function setOffline(on, detail){
+    offline=!!on;
+    var el=$('offline');
+    el.className='offline'+(on?' show':'');
+    el.textContent=on?(detail||'離線，資料未同步'):'離線，資料未同步';
+  }
+  function httpError(status){ var e=new Error('HTTP '+status); e.status=status; return e; }
+  function errText(e){
+    if(e && (e.timeout || e.name==='AbortError')) return '逾時';
+    if(e && typeof e.status==='number' && e.status>0) return 'HTTP '+e.status;
+    return '網絡錯誤';
+  }
+  function showSaveError(why, conflict){
+    setOffline(true, conflict?('本地改動未上傳（'+why+'）'):('離線，資料未同步（'+why+'）'));
+    setSync('err','未同步（'+why+'）');
+  }
+  function tsMs(v){ if(!v) return null; var n=Date.parse(v); return isNaN(n)?null:n; }
+  function isOlderThanLocal(updatedAt){
+    var a=tsMs(updatedAt), b=tsMs(lastUpdated);
+    if(a==null||b==null) return false;
+    return a<b;
+  }
 
   function hdr(){ return {apikey:SBK, 'x-client-info':TOKEN, 'Content-Type':'application/json'}; }
   function isAuth(e){ return !!(e && e.auth); }
   function previouslyWorking(){
     if(hadMain) return true;
     var c=cacheLoad();
-    if(!c || !c.state) return false;
-    if(c.updated_at) return true;
-    var s=c.state;
-    if(Array.isArray(s.meals) && s.meals.length) return true;
-    if(Array.isArray(s.workouts) && s.workouts.length) return true;
-    return false;
+    // 曾經成功寫入／讀到雲端列先算「本來有紀錄」。
+    // 淨係本機未上傳嘅改動唔當登入失敗，否則一開就被趕去入暗號，條記錄好似冇咗。
+    return !!(c && c.updated_at);
   }
   function sessionDead(msg){
     if(sessionDeadLock) return;
@@ -641,96 +659,264 @@
     return '登入失敗，請稍後再試';
   }
   function noRowsExpected(rows){
-    return Array.isArray(rows) && rows.length===0 && previouslyWorking();
+    // 未上傳嘅本機改動唔好當成工作階段失效，否則記錄會被登入畫面蓋住。
+    return Array.isArray(rows) && rows.length===0 && previouslyWorking() && !dirty;
+  }
+  function cacheIsDirty(c){
+    if(!c || !c.state) return false;
+    if(c.dirty===true) return true;
+    if(c.dirty===false) return false;
+    // 舊 cache 冇 dirty 旗：markDirty 會先寫 settings.updatedAt，成功上傳先寫 meta.lastSync。
+    var s=c.state;
+    var edited=s.settings && s.settings.updatedAt;
+    if(!edited) return false;
+    var editedMs=Date.parse(edited);
+    if(isNaN(editedMs)) return false;
+    var synced=s.meta && s.meta.lastSync;
+    if(synced){
+      var syncedMs=Date.parse(synced);
+      return !isNaN(syncedMs) && editedMs>syncedMs;
+    }
+    if(!c.updated_at) return true;
+    var baseMs=Date.parse(c.updated_at);
+    return !isNaN(baseMs) && editedMs>baseMs+2000;
+  }
+  function rowsOf(j){
+    if(Array.isArray(j)) return j;
+    if(j && typeof j==='object' && (j.id!=null || j.updated_at!=null || j.state)) return [j];
+    return [];
+  }
+  function withTimeout(ms, promise, ctrl){
+    return new Promise(function(resolve, reject){
+      var done=false;
+      var t=setTimeout(function(){
+        if(done) return; done=true;
+        try{ ctrl&&ctrl.abort(); }catch(e){}
+        var err=new Error('逾時'); err.timeout=true; reject(err);
+      }, ms);
+      promise.then(function(v){
+        if(done) return; done=true; clearTimeout(t); resolve(v);
+      }, function(e){
+        if(done) return; done=true; clearTimeout(t);
+        if(e && e.name==='AbortError'){ var err=new Error('逾時'); err.timeout=true; reject(err); return; }
+        reject(e);
+      });
+    });
+  }
+  function sbJson(url, opts, ms){
+    var ctrl=null; try{ ctrl=new AbortController(); }catch(e){}
+    var req=Object.assign({}, opts||{});
+    if(ctrl) req.signal=ctrl.signal;
+    return withTimeout(ms||12000, sbFetch(url, req), ctrl).then(function(r){
+      return r.text().then(function(t){
+        var j=null; if(t){ try{ j=JSON.parse(t); }catch(e){} }
+        return {status:r.status, ok:r.ok, rows:rowsOf(j), body:j};
+      });
+    });
   }
 
   function fetchRow(cb){
-    var done=false, ctrl=null; try{ ctrl=new AbortController(); }catch(e){}
-    var t=setTimeout(function(){ if(done) return; done=true; try{ctrl&&ctrl.abort();}catch(e){} cb(null,false); }, 12000);
-    sbFetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=state,updated_at', {signal:ctrl?ctrl.signal:undefined})
-      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-      .then(function(rows){
-        if(done) return; done=true; clearTimeout(t);
-        if(noRowsExpected(rows)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
-        cb(rows&&rows[0]?rows[0]:null, true);
-      })
-      .catch(function(e){
-        if(done) return; done=true; clearTimeout(t);
-        if(isAuth(e)||sessionDeadLock) return;
-        cb(null,false);
-      });
+    var epoch=syncEpoch;
+    sbJson(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=state,updated_at').then(function(res){
+      if(sessionDeadLock) return;
+      if(!res.ok) throw httpError(res.status);
+      if(noRowsExpected(res.rows)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
+      cb(res.rows&&res.rows[0]?res.rows[0]:null, true, null, epoch);
+    }).catch(function(e){
+      if(isAuth(e)||sessionDeadLock) return;
+      cb(null, false, e, epoch);
+    });
   }
 
-  function markDirty(){
-    dirty=true; state.settings.updatedAt=new Date().toISOString(); cacheSave(); render();
-    setSync('', '儲緊…');
+  function schedulePersist(ms){
     if(persistTimer) clearTimeout(persistTimer);
-    persistTimer=setTimeout(persist, 600);
+    persistTimer=setTimeout(function(){ persistTimer=null; persist(); }, ms);
   }
-  function persist(){
-    if(!state || !TOKEN || sessionDeadLock) return;
-    var ts=new Date().toISOString(); state.meta.lastSync=ts;
-    sbFetch(SB+'/rest/v1/'+TABLE+'?on_conflict=id', {method:'POST',
-      headers:{Prefer:'resolution=merge-duplicates,return=representation'},
-      body:JSON.stringify([{id:'main', state:state, updated_at:ts}])})
-    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .then(function(rows){
-      if(sessionDeadLock) return;
-      if(noRowsExpected(rows) || (Array.isArray(rows) && !rows.length && hadMain)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
-      if(!rows || !rows[0]) throw 0;
-      dirty=false; lastUpdated=rows[0].updated_at; hadMain=true; cacheSave(); setOffline(false);
-      setSync('ok','已儲低 '+nowTime());
-    })
-    .catch(function(e){
+  function markDirty(){
+    dirty=true; conflictHold=false; saveGen++;
+    state.settings.updatedAt=new Date().toISOString();
+    cacheSave(); render();
+    setSync('', '儲緊…');
+    schedulePersist(600);
+  }
+  function failSave(e){
+    persistBusy=false;
+    if(state) cacheSave();
+    showSaveError(errText(e), false);
+    if(!conflictHold) schedulePersist(8000);
+  }
+  function conflictSave(){
+    persistBusy=false;
+    conflictHold=true;
+    dirty=true;
+    if(state) cacheSave();
+    showSaveError('版本衝突', true);
+  }
+  function finishOk(row, gen, ts){
+    persistBusy=false;
+    conflictHold=false;
+    syncEpoch++;
+    lastUpdated=(row && row.updated_at) || ts;
+    hadMain=true;
+    if(saveGen!==gen){
+      cacheSave();
+      schedulePersist(400);
+      return;
+    }
+    if(state){
+      if(!state.meta || typeof state.meta!=='object') state.meta={};
+      state.meta.lastSync=ts;
+    }
+    dirty=false;
+    cacheSave();
+    setOffline(false);
+    setSync('ok','已儲低 '+nowTime());
+  }
+  function adoptServer(row, epoch){
+    if(!row || dirty || sessionDeadLock) return false;
+    // 呢次讀取期間如果已經成功寫入，唔好用舊回應蓋過本機。
+    if(epoch!=null && epoch!==syncEpoch) return false;
+    if(isOlderThanLocal(row.updated_at)) return false;
+    hadMain=true;
+    applyState(row);
+    dirty=false;
+    cacheSave();
+    setOffline(false);
+    return true;
+  }
+  // 用 updated_at 做版本條件：舊版本寫入唔可以覆蓋另一部機較新嘅紀錄。
+  // 未上傳嘅本機改動留喺 cache，伺服器載入唔會蓋過佢，失敗就再試直到成功。
+  function persist(opts){
+    opts=opts||{};
+    if(sessionDeadLock || !dirty) return;
+    if(!state || !TOKEN){ if(!sessionDeadLock) schedulePersist(8000); return; }
+    if(persistBusy) return;
+    persistBusy=true;
+    if(persistTimer){ clearTimeout(persistTimer); persistTimer=null; }
+    var gen=saveGen;
+    var base=opts.forceInsert ? null : lastUpdated;
+    var ts=new Date().toISOString();
+    var payload;
+    try{ payload=JSON.parse(JSON.stringify(state)); }
+    catch(e){ failSave(e); return; }
+    if(!payload.meta || typeof payload.meta!=='object') payload.meta={};
+    payload.meta.lastSync=ts;
+    var url, method, body;
+    if(base){
+      method='PATCH';
+      url=SB+'/rest/v1/'+TABLE+'?id=eq.main&updated_at=eq.'+encodeURIComponent(base);
+      body=JSON.stringify({state:payload, updated_at:ts});
+    }else{
+      method='POST';
+      url=SB+'/rest/v1/'+TABLE;
+      body=JSON.stringify({id:'main', state:payload, updated_at:ts});
+    }
+    sbJson(url, {method:method, headers:{Prefer:'return=representation'}, body:body}).then(function(res){
+      if(sessionDeadLock){ persistBusy=false; return; }
+      if(res.status===409 || (res.status===404 && base)) return afterWrite(res, base, ts, gen, opts);
+      if(!res.ok) throw httpError(res.status);
+      if(res.rows && res.rows[0]){ finishOk(res.rows[0], gen, ts); return; }
+      return afterWrite(res, base, ts, gen, opts);
+    }).catch(function(e){
+      persistBusy=false;
       if(isAuth(e)||sessionDeadLock) return;
-      setOffline(true); setSync('err','離線，資料未同步'); setTimeout(persist, 8000);
+      failSave(e);
     });
+    function afterWrite(res, baseVer, stamp, genAt, opt){
+      return sbJson(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=state,updated_at').then(function(got){
+        if(sessionDeadLock){ persistBusy=false; return; }
+        if(!got.ok) throw httpError(got.status);
+        var row=got.rows && got.rows[0];
+        if(row && row.state && row.state.meta && row.state.meta.lastSync===stamp){
+          finishOk(row, genAt, stamp);
+          return;
+        }
+        if(row){ conflictSave(); return; }
+        if(previouslyWorking() && !dirty){
+          persistBusy=false;
+          sessionDead('讀唔到原本嘅紀錄，請再入暗號');
+          return;
+        }
+        if(baseVer && !opt.forceInsert){
+          persistBusy=false;
+          persist({forceInsert:true});
+          return;
+        }
+        persistBusy=false;
+        failSave(httpError(res.status||409));
+      });
+    }
   }
   function refreshIfChanged(){
     if(!state || dirty || !TOKEN || sessionDeadLock) return;
-    sbFetch(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=updated_at')
-      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-      .then(function(rows){
-        if(sessionDeadLock) return;
-        if(noRowsExpected(rows)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
-        setOffline(false);
-        if(rows&&rows[0]&&rows[0].updated_at!==lastUpdated){
-          fetchRow(function(row,reached){ if(row&&!dirty){ hadMain=true; applyState(row); cacheSave(); render(); setSync('ok','已同步 '+nowTime()); } });
-        }
-      }).catch(function(e){
-        if(isAuth(e)||sessionDeadLock) return;
-        setOffline(true); setSync('err','離線，資料未同步');
-      });
+    sbJson(SB+'/rest/v1/'+TABLE+'?id=eq.main&select=updated_at').then(function(res){
+      if(sessionDeadLock) return;
+      if(!res.ok) throw httpError(res.status);
+      if(noRowsExpected(res.rows)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
+      setOffline(false);
+      if(res.rows&&res.rows[0]&&res.rows[0].updated_at!==lastUpdated){
+        fetchRow(function(row, reached, err, epoch){
+          if(sessionDeadLock || dirty) return;
+          if(row && adoptServer(row, epoch)){ render(); setSync('ok','已同步 '+nowTime()); return; }
+          if(!reached && epoch===syncEpoch) showSaveError(errText(err), false);
+        });
+      }
+    }).catch(function(e){
+      if(isAuth(e)||sessionDeadLock) return;
+      showSaveError(errText(e), false);
+    });
   }
 
+  function showCached(){
+    if(state) return false;
+    var c=cacheLoad();
+    if(!(c&&c.state)) return false;
+    applyState(c);
+    dirty=cacheIsDirty(c);
+    if(c.updated_at) hadMain=true;
+    render();
+    setSync(dirty?'err':'', dirty?'未同步·再試緊…':'上次嘅資料·更新緊…');
+    // 舊 cache 冇 dirty 旗時先寫低，等重開都記得未上傳；乾淨 cache 唔好阻住第一次畫面。
+    if(c.dirty!==dirty) cacheSave();
+    return true;
+  }
   function boot(){
     if(sessionDeadLock) return;
     var live=readSession();
     if(!live){ TOKEN=''; showGate(''); return; }
     TOKEN=live.token;
-    if(!state){
-      var c=cacheLoad();
-      if(c&&c.state){ applyState(c); render(); setSync('','上次嘅資料·更新緊…'); }
-      else setSync('','載緊資料…');
+    if(!showCached() && !state) setSync('','載緊資料…');
+    if(dirty){
+      conflictHold=false;
+      setSync('err','未同步·再試緊…');
+      schedulePersist(0);
     }
-    fetchRow(function(row, reached){
+    fetchRow(function(row, reached, err, epoch){
       if(sessionDeadLock) return;
+      if(dirty){
+        // 伺服器載入永遠唔覆蓋未上傳嘅本機改動。
+        if(!reached && !conflictHold) showSaveError(errText(err), false);
+        return;
+      }
       if(!row){
         if(!reached){
-          // 連唔到 Supabase：用 cache／空 state 照開，標離線
+          if(epoch!=null && epoch!==syncEpoch) return;
           if(!state){ applyState({state:defaultState(), updated_at:null}); render(); }
-          setOffline(true); setSync('err','離線，資料未同步');
+          showSaveError(errText(err), false);
           if(retryTimer) clearTimeout(retryTimer); retryTimer=setTimeout(boot, 10000);
           return;
         }
-        // 登入成功但未有 main 列：唔當暗號錯。有過資料先會喺 fetchRow 返登入。
+        // 登入成功但未有 main 列：唔當暗號錯。有過雲端紀錄先會喺 fetchRow 返登入。
         if(!state){ applyState({state:defaultState(), updated_at:null}); render(); }
         setOffline(false); setSync('','未有雲端紀錄');
         return;
       }
-      hadMain=true;
-      applyState(row); cacheSave(); setOffline(false); setSync('ok','已同步'); render();
-      if(!row.state || !Array.isArray(row.state.meals)){ markDirty(); } // 第一次：寫入初始結構
+      if(adoptServer(row, epoch)){
+        if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
+        setSync('ok','已同步');
+        render();
+        if(!row.state || !Array.isArray(row.state.meals)) markDirty();
+      }
     });
   }
   function start(){
@@ -738,9 +924,11 @@
     var live=readSession();
     if(!live){ TOKEN=''; showGate(''); return; }
     TOKEN=live.token;
-    sbFetch(AUTH+'/session', {method:'POST'})
-      .then(function(){ if(!sessionDeadLock) boot(); })
-      .catch(function(e){ if(isAuth(e)||sessionDeadLock) return; boot(); });
+    // 本機資料即刻顯示；工作階段檢查並行，唔好等佢完先載入。
+    boot();
+    sbFetch(AUTH+'/session', {method:'POST'}).catch(function(e){
+      if(isAuth(e)||sessionDeadLock) return;
+    });
   }
   function doLogout(){
     var tok=TOKEN;
@@ -2264,7 +2452,11 @@
     document.addEventListener('touchend', function(){ if(!drag) return; var moved=drag.horiz; drag=null; if(!moved) return; setX(0, true); setTimeout(function(){ render(); }, 190); }, {passive:true});
   })();
   document.addEventListener('change', function(e){ var el=e.target; if(el&&(el.id==='chatCam'||el.id==='chatPickIn')) chatPickFile(el); });
-  $('sync').addEventListener('click', function(){ if(retryTimer) clearTimeout(retryTimer); boot(); });
+  $('sync').addEventListener('click', function(){
+    if(retryTimer) clearTimeout(retryTimer);
+    if(dirty){ conflictHold=false; schedulePersist(0); return; }
+    boot();
+  });
 
   // 版本檢查：手機主畫面 app 會 cache 舊版，發現新版就畀個掣重載
   try{ $('ver').textContent='版本 '+APP_VER; }catch(e){}
@@ -2278,7 +2470,11 @@
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) checkUpdate(); });
   start();
   setInterval(refreshIfChanged, 5000);
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden){ if(curDate!==today() && tab!=='trend'){ /* 保持用戶揀嘅日子 */ } refreshIfChanged(); } });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden) return;
+    if(dirty){ conflictHold=false; schedulePersist(0); return; }
+    refreshIfChanged();
+  });
 })();
 </script>
 </body>
