@@ -254,6 +254,16 @@
   .setrow input{padding:8px 8px; font-size:14px}
   .setrow .x{height:34px; width:34px}
   .hint{font-size:12px; color:var(--muted); margin-top:8px}
+  .hint.warnx{color:var(--warn); font-weight:600}
+  .seit{display:flex; align-items:center; gap:8px; background:var(--card); box-shadow:var(--shadow); border-radius:14px; padding:8px 10px; margin-bottom:6px}
+  .seit .nm{flex:1; min-width:0; font-size:14px}
+  .seit .nm small{display:block; font-size:11px; color:var(--muted)}
+  .seit .nm.miss{color:var(--warn)}
+  .frm .seit input{width:80px; flex:none; padding:8px; font-size:15px; box-shadow:none; background:var(--soft)}
+  .frm .seit input.bad{outline:2px solid var(--warn)}
+  .seit .u{font-size:12px; color:var(--muted)}
+  .setot{background:var(--gold-soft); border-radius:14px; padding:10px 12px; font-size:13px; margin-top:8px}
+  .setot b{font-size:18px}
 
   /* workouts */
   .wk{display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px solid var(--line)}
@@ -475,7 +485,7 @@
   var APP = 'meal';
   var SESSION_KEY = 'appSession.'+APP;
   var AUTH = SB+'/functions/v1/app-auth';
-  var APP_VER = '20261029-0022';
+  var APP_VER = '20261030-0954';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -2142,6 +2152,7 @@
       var from=(showFrom&&st.slot)?((SLOT_EMOJI[st.slot]||'')+st.slot+' · '):'';
       var miss=setMissing(st);
       var warn=miss.length?'<em style="font-style:normal;color:#F0C9A0">　⚠️ 有 '+miss.length+' 項食物已失蹤，未計入</em>':'';
+      var rule=conf?setAutoRule(st):null; if(rule) warn+='<em style="font-style:normal;color:#F0C9A0">　⚠️ 刪咗之後，'+rule.label+'會搵唔到呢個套餐</em>';
       return '<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+'</b><span>'+from+its.length+' 項 · '+r0(tt.kcal)+' kcal · 蛋白 '+r0(tt.protein)+'g'+warn+'</span></button>'+
         '<button class="x'+(conf?' confirm':'')+'" data-act="mealset-del" data-set="'+esc(st.id)+'">'+(conf?'確定刪除':'✕')+'</button></div>';
     }
@@ -2151,6 +2162,7 @@
     if(other.length){
       h+='<div class="sec">其他時段套餐 <span class="ai">一樣加得落'+slot+'餐</span></div><div class="sets">'+other.map(function(st){return setRow(st,true);}).join('')+'</div>';
     }
+    h+='<button class="savebtn" data-act="sets-manage">管理套餐 ›</button>';
     var outs=state.sets.filter(function(x){ return x.out; }).map(function(st){ return {st:st, tt:totals(setItems(st))}; }).sort(function(a,b){ return a.tt.kcal-b.tt.kcal; });
     if(outs.length){ h+='<div class="sec">出街安全菜單 <span class="ai">計好數 · 一撳入</span></div><div class="sets">'+outs.map(function(x){ return '<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(x.st.id)+'"><b>'+esc(x.st.name)+'</b><span>'+r0(x.tt.kcal)+' kcal · 蛋白 '+r0(x.tt.protein)+'g · 脂 '+r1(x.tt.fat)+'g'+(x.tt.fat<=15?' · ✓ 低脂':'')+((x.tt.protein/x.tt.kcal*100)>=10?' · ✓ 高蛋白':'')+'</span></button></div>'; }).join('')+'</div>'; }
     h+='<div class="sec">影相認食物 <span class="ai">AI 估份量 · 數字仍出自食物庫 · 可改</span></div><div class="photo"><button class="dark" data-act="photo"><span>📷</span>影相</button><button data-act="photo-pick"><span>🖼</span>揀相</button></div><input type="file" id="photoIn" accept="image/*" capture="environment" hidden><input type="file" id="photoPick" accept="image/*" hidden><div id="photoRes"></div>';
@@ -2202,6 +2214,88 @@
     if(byServing) src+='（標籤每份 '+sg+'g 換算）';
     state.foods.push({id:'c_'+uid(), name:name, cat:'自訂', per100g:{kcal:vals[0],protein:vals[1],carb:vals[2],fat:vals[3],fiber:vals[4]}, portions:ports, source:src, custom:true});
     markDirty(); openAdd(addSlot);
+  }
+  // ---------- 管理套餐 ----------
+  // 伺服器 job 靠「時段＋名字關鍵字」自動加套餐：改名／改時段／刪除前要提一提
+  var SET_AUTO=[{slot:'早', kw:'早餐', label:'自動加早餐'},{slot:'午', kw:'細杯', label:'自動加午餐蔬菜水細杯'},{slot:'下午', kw:'大杯', label:'自動加下午蔬菜水大杯'}];
+  function setAutoRule(st){ if(!st) return null; for(var i=0;i<SET_AUTO.length;i++){ var r=SET_AUTO[i]; if(st.slot===r.slot && String(st.name||'').indexOf(r.kw)>=0) return r; } return null; }
+  var setMgrFrom='add', setDraft=null, setOrig=null, setIsNew=false;
+  function openSetList(){
+    var h='<div class="hd"><h2>管理套餐</h2><button class="close" data-act="sets-back" style="width:auto;padding:0 14px;border-radius:999px;white-space:nowrap">‹ 返回</button></div><div id="setList">';
+    if(!state.sets.length) h+='<div class="empty">未有套餐。撳下面「＋ 新套餐」開一個，或者喺飲食記錄撳「儲呢餐做套餐」。</div>';
+    h+='<div class="sets">'+state.sets.map(function(st){
+      var tt=totals(setItems(st)), miss=setMissing(st), conf=confirmId==='set:'+st.id, rule=setAutoRule(st);
+      var sub=(st.slot?(SLOT_EMOJI[st.slot]||'')+st.slot:'任何時段')+(st.out?' · 出街':'')+' · '+(st.items||[]).length+' 項<br>'+r0(tt.kcal)+' kcal · 蛋白 '+r1(tt.protein)+'g · 碳 '+r1(tt.carb)+'g · 脂 '+r1(tt.fat)+'g · 纖 '+r1(tt.fiber)+'g';
+      if(miss.length) sub+='<em style="font-style:normal;color:#F0C9A0"><br>⚠️ 有 '+miss.length+' 項食物已失蹤，未計入</em>';
+      if(conf&&rule) sub+='<em style="font-style:normal;color:#F0C9A0"><br>⚠️ 刪咗之後，'+rule.label+'會搵唔到呢個套餐</em>';
+      return '<div class="sb"><button class="t" data-act="set-edit" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+' ✎</b><span>'+sub+'</span></button>'+
+        '<button class="x'+(conf?' confirm':'')+'" data-act="setmgr-del" data-set="'+esc(st.id)+'">'+(conf?'確定刪除':'✕')+'</button></div>';
+    }).join('')+'</div>';
+    h+='<button class="btn" data-act="set-new">＋ 新套餐</button>';
+    h+='<div class="hint">改套餐只影響之後加入嘅餐；以前記低咗嘅餐唔會變。</div></div>';
+    openSheet(h);
+  }
+  function openSetEdit(id){
+    var st=id?state.sets.filter(function(x){ return x.id===id; })[0]:null;
+    if(id&&!st){ openSetList(); return; }
+    setIsNew=!st;
+    setOrig=st?JSON.parse(JSON.stringify(st)):null;
+    setDraft=st?JSON.parse(JSON.stringify(st)):{id:'set_'+uid(), name:'', slot:(setMgrFrom==='add'?addSlot:slotByHour()), items:[]};
+    if(!Array.isArray(setDraft.items)) setDraft.items=[];
+    q='';
+    var h='<div class="hd"><h2>'+(setIsNew?'新套餐':'改套餐')+'</h2><button class="close" data-act="set-cancel" style="width:auto;padding:0 14px;border-radius:999px;white-space:nowrap">‹ 套餐</button></div><div class="frm" id="setEd">';
+    h+='<label>名稱</label><input id="se_name" value="'+esc(setDraft.name||'')+'" placeholder="例：我的早餐 SOP" autocomplete="off">';
+    h+='<label>時段</label><div class="chips" id="se_slot">'+SLOTS.map(function(s){ return '<button data-act="se-slot" data-s="'+s+'" class="'+(setDraft.slot===s?'on':'')+'">'+(SLOT_EMOJI[s]||'')+s+'</button>'; }).join('')+'</div>';
+    h+='<div id="se_warn"></div><label>食物（克數可以改）</label><div id="se_items"></div><div id="se_tot"></div></div>';
+    h+='<div class="sec">加食物入套餐</div><input class="search" id="sq" placeholder="打「雞」即出雞胸／雞髀…" autocomplete="off">';
+    h+='<button class="btn ghost" id="showlist" data-act="showlist" style="margin-top:8px;padding:12px">揀食物（全部 '+state.foods.length+' 樣）›</button><div id="flist" hidden></div>';
+    h+='<button class="btn" data-act="set-save">儲存套餐</button>';
+    openSheet(h);
+    paintSetWarn(); paintSetItems(); paintSetTot();
+    $('se_name').addEventListener('input', function(e){ setDraft.name=e.target.value; paintSetWarn(); });
+    $('sq').addEventListener('input', function(e){ q=e.target.value; var fl=$('flist'); fl.innerHTML=foodRows(); fl.hidden=false; var sb=$('showlist'); if(sb) sb.hidden=true; });
+  }
+  function paintSetWarn(){
+    var el=$('se_warn'); if(!el||!setDraft) return; var h='', was=setAutoRule(setOrig), now=setAutoRule(setDraft);
+    if(was && now!==was) h+='<div class="hint warnx">⚠️ 改咗名／時段後，'+was.label+'會搵唔到呢個套餐（佢靠時段「'+was.slot+'」＋名有「'+was.kw+'」嚟搵）。都可以照儲。</div>';
+    else if(now) h+='<div class="hint">🔁 '+now.label+'會用呢個套餐（時段「'+now.slot+'」＋名有「'+now.kw+'」）。</div>';
+    if(!setDraft.slot) h+='<div class="hint">未揀時段：加食物嗰陣所有時段都會列出。</div>';
+    el.innerHTML=h;
+  }
+  function seItemLine(f, g){ if(!(+g>0)) return '克數要大過 0'; var it=makeItem(f, +g); return it.kcal+' kcal · 蛋白 '+it.protein+'g'; }
+  function paintSetItems(){
+    var el=$('se_items'); if(!el||!setDraft) return;
+    if(!setDraft.items.length){ el.innerHTML='<div class="empty">未有食物：喺下面搵食物加入。</div>'; return; }
+    el.innerHTML=setDraft.items.map(function(x, i){
+      var f=foodById(x.foodId);
+      if(!f) return '<div class="seit"><div class="nm miss">⚠️ 食物庫搵唔到（'+esc(x.foodId)+'）<small>未計入營養，可以剷走</small></div><button class="x" data-act="se-rm" data-i="'+i+'">✕</button></div>';
+      return '<div class="seit"><div class="nm">'+esc(f.name)+'<small data-sek="'+i+'">'+esc(seItemLine(f, x.grams))+'</small></div><input type="number" inputmode="decimal" min="0" step="any" data-seg="'+i+'" value="'+esc(x.grams)+'"'+(+x.grams>0?'':' class="bad"')+'><span class="u">g</span><button class="x" data-act="se-rm" data-i="'+i+'">✕</button></div>';
+    }).join('');
+  }
+  // 合計用 bundleFromSet：即係加入餐時真正會記低嘅數
+  function paintSetTot(){
+    var el=$('se_tot'); if(!el||!setDraft) return;
+    var bd=bundleFromSet({id:setDraft.id, name:setDraft.name, items:setDraft.items.filter(function(x){ return +x.grams>0; })});
+    el.innerHTML='<div class="setot">合共 <b>'+bd.kcal+'</b> kcal · '+bd.grams+'g<br>蛋白 '+bd.protein+'g · 碳水 '+bd.carb+'g · 脂肪 '+bd.fat+'g · 纖維 '+bd.fiber+'g</div>';
+  }
+  function setDraftChanged(){
+    if(!setDraft) return false;
+    if(setIsNew) return !!(String(setDraft.name||'').trim()||setDraft.items.length);
+    return JSON.stringify(setDraft)!==JSON.stringify(setOrig);
+  }
+  function saveSetEdit(){
+    if(!setDraft) return;
+    var name=String(setDraft.name||'').trim();
+    if(!name){ alert('要有套餐名稱'); return; }
+    if(!setDraft.items.length){ alert('套餐至少要有一樣食物'); return; }
+    if(setDraft.items.some(function(x){ return !(+x.grams>0); })){ alert('每樣食物嘅克數都要大過 0'); return; }
+    // 只改名／時段／食物；其他欄位（aliases、out…）原封不動
+    var items=setDraft.items.map(function(x){ return Object.assign({}, x, {grams:+x.grams}); });
+    var idx=-1; state.sets.forEach(function(x, i){ if(x.id===setDraft.id) idx=i; });
+    var base=idx>=0?state.sets[idx]:(setOrig||{id:setDraft.id});
+    var out=Object.assign({}, base, {name:name, slot:setDraft.slot==null?null:setDraft.slot, items:items});
+    if(idx>=0) state.sets[idx]=out; else state.sets.push(out);
+    setDraft=null; setOrig=null; markDirty(); openSetList();
   }
   var wkType='跑步機', wkEx=null, wkEdit=null;
   function openWorkout(editId){
@@ -2324,6 +2418,7 @@
     h+='<label>運動項目（逗號分隔）</label><input id="s_t" value="'+esc(s.workoutTypes.join('，'))+'">';
     h+='<button class="btn" data-act="savesettings">儲存</button>';
     h+='<div class="hint">食物庫：'+BUILTIN.length+' 樣內建（每樣有來源）＋ '+state.foods.filter(function(f){return f.custom;}).length+' 樣自訂。撳食物名可睇來源。</div>';
+    h+='<button class="btn ghost" data-act="sets-manage-s">管理套餐 ›</button>';
     h+='<button class="btn ghost" data-act="logout">登出</button></div>';
     openSheet(h);
   }
@@ -2346,12 +2441,21 @@
     else if(act==='backadd') openAdd(addSlot);
     else if(act==='openfood'){ var li=b.closest('li'); var was=li.classList.contains('open'); document.querySelectorAll('.flist li.open').forEach(function(x){x.classList.remove('open');}); if(!was) li.classList.add('open'); }
     else if(act==='pick'){ var li0=b.closest('li'); var fid0=li0.getAttribute('data-food'); var gi=li0.querySelector('[data-gin]'); gi.value=b.getAttribute('data-grams'); li0.querySelectorAll('.portions button').forEach(function(x){x.classList.toggle('on', x===b);}); gi.setAttribute('data-label', b.getAttribute('data-label')); previewGrams(fid0); }
-    else if(act==='pickg'){ var fid1=b.getAttribute('data-food'); var f1=foodById(fid1); var li1=b.closest('li'); var g1=parseFloat(li1.querySelector('[data-gin]').value); if(f1&&g1>0){ addItem(addSlot, f1, g1, li1.querySelector('[data-gin]').getAttribute('data-label')||g1+'g'); closeSheet(); } }
+    else if(act==='pickg'){ var fid1=b.getAttribute('data-food'); var f1=foodById(fid1); var li1=b.closest('li'); var g1=parseFloat(li1.querySelector('[data-gin]').value); if(f1&&g1>0){ if(setDraft&&$('setEd')){ setDraft.items.push({foodId:f1.id, grams:g1}); paintSetItems(); paintSetTot(); li1.querySelector('[data-gin]').value=''; previewGrams(fid1); li1.querySelector('[data-pk]').textContent='✓ 已加入套餐（'+g1+'g）'; } else { addItem(addSlot, f1, g1, li1.querySelector('[data-gin]').getAttribute('data-label')||g1+'g'); closeSheet(); } } }
     else if(act==='showlist'){ $('flist').innerHTML=foodRows(); $('flist').hidden=false; b.hidden=true; }
     else if(act==='quick'){ var f2=foodById(b.getAttribute('data-food')); if(f2){ var lp=state.settings.lastPortion[f2.id]||{label:f2.portions[1].label, grams:f2.portions[1].grams}; addItem(addSlot, f2, lp.grams, lp.label); closeSheet(); } }
     else if(act==='copy'){ var src=getMeal(b.getAttribute('data-from'), addSlot, false); if(src){ var m=getMeal(curDate, addSlot, true); src.items.forEach(function(it){ m.items.push(JSON.parse(JSON.stringify(it))); }); markDirty(); } closeSheet(); }
     else if(act==='mealset-add'){ var st=state.sets.filter(function(x){return x.id===b.getAttribute('data-set');})[0]; if(st){ var mm2=getMeal(curDate, addSlot, true); mm2.items.push(bundleFromSet(st)); if(!mm2.time) mm2.time=nowTime(); markDirty(); } closeSheet(); }
     else if(act==='mealset-del'){ var sid='set:'+b.getAttribute('data-set'); if(confirmId===sid){ state.sets=state.sets.filter(function(x){return x.id!==b.getAttribute('data-set');}); confirmId=null; markDirty(); openAdd(addSlot); } else { confirmId=sid; openAdd(addSlot); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; },3000); } }
+    else if(act==='sets-manage'||act==='sets-manage-s'){ setMgrFrom=act==='sets-manage'?'add':'settings'; confirmId=null; openSetList(); }
+    else if(act==='sets-back'){ confirmId=null; if(setMgrFrom==='settings') openSettings(); else openAdd(addSlot); }
+    else if(act==='set-edit'){ confirmId=null; openSetEdit(b.getAttribute('data-set')); }
+    else if(act==='set-new'){ confirmId=null; openSetEdit(null); }
+    else if(act==='set-cancel'){ if(setDraftChanged() && !confirm('未儲嘅改動會唔見，確定返回？')) return; setDraft=null; setOrig=null; openSetList(); }
+    else if(act==='set-save') saveSetEdit();
+    else if(act==='se-slot'){ if(setDraft){ setDraft.slot=b.getAttribute('data-s'); document.querySelectorAll('#se_slot button').forEach(function(x){ x.classList.toggle('on', x===b); }); paintSetWarn(); } }
+    else if(act==='se-rm'){ if(setDraft){ setDraft.items.splice(+b.getAttribute('data-i'),1); paintSetItems(); paintSetTot(); } }
+    else if(act==='setmgr-del'){ var dsid=b.getAttribute('data-set'), dcid='set:'+dsid; if(confirmId===dcid){ state.sets=state.sets.filter(function(x){return x.id!==dsid;}); confirmId=null; markDirty(); openSetList(); } else { confirmId=dcid; openSetList(); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; if($('setList')) openSetList(); },3000); } }
     else if(act==='mealset-save'){ var mm3=state.meals.filter(function(x){return x.id===b.getAttribute('data-meal');})[0]; if(mm3&&mm3.items.length){ var nm=prompt('套餐名稱', '我的'+mm3.slot+'餐'); if(nm&&nm.trim()){ state.sets.push({id:'set_'+uid(), name:nm.trim(), slot:mm3.slot, items:[].concat.apply([], mm3.items.map(function(it){ return (it.parts||[it]).map(function(x){ return {foodId:x.foodId, grams:x.grams}; }); }))}); markDirty(); } } }
     else if(act==='photo'){ $('photoIn').value=''; $('photoIn').click(); }
     else if(act==='photo-pick'){ $('photoPick').value=''; $('photoPick').click(); }
@@ -2405,6 +2509,9 @@
     else if(act==='savesettings') saveSettings();
     else if(act==='logout'){ doLogout(); }
   });
+  document.addEventListener('input', function(e){ var el=e.target; if(!el||!el.hasAttribute||!el.hasAttribute('data-seg')||!setDraft) return;
+    var i=+el.getAttribute('data-seg'), x=setDraft.items[i]; if(!x) return; var v=parseFloat(el.value); x.grams=v>0?v:0; el.classList.toggle('bad', !(v>0));
+    var f=foodById(x.foodId), k=document.querySelector('[data-sek="'+i+'"]'); if(f&&k) k.textContent=seItemLine(f, x.grams); paintSetTot(); });
   var stepsTimer=null;
   var stepsYTimer=null;
   document.addEventListener('input', function(e){ if(e.target&&e.target.id==='stepsYIn'){ var d=e.target.getAttribute('data-d'), v2=parseInt(e.target.value,10); if(stepsYTimer) clearTimeout(stepsYTimer); stepsYTimer=setTimeout(function(){ if(!isNaN(v2)&&v2>0){ state.steps[d]=v2; markDirty(); } }, 1200); } });
