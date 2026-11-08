@@ -301,8 +301,31 @@ function pump(session, server){
     ids(server.state,'meals').indexOf('other-device')>=0);
 })();
 
-if(failed){
-  console.error(failed+' check(s) failed');
-  process.exit(1);
+function deadlineChecks(){
+  var html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+  check('full sync budget is 45s and poll stays 12s', Sync.FULL_SYNC_MS===45000 && Sync.POLL_MS===12000);
+  check('full document reads and writes use the long budget',
+    html.split('MealSync.FULL_SYNC_MS').length>=4 && html.indexOf('select=updated_at\').then')>=0);
+  var hung=false;
+  return Sync.withDeadline(60, function(signal){
+    return new Promise(function(resolve){
+      setTimeout(resolve, 5);
+    }).then(function(){
+      return new Promise(function(resolve, reject){
+        if(signal) signal.addEventListener('abort', function(){ var e=new Error('aborted'); e.name='AbortError'; reject(e); });
+      });
+    });
+  }).then(function(){
+    hung=true;
+    check('stalled body does not hang the sync', false);
+  }, function(err){
+    check('stalled body does not hang the sync', !hung && !!(err && err.timeout));
+  }).then(function(){
+    if(failed){
+      console.error(failed+' check(s) failed');
+      process.exit(1);
+    }
+    console.log('all sync checks passed');
+  });
 }
-console.log('all sync checks passed');
+deadlineChecks();

@@ -385,6 +385,29 @@
       ackedSync: session.ackedSync || null
     };
   }
+  var FULL_SYNC_MS = 45000;
+  var POLL_MS = 12000;
+  function withDeadline(ms, start){
+    return new Promise(function(resolve, reject){
+      var ctrl=null; try{ ctrl=new AbortController(); }catch(e){}
+      var done=false;
+      var timer=setTimeout(function(){
+        if(done) return; done=true;
+        try{ ctrl&&ctrl.abort(); }catch(e){}
+        var err=new Error('逾時'); err.timeout=true; reject(err);
+      }, ms);
+      var pending;
+      try{ pending=start(ctrl?ctrl.signal:undefined); }
+      catch(e){ if(done) return; done=true; clearTimeout(timer); reject(e); return; }
+      Promise.resolve(pending).then(function(v){
+        if(done) return; done=true; clearTimeout(timer); resolve(v);
+      }, function(e){
+        if(done) return; done=true; clearTimeout(timer);
+        if(e && (e.name==='AbortError' || e.timeout)){ var err=new Error('逾時'); err.timeout=true; reject(err); return; }
+        reject(e);
+      });
+    });
+  }
   function updatedAtFilter(base){
     return 'updated_at=eq.'+encodeURIComponent(String(base));
   }
@@ -408,6 +431,9 @@
     onWriteMiss: onWriteMiss,
     sessionFromCache: sessionFromCache,
     cacheFromSession: cacheFromSession,
+    FULL_SYNC_MS: FULL_SYNC_MS,
+    POLL_MS: POLL_MS,
+    withDeadline: withDeadline,
     updatedAtFilter: updatedAtFilter,
     staleServerDrop: staleServerDrop,
     entryIds: entryIds,
