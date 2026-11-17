@@ -16,54 +16,37 @@ var LIVE = {
   fatTarget:50, fiberTarget:30, restDays:'3,0'
 };
 
-function approvedSettings(){
-  var s=JSON.parse(JSON.stringify(LIVE));
-  Logic.seedApprovedPlan(s);
-  return s;
+function baseSettings(){
+  return JSON.parse(JSON.stringify(LIVE));
 }
 
 (function boundaries(){
-  var s=approvedSettings();
-  var dates=['2026-11-16','2026-11-17','2026-11-30','2026-12-01','2026-12-15','2026-12-16'];
-  var expect={
-    '2026-11-16':{lower:1800, upper:1800, source:'baseline', kind:'point'},
-    '2026-11-17':{lower:2000, upper:2100, source:'plan', kind:'range'},
-    '2026-11-30':{lower:2000, upper:2100, source:'plan', kind:'range'},
-    '2026-12-01':{lower:2300, upper:2400, source:'plan', kind:'range'},
-    '2026-12-15':{lower:2300, upper:2400, source:'plan', kind:'range'},
-    '2026-12-16':{lower:1800, upper:1800, source:'baseline', kind:'point'}
-  };
-  dates.forEach(function(d){
+  var s=baseSettings();
+  ['2026-11-16','2026-11-17','2026-11-30','2026-12-01','2026-12-15','2026-12-16'].forEach(function(d){
     ['gym','rest'].forEach(function(kind){
       var t=Logic.resolveTarget(s, d, kind==='rest');
-      var e=expect[d];
-      check(d+' '+kind+' target', t.lower===e.lower && t.upper===e.upper && t.source===e.source && t.kind===e.kind && t.label!=='2,050' && t.label!=='2,350');
-      check(d+' '+kind+' not midpoint', t.lower!==2050 && t.upper!==2050 && t.lower!==2350);
+      check(d+' '+kind+' target stays 1800', t.lower===1800 && t.upper===1800 && t.source==='baseline' && t.kind==='point' && t.label==='1,800');
     });
   });
-  var nov17=Logic.resolveTarget(s, '2026-11-17', false);
-  check('range label keeps both ends', nov17.label==='2,000–2,100');
-  var dec16g=Logic.resolveTarget(s, '2026-12-16', false);
-  var dec16r=Logic.resolveTarget(s, '2026-12-16', true);
-  check('Dec 16 gym and rest both previous 1800', dec16g.lower===1800 && dec16g.upper===1800 && dec16r.lower===1800 && dec16r.upper===1800);
+  check('Nov 17 assumption is 2000-2100', (function(){ var a=Logic.assumedIntakeFor(s,'2026-11-17'); return a && a.lower===2000 && a.upper===2100 && a.source==='default'; })());
+  check('Nov 30 still inside first assumption', Logic.assumedIntakeFor(s,'2026-11-30').upper===2100);
+  check('Dec 1 travel assumption is 2300-2400', Logic.assumedIntakeFor(s,'2026-12-01').lower===2300 && Logic.assumedIntakeFor(s,'2026-12-15').upper===2400);
+  check('Nov 16 and Dec 16 have no assumption', Logic.assumedIntakeFor(s,'2026-11-16')===null && Logic.assumedIntakeFor(s,'2026-12-16')===null);
 })();
 
 (function timezone(){
-  var s=approvedSettings();
+  var s=baseSettings();
   check('HK date before Nov 17 midnight', Logic.hkToday(new Date('2026-11-16T15:59:59.000Z'))==='2026-11-16');
   check('HK date at Nov 17 midnight', Logic.hkToday(new Date('2026-11-16T16:00:00.000Z'))==='2026-11-17');
   check('HK date before Dec 1', Logic.hkToday(new Date('2026-11-30T15:59:59.000Z'))==='2026-11-30');
   check('HK date at Dec 1', Logic.hkToday(new Date('2026-11-30T16:00:00.000Z'))==='2026-12-01');
   check('HK date before Dec 16', Logic.hkToday(new Date('2026-12-15T15:59:59.000Z'))==='2026-12-15');
   check('HK date at Dec 16', Logic.hkToday(new Date('2026-12-15T16:00:00.000Z'))==='2026-12-16');
-  var before=Logic.resolveTarget(s, new Date('2026-11-16T15:59:59.000Z'), false);
-  var after=Logic.resolveTarget(s, new Date('2026-11-16T16:00:00.000Z'), false);
-  check('instant before HK midnight stays historical', before.lower===1800 && before.upper===1800 && before.source==='baseline');
-  check('instant at HK midnight switches range', after.lower===2000 && after.upper===2100 && after.kind==='range');
-  var dec15=Logic.resolveTarget(s, new Date('2026-12-15T15:59:59.000Z'), true);
-  var dec16=Logic.resolveTarget(s, new Date('2026-12-15T16:00:00.000Z'), true);
-  check('Dec 15 instant still in second window', dec15.lower===2300 && dec15.upper===2400);
-  check('Dec 16 instant returns to 1800', dec16.lower===1800 && dec16.upper===1800 && dec16.source==='baseline');
+  check('instant before HK midnight has no assumption', Logic.assumedIntakeFor(s, new Date('2026-11-16T15:59:59.000Z'))===null);
+  check('instant at HK midnight starts assumption', Logic.assumedIntakeFor(s, new Date('2026-11-16T16:00:00.000Z')).lower===2000);
+  check('Dec 15 instant still assumed travel intake', Logic.assumedIntakeFor(s, new Date('2026-12-15T15:59:59.000Z')).upper===2400);
+  check('Dec 16 instant returns to actual intake', Logic.assumedIntakeFor(s, new Date('2026-12-15T16:00:00.000Z'))===null);
+  check('targets do not switch at the boundary', Logic.resolveTarget(s, new Date('2026-11-16T16:00:00.000Z'), false).label==='1,800');
   check('clock is Hong Kong', Logic.hkClock(new Date('2026-11-16T16:05:00.000Z'))==='00:05');
 })();
 
@@ -126,11 +109,11 @@ function approvedSettings(){
   var kept=JSON.parse(JSON.stringify(LIVE));
   kept.kcalPlan=[{start:'2026-11-17', end:'2026-11-30', lower:2000, upper:2100}];
   var bad=Logic.applyPlanMutation(kept, {type:'set_kcal_plan', windows:[{start:'2026-11-17', end:'2026-11-10', lower:1, upper:2}]});
-  check('invalid mutation does not replace plan', bad.ok===false && kept.kcalPlan[0].lower===2000);
+  check('retired target command does not replace plan', bad.ok===false && kept.kcalPlan[0].lower===2000);
   var sneaky=Logic.applyPlanMutation(kept, {type:'replace_state', meals:[], windows:[]});
   check('non plan command rejected', sneaky.ok===false && sneaky.settings===kept);
-  var extra=Logic.applyPlanMutation(kept, {type:'set_kcal_plan', windows:[], meals:[{kcal:1}]});
-  check('meal field on plan command rejected', extra.ok===false);
+  var extra=Logic.applyPlanMutation(kept, {type:'set_assumed_day', date:'2026-11-17', lower:2000, upper:2100, meals:[{kcal:1}]});
+  check('meal field on assumption command rejected', extra.ok===false && !kept.assumedDays);
 })();
 
 (function persistence(){
@@ -140,13 +123,19 @@ function approvedSettings(){
   settings.journey={startWeight:80};
   settings.updatedAt='2026-11-01T00:00:00.000Z';
   var seeded=Logic.seedApprovedPlan(settings);
-  check('seed once', seeded.changed===true && settings.kcalPlanSeed==='approved-2026-11');
+  check('fresh settings are not given the old target seed', seeded.changed===false && !settings.kcalPlan);
   check('seed keeps standing 1800', settings.dailyKcal===1800 && settings.restKcal===1800);
   check('seed does not invent meals', eq(originalMeals, before));
-  var again=Logic.seedApprovedPlan(settings);
-  check('seed is idempotent', again.changed===false);
-  var raw=JSON.parse(JSON.stringify(settings));
-  check('round trip keeps both ends', raw.kcalPlan[0].lower===2000 && raw.kcalPlan[0].upper===2100 && raw.kcalPlan[1].lower===2300 && raw.kcalPlan[1].upper===2400);
+  settings.kcalPlan=JSON.parse(JSON.stringify(Logic.APPROVED_WINDOWS));
+  settings.kcalPlanSeed='approved-2026-11';
+  settings.proteinTarget=150;
+  var migrated=Logic.migrateKnownTargetSeed(settings);
+  check('known seed is retired', migrated.changed===true && settings.kcalPlan.length===0 && settings.kcalPlanSeed==='retired-assumed-intake' && settings.proteinTarget===150 && settings.dailyKcal===1800);
+  check('migration is idempotent', Logic.migrateKnownTargetSeed(settings).changed===false);
+  var edited=JSON.parse(JSON.stringify(LIVE));
+  edited.kcalPlanSeed='approved-2026-11';
+  edited.kcalPlan=[{id:'kcal-2026-11-17', start:'2026-11-17', end:'2026-11-30', lower:1900, upper:2100}];
+  check('edited seed is left alone', Logic.migrateKnownTargetSeed(edited).changed===false && edited.kcalPlan[0].lower===1900);
   var legacy=JSON.parse(JSON.stringify(LIVE));
   legacy.workoutTypes=['跑步機'];
   legacy.goalKg=71;
@@ -156,31 +145,51 @@ function approvedSettings(){
   check('single stored number is a point range', point.ok===true && point.windows[0].lower===1800 && point.windows[0].upper===1800);
   var nested=Logic.validatePlan([{start:'2026-11-17', end:'2026-11-30', kcal:{lower:2000, upper:2100}}]);
   check('nested lower upper preserved', nested.ok===true && nested.windows[0].lower===2000 && nested.windows[0].upper===2100);
-  var mutated=Logic.applyPlanMutation(legacy, {type:'set_kcal_plan', windows:Logic.APPROVED_WINDOWS});
-  check('sanctioned mutation writes plan only', mutated.ok===true && mutated.changed===true && mutated.settings.dailyKcal===1800 && !mutated.settings.meals);
-  check('same mutation is not a second change', Logic.applyPlanMutation(mutated.settings, {type:'set_kcal_plan', windows:Logic.APPROVED_WINDOWS}).changed===false);
+  var mutated=Logic.applyPlanMutation(legacy, {type:'set_assumed_day', date:'2026-11-20', lower:1800, upper:1900});
+  check('day override writes only that day', mutated.ok===true && mutated.settings.assumedDays['2026-11-20'].lower===1800 && mutated.settings.dailyKcal===1800 && !mutated.settings.meals);
+  check('retired target command stays rejected', Logic.applyPlanMutation(mutated.settings, {type:'set_kcal_plan', windows:Logic.APPROVED_WINDOWS}).ok===false);
+})();
+
+(function assumedDeficit(){
+  var s=baseSettings();
+  var nov=Logic.dayBalance({date:'2026-11-17', settings:s, actualKcal:641, hasDiary:true, mode:'tdee', tdee:2500, burn:400});
+  check('partial diary is not added to assumption', nov.usesAssumption && nov.actualKcal===641 && nov.assumption.lower===2000 && nov.assumption.upper===2100);
+  check('TDEE 2500 minus 2000-2100 is deficit 400-500', nov.balance.lower===400 && nov.balance.upper===500 && nov.balance.kind==='deficit' && nov.balance.text==='赤字 400–500');
+  check('assumption has no invented macros', nov.assumption.protein==null && nov.assumption.carb==null);
+  check('running burn is not the full-day source', nov.tdee.source==='setting' && nov.tdee.measured===false && nov.tdee.note.indexOf('唔係截至而家')>=0);
+  var travel=Logic.dayBalance({date:'2026-12-08', settings:s, actualKcal:900, hasDiary:true, mode:'tdee', tdee:2200, burn:50});
+  check('travel surplus is 100-200 and not zeroed', travel.balance.kind==='surplus' && travel.balance.lower===-200 && travel.balance.upper===-100 && travel.balance.text==='盈餘 100–200');
+  check('empty travel day still uses assumption', Logic.dayBalance({date:'2026-12-01', settings:s, actualKcal:0, hasDiary:false, mode:'tdee', tdee:2200}).include===true);
+  var prior=Logic.dayBalance({date:'2026-11-16', settings:s, actualKcal:1700, hasDiary:true, mode:'tdee', tdee:1800, burn:0});
+  check('16 Nov uses actual intake deficit', !prior.usesAssumption && prior.point===100 && prior.balance.text==='赤字 100');
+  var after=Logic.dayBalance({date:'2026-12-16', settings:s, actualKcal:1700, hasDiary:true, mode:'tdee', tdee:1800, burn:200});
+  check('16 Dec returns to actual formula', !after.usesAssumption && after.point===300);
+  check('blank prior day is not invented', Logic.dayBalance({date:'2026-11-10', settings:s, actualKcal:0, hasDiary:false, mode:'tdee', tdee:1800}).include===false);
+  var missing=Logic.dayBalance({date:'2026-11-17', settings:s, actualKcal:100, hasDiary:true, mode:'tdee', tdee:0, bmr:0, ouraTotal:0, burn:80});
+  check('absent TDEE does not become zero deficit', missing.include===false && missing.balance===null && missing.tdee.source==='missing');
+  var forecast=Logic.dayBalance({date:'2026-11-18', settings:s, actualKcal:10, hasDiary:true, mode:'bmr', tdee:0, bmr:0, ouraTotal:2500, burn:120});
+  check('Oura total is a labelled forecast', forecast.tdee.source==='oura-forecast' && forecast.tdee.measured===false && forecast.balance.text==='赤字 400–500');
+  var base=Logic.dayBalance({date:'2026-11-19', settings:s, actualKcal:10, hasDiary:false, mode:'bmr', tdee:0, bmr:1600, neatPct:10, ouraTotal:0, burn:300});
+  check('BMR baseline ignores partial burn', base.tdee.kcal===1760 && base.tdee.source==='bmr-baseline' && base.balance.kind==='surplus' && base.balance.text==='盈餘 240–340');
+  var custom=baseSettings();
+  custom.assumedDays={'2026-11-17':{useActual:true}};
+  var used=Logic.dayBalance({date:'2026-11-17', settings:custom, actualKcal:641, hasDiary:true, mode:'tdee', tdee:2500, burn:0});
+  check('explicit actual override does not add assumption', !used.usesAssumption && used.point===1859);
+  custom.assumedDays={'2026-11-20':{lower:1800, upper:1900}};
+  var own=Logic.dayBalance({date:'2026-11-20', settings:custom, actualKcal:50, hasDiary:true, mode:'tdee', tdee:2500, burn:0});
+  check('explicit day range replaces default', own.assumption.source==='day' && own.balance.text==='赤字 600–700');
+  var sumLo=nov.balance.lower+travel.balance.lower, sumHi=nov.balance.upper+travel.balance.upper;
+  check('cumulative keeps both ends', sumLo===200 && sumHi===400);
+  var sched=Logic.assumptionSchedule(s, '2026-11-17');
+  check('schedule names assumption not target', sched.rows.filter(function(r){return r.active;})[0].label.indexOf('預設已攝取 2,000–2,100')===0);
+  check('goal ring against 1800 still sees actual overage', Logic.intakeStanding(1801, Logic.targetFor(s,'2026-11-16',{})).status==='over');
 })();
 
 (function sharedTarget(){
-  var s=approvedSettings();
-  var days=['2026-11-16','2026-11-17','2026-11-30','2026-12-01','2026-12-15','2026-12-16'];
-  var targets=days.map(function(d){ return Logic.targetFor(s, d, {}); });
-  check('series caption shows both eras', Logic.rangeCaption(targets)==='1,800／2,000–2,100／2,300–2,400');
-  var inside=Logic.intakeStanding(2050, targets[1]);
-  check('2050 is inside 2000-2100', inside.status==='in' && inside.roomToUpper===50 && inside.gapToLower===0 && inside.label==='2,000–2,100');
-  check('inside is not treated as the midpoint goal', inside.statusLine.indexOf('2,050')<0 && inside.roomToUpper!==0);
-  var under=Logic.intakeStanding(497, targets[1]);
-  check('under reports gap to floor and room to ceiling', under.status==='under' && under.gapToLower===1503 && under.roomToUpper===1603);
-  var over=Logic.intakeStanding(2200, targets[1]);
-  check('over is past the ceiling', over.status==='over' && over.overBy===100 && Logic.exceedsTarget(2200, targets[1])===true);
-  check('ceiling itself is not over', Logic.exceedsTarget(2100, targets[1])===false && Logic.intakeStanding(2100, targets[1]).status==='in');
-  var old=Logic.intakeStanding(1801, targets[0]);
-  check('old date still uses 1800', targets[0].label==='1,800' && old.status==='over' && old.overBy===1);
-  check('ring uses the ceiling not the midpoint', Math.abs(Logic.ringFraction(2000, targets[1])-(2000/2100))<1e-9);
-  var view=Logic.scheduleView(s, '2026-11-17');
-  check('schedule marks current window', view.ok && view.rows.filter(function(r){return r.active;})[0].id==='kcal-2026-11-17');
-  check('schedule marks historical row on Nov 16', Logic.scheduleView(s, '2026-11-16').rows[0].active===true);
-  check('schedule marks return row on Dec 16', Logic.scheduleView(s, '2026-12-16').rows[Logic.scheduleView(s, '2026-12-16').rows.length-1].active===true);
+  var s=baseSettings();
+  var goal=Logic.targetFor(s, '2026-11-17', {});
+  check('standing target is not the assumption', goal.label==='1,800');
+  check('assumption label keeps both ends', Logic.assumedIntakeFor(s,'2026-11-17').label==='2,000–2,100');
 })();
 
 (function syncCopy(){
