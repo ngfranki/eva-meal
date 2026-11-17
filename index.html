@@ -8,6 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>飲食記錄</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -41,14 +42,22 @@
   .top{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 0 12px}
   .top h1{font-size:22px; margin:0; font-weight:800; letter-spacing:-.01em}
   .top .r{display:flex; align-items:center; gap:8px}
-  .sync{font-size:12px; color:var(--muted); white-space:nowrap}
+  .sync{font-size:12px; color:var(--muted); white-space:nowrap; max-width:46vw; overflow:hidden; text-overflow:ellipsis}
+  .sync.ok{color:#6E7A4F}
+  .sync.pending{color:#8A5A12}
+  .sync.busy{color:var(--muted)}
+  .sync.offline,.sync.error{color:var(--warn)}
   .sync.err{color:var(--warn)}
   .gear{width:36px; height:36px; border-radius:50%; background:var(--card); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; font-size:16px}
   .upd{display:none; background:var(--ink); color:var(--bg); font-size:13px; padding:10px 12px; border-radius:14px; margin-bottom:12px; text-align:center; cursor:pointer}
   .upd.show{display:block}
   .ver{font-size:10px; color:var(--muted); text-align:center; padding:14px 0 0}
-  .offline{display:none; background:var(--warn); color:#fff; font-size:13px; padding:9px 12px; border-radius:14px; margin-bottom:12px; text-align:center}
+  .offline{display:none; background:var(--warn); color:#fff; font-size:13px; padding:9px 12px; border-radius:14px; margin-bottom:12px; text-align:center; line-height:1.45}
   .offline.show{display:block}
+  .offline.pending{background:#F3E6C4; color:var(--ink)}
+  .offline.busy{background:var(--soft); color:var(--ink)}
+  .offline.error{background:var(--warn); color:#fff}
+  .offline.offline{background:#8C4A32; color:#fff}
 
   /* week strip */
   .datenav{margin:0 0 14px}
@@ -79,16 +88,31 @@
   .daytype button{background:var(--soft); color:var(--muted); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700}
   .daytype button.on{background:var(--ink); color:var(--bg)}
   .bh .edit{font-size:12px; color:var(--muted); background:var(--soft); border-radius:999px; padding:5px 10px}
-  .bgrid{display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:center}
+  .bgrid{display:grid; grid-template-columns:112px 1fr; gap:12px; align-items:center}
   .ringbox{display:flex; flex-direction:column; align-items:center}
-  .ring{position:relative; width:150px; height:150px}
-  .ring svg{width:150px; height:150px; transform:rotate(-90deg)}
+  .ring{position:relative; width:112px; height:112px}
+  .ring svg{width:112px; height:112px; transform:rotate(-90deg)}
   .ring .trk{fill:none; stroke:var(--soft); stroke-width:12}
   .ring .val{fill:none; stroke:var(--gold); stroke-width:12; stroke-linecap:round; transition:stroke-dasharray .4s}
   .ring.over .val{stroke:var(--warn)}
   .ring .c{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
   .ring .c small{font-size:12px; color:var(--muted)}
-  .ring .c b{font-size:30px; font-weight:800; line-height:1.05}
+  .ring .c b{font-size:22px; font-weight:800; line-height:1.05}
+  .goaltxt{min-width:0}
+  .goaltxt .gl{display:flex; justify-content:space-between; gap:8px; align-items:baseline; padding:3px 0}
+  .goaltxt .gl span{font-size:12px; color:var(--muted); flex:none}
+  .goaltxt .gl b{font-size:15px; font-weight:800; text-align:right; line-height:1.3}
+  .sched{list-style:none; margin:0; padding:0}
+  .sched li{display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-top:1px solid var(--line); font-size:13px}
+  .sched li:first-child{border-top:0}
+  .sched li b{font-weight:800; flex:none}
+  .sched li span{color:var(--muted); text-align:right}
+  .sched li.on{background:var(--gold-soft); margin:0 -8px; padding:8px; border-radius:12px}
+  .sched li.on span,.sched li.on b{color:var(--ink)}
+  .contextrow{display:block; width:100%; text-align:left; background:var(--soft); border-radius:14px; padding:10px 12px; margin-bottom:8px}
+  .contextrow b{display:block; font-size:15px; font-weight:800}
+  .contextrow span{display:block; font-size:12px; color:var(--muted); margin-top:2px}
+  .planrow{background:var(--soft); border-radius:16px; padding:4px 10px 12px; margin:8px 0}
   .ring .c em{font-style:normal; font-size:12px; color:var(--muted)}
   .ring.over .c b{color:var(--warn)}
   .goal{font-size:12px; color:var(--muted); margin-top:8px}
@@ -151,8 +175,10 @@
   .items .n span{display:block; font-size:12px; color:var(--muted)}
   .items .kc{font-weight:800; font-size:17px; white-space:nowrap}
   .items .kc small{font-size:11px; color:var(--muted); font-weight:500; margin-left:2px}
-  .x{width:30px; height:30px; border-radius:50%; color:var(--muted); font-size:14px; background:var(--soft); flex:none}
+  .x{width:36px; height:36px; border-radius:50%; color:var(--muted); font-size:14px; background:var(--soft); flex:none}
   .x.confirm{background:var(--warn); color:#fff; width:auto; padding:0 10px; font-size:12px; font-weight:700; border-radius:999px}
+  .editbtn{min-width:44px; height:36px; padding:0 10px; border-radius:999px; background:var(--gold-soft); color:var(--ink); font-size:13px; font-weight:800; flex:none}
+  .sets .editbtn{background:rgba(255,255,255,.16); color:var(--bg)}
   .items .sub{margin:4px 0 2px 54px; padding:0; list-style:none; border-left:2px solid var(--line)}
   .items .sub li{display:flex; justify-content:space-between; gap:8px; padding:2px 0 2px 8px; border:0; font-size:12px; color:var(--muted)}
   .items .n.tap{cursor:pointer}
@@ -474,7 +500,8 @@
 <div class="sheet" id="sheet"></div>
 
 <script id="builtinFoods" type="application/json">[{"id":"rice_white","name":"白飯（熟）","cat":"飯麵","per100g":{"kcal":130,"protein":2.69,"carb":28.2,"fat":0.28,"fiber":0.4},"portions":[{"label":"半碗","grams":100},{"label":"一碗","grams":200},{"label":"大碗","grams":300}],"source":"USDA FoodData Central FDC 168878（SR Legacy·NDB 20045）：Rice, white, long-grain, regular, enriched, cooked","custom":false,"aliases":["白飯","飯","米飯"],"unit":{"name":"碗","grams":200,"src":"Franki 規格：一碗 200g"}},{"id":"rice_brown","name":"糙米飯（熟）","cat":"飯麵","per100g":{"kcal":123,"protein":2.74,"carb":25.6,"fat":0.97,"fiber":1.6},"portions":[{"label":"半碗","grams":100},{"label":"一碗","grams":200},{"label":"大碗","grams":300}],"source":"USDA FoodData Central FDC 169704（SR Legacy·NDB 20037）：Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)","custom":false,"aliases":["糙米飯","糙米"],"unit":{"name":"碗","grams":200,"src":"Franki 規格：一碗 200g"}},{"id":"rice_noodle","name":"米粉（熟）","cat":"飯麵","per100g":{"kcal":108,"protein":1.79,"carb":24.0,"fat":0.2,"fiber":1.0},"portions":[{"label":"半碗","grams":100},{"label":"一碗","grams":200},{"label":"大碗","grams":300}],"source":"USDA FoodData Central FDC 168914（SR Legacy·NDB 20134）：Rice noodles, cooked","custom":false,"aliases":["米粉"],"unit":{"name":"碗","grams":200,"src":"同白飯：一碗 200g"}},{"id":"udon","name":"烏冬（熟）","cat":"飯麵","per100g":{"kcal":95,"protein":2.6,"carb":21.6,"fat":0.4,"fiber":1.3},"portions":[{"label":"半份","grams":125},{"label":"一份","grams":250},{"label":"大份","grams":375}],"source":"日本文部科學省 食品成分データベース｜日本食品標準成分表（八訂）増補2023年｜食品番号 01039 うどん／ゆで（每100g：95kcal·蛋白2.6·脂0.4·碳21.6·纖維(1.3)＝成分表推算值）","custom":false,"aliases":["烏冬"],"unit":{"name":"份","grams":250,"src":"一份 250g（自定）"}},{"id":"instant_noodle","name":"即食麵（乾麵餅連湯包）","cat":"飯麵","per100g":{"kcal":440,"protein":10.2,"carb":60.3,"fat":17.6,"fiber":2.9},"portions":[{"label":"半包","grams":50},{"label":"一包","grams":100},{"label":"包半","grams":150}],"source":"USDA FoodData Central FDC 171177（SR Legacy·NDB 6583）：Soup, ramen noodle, any flavor, dry｜以乾重計；煮熟後重量會變，請按乾麵餅克數記","custom":false,"aliases":["即食麵","公仔麵","出前一丁"],"unit":{"name":"包","grams":100,"src":"一包 100g（乾麵餅）"}},{"id":"white_bread","name":"方包（白）","cat":"飯麵","per100g":{"kcal":266,"protein":8.85,"carb":49.4,"fat":3.33,"fiber":2.7},"portions":[{"label":"一片","grams":29},{"label":"兩片","grams":58},{"label":"三片","grams":87}],"source":"USDA FoodData Central FDC 174924（SR Legacy·NDB 18069）：Bread, white, commercially prepared (includes soft bread crumbs)｜USDA FDC foodMeasures：1 slice＝29g","custom":false,"aliases":["方包","麵包","白麵包","多士"],"unit":{"name":"片","grams":29,"src":"USDA FDC foodMeasures：slice 29g"}},{"id":"oats","name":"麥皮（水煮·熟）","cat":"飯麵","per100g":{"kcal":71,"protein":2.54,"carb":12.0,"fat":1.52,"fiber":1.7},"portions":[{"label":"半碗","grams":120},{"label":"一碗","grams":240},{"label":"大碗","grams":360}],"source":"USDA FoodData Central FDC 173905（SR Legacy·NDB 8121）：Cereals, oats, regular and quick, unenriched, cooked with water (includes boiling and microwaving), without salt","custom":false,"aliases":["麥皮","燕麥"],"unit":{"name":"碗","grams":240,"src":"一碗 240g（自定）"}},{"id":"sweet_potato","name":"番薯（焗·肉）","cat":"飯麵","per100g":{"kcal":90,"protein":2.01,"carb":20.7,"fat":0.15,"fiber":3.3},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":220}],"source":"USDA FoodData Central FDC 168483（SR Legacy·NDB 11508）：Sweet potato, cooked, baked in skin, flesh, without salt","custom":false,"aliases":["番薯","地瓜"],"unit":{"name":"個","grams":150,"src":"一個 150g（自定）"}},{"id":"chicken_breast","name":"雞胸（熟·去皮）","cat":"肉類","per100g":{"kcal":165,"protein":31.0,"carb":0.0,"fat":3.57,"fiber":0.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"USDA FoodData Central FDC 171477（SR Legacy·NDB 5064）：Chicken, broilers or fryers, breast, meat only, cooked, roasted｜USDA FDC foodMeasures：1 breast（去骨去皮）＝86g","custom":false,"aliases":["雞胸","雞胸肉"],"unit":{"name":"塊","grams":86,"src":"USDA FDC foodMeasures：breast, bone and skin removed 86g"}},{"id":"chicken_thigh","name":"雞髀（熟·去皮去骨）","cat":"肉類","per100g":{"kcal":179,"protein":24.8,"carb":0.0,"fat":8.15,"fiber":0.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"USDA FoodData Central FDC 172388（SR Legacy·NDB 5098）：Chicken, broilers or fryers, thigh, meat only, cooked, roasted｜USDA FDC foodMeasures：1 thigh（去皮）＝116g","custom":false,"aliases":["雞髀","雞腿"],"unit":{"name":"隻","grams":116,"src":"USDA FDC foodMeasures：thigh without skin 116g"}},{"id":"pork_lean","name":"瘦豬肉（柳梅·熟）","cat":"肉類","per100g":{"kcal":143,"protein":26.2,"carb":0.0,"fat":3.51,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"USDA FoodData Central FDC 168250（SR Legacy·NDB 10061）：Pork, fresh, loin, tenderloin, separable lean only, cooked, roasted","custom":false,"aliases":["瘦豬肉","豬柳","豬肉","柳梅"]},{"id":"beef_tenderloin","name":"牛柳（熟·淨瘦肉）","cat":"肉類","per100g":{"kcal":198,"protein":30.7,"carb":0.0,"fat":8.32,"fiber":0.0},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":220}],"source":"USDA FoodData Central FDC 170641（SR Legacy·NDB 13442）：Beef, loin, tenderloin steak, boneless, separable lean only, trimmed to 0\" fat, all grades, cooked, grilled｜USDA FDC foodMeasures：1 steak＝119g","custom":false,"aliases":["牛柳","牛肉","牛扒"],"unit":{"name":"塊","grams":119,"src":"USDA FDC foodMeasures：steak 119g"}},{"id":"salmon","name":"三文魚（熟）","cat":"肉類","per100g":{"kcal":206,"protein":22.1,"carb":0.0,"fat":12.4,"fiber":0.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"USDA FoodData Central FDC 175168（SR Legacy·NDB 15237）：Fish, salmon, Atlantic, farmed, cooked, dry heat｜USDA FDC foodMeasures：1 fillet＝178g","custom":false,"aliases":["三文魚","鮭魚"],"unit":{"name":"塊","grams":178,"src":"USDA FDC foodMeasures：fillet 178g"}},{"id":"grass_carp","name":"鯇魚（生·可食部）","cat":"肉類","per100g":{"kcal":113,"protein":16.6,"carb":0,"fat":5.2,"fiber":0},"portions":[{"label":"細","grams":80},{"label":"中","grams":120},{"label":"大","grams":180}],"source":"香港食物安全中心 營養資料查詢系統｜草魚[白鯇，草包魚]（Grass carp）｜食物編號 0512001211020｜資料來源：中國疾病預防控制中心營養與食品安全所 CFC2002Ed2｜每100g可食部：113kcal·蛋白16.6·脂5.2·碳0（纖維標 NA，魚類按 0 計）","custom":false,"aliases":["鯇魚","草魚","白鯇"]},{"id":"shrimp","name":"蝦（熟）","cat":"肉類","per100g":{"kcal":119,"protein":22.8,"carb":1.52,"fat":1.7,"fiber":0.0},"portions":[{"label":"3隻","grams":66},{"label":"5隻","grams":110},{"label":"8隻","grams":176}],"source":"USDA FoodData Central FDC 171971（SR Legacy·NDB 15151）：Crustaceans, shrimp, mixed species, cooked, moist heat (may contain additives to retain moisture)｜USDA FDC foodMeasures：1 large（熟）＝22g","custom":false,"aliases":["蝦","蝦仁","海蝦"],"unit":{"name":"隻","grams":22,"src":"USDA FDC foodMeasures：1 large shrimp cooked 22g"}},{"id":"egg","name":"雞蛋（烚·全蛋）","cat":"蛋奶豆","per100g":{"kcal":155,"protein":12.6,"carb":1.12,"fat":10.6,"fiber":0.0},"portions":[{"label":"1隻","grams":50},{"label":"2隻","grams":100},{"label":"3隻","grams":150}],"source":"USDA FoodData Central FDC 173424（SR Legacy·NDB 1129）：Egg, whole, cooked, hard-boiled｜USDA FDC foodMeasures：1 large＝50g","custom":false,"aliases":["蛋","雞蛋","烚蛋","煎蛋"],"unit":{"name":"隻","grams":50,"src":"USDA FDC foodMeasures：1 large egg 50g"}},{"id":"tofu_firm","name":"硬豆腐","cat":"蛋奶豆","per100g":{"kcal":144,"protein":17.3,"carb":2.78,"fat":8.72,"fiber":2.3},"portions":[{"label":"細","grams":100},{"label":"中","grams":200},{"label":"大","grams":300}],"source":"USDA FoodData Central FDC 172475（SR Legacy·NDB 16426）：Tofu, raw, firm, prepared with calcium sulfate","custom":false,"aliases":["豆腐","硬豆腐"],"unit":{"name":"磚","grams":300,"src":"一磚 300g（自定）"}},{"id":"soymilk","name":"無糖豆漿","cat":"蛋奶豆","per100g":{"kcal":33,"protein":2.86,"carb":1.74,"fat":1.61,"fiber":0.5},"portions":[{"label":"細杯","grams":200},{"label":"一盒","grams":250},{"label":"大杯","grams":350}],"source":"USDA FoodData Central FDC 175215（SR Legacy·NDB 16222）：Soymilk (all flavors), unsweetened, with added calcium, vitamins A and D","custom":false,"aliases":["豆漿","豆奶","無糖豆漿"],"unit":{"name":"杯","grams":250,"src":"一杯 250mL"}},{"id":"milk_whole","name":"全脂牛奶","cat":"蛋奶豆","per100g":{"kcal":61,"protein":3.15,"carb":4.8,"fat":3.25,"fiber":0.0},"portions":[{"label":"半杯","grams":125},{"label":"一杯","grams":250},{"label":"大杯","grams":350}],"source":"USDA FoodData Central FDC 171265（SR Legacy·NDB 1077）：Milk, whole, 3.25% milkfat, with added vitamin D","custom":false,"aliases":["全脂牛奶","全脂奶"],"unit":{"name":"杯","grams":250,"src":"一杯 250mL"}},{"id":"milk_lowfat","name":"低脂牛奶（2%）","cat":"蛋奶豆","per100g":{"kcal":50,"protein":3.3,"carb":4.8,"fat":1.98,"fiber":0.0},"portions":[{"label":"半杯","grams":125},{"label":"一杯","grams":250},{"label":"大杯","grams":350}],"source":"USDA FoodData Central FDC 171267（SR Legacy·NDB 1079）：Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D","custom":false,"aliases":["低脂牛奶","低脂奶","牛奶","奶"],"unit":{"name":"杯","grams":250,"src":"一杯 250mL"}},{"id":"greek_yogurt_nonfat","name":"希臘乳酪（脫脂·原味）","cat":"蛋奶豆","per100g":{"kcal":61,"protein":10.3,"carb":3.64,"fat":0.37,"fiber":0},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":200}],"source":"USDA FoodData Central FDC 330137（SR Legacy·NDB 1256）：Yogurt, Greek, plain, nonfat｜Foundation 數據無纖維欄，乳製品按 0 計","custom":false,"aliases":["希臘乳酪","乳酪","脫脂乳酪"],"unit":{"name":"杯","grams":150,"src":"一杯 150g（自定）"}},{"id":"greek_yogurt_whole","name":"希臘乳酪（全脂·原味）","cat":"蛋奶豆","per100g":{"kcal":97,"protein":9.0,"carb":3.98,"fat":5.0,"fiber":0.0},"portions":[{"label":"細","grams":100},{"label":"中","grams":150},{"label":"大","grams":200}],"source":"USDA FoodData Central FDC 171304（SR Legacy·NDB 1293）：Yogurt, Greek, plain, whole milk","custom":false,"aliases":["全脂希臘乳酪","全脂乳酪"],"unit":{"name":"杯","grams":150,"src":"一杯 150g（自定）"}},{"id":"broccoli","name":"西蘭花（灼）","cat":"蔬菜","per100g":{"kcal":35,"protein":2.38,"carb":7.18,"fat":0.41,"fiber":3.3},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"USDA FoodData Central FDC 169967（SR Legacy·NDB 11091）：Broccoli, cooked, boiled, drained, without salt","custom":false,"aliases":["西蘭花","花椰菜"]},{"id":"choy_sum","name":"菜心（灼·不加油）","cat":"蔬菜","per100g":{"kcal":13,"protein":2.1,"carb":0.17,"fat":0.4,"fiber":1.6},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"香港食物安全中心 營養資料查詢系統｜灼菜心(不加油)｜食物編號 10030200305｜資料來源：食物安全中心食物研究化驗所 FRL｜每100g可食部：13kcal·蛋白2.1·碳0.17·脂0.4·纖維1.6","custom":false,"aliases":["菜心"]},{"id":"pak_choi","name":"白菜（灼）","cat":"蔬菜","per100g":{"kcal":12,"protein":1.56,"carb":1.78,"fat":0.16,"fiber":1.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"USDA FoodData Central FDC 170391（SR Legacy·NDB 11117）：Cabbage, chinese (pak-choi), cooked, boiled, drained, without salt","custom":false,"aliases":["白菜","小白菜","上海青"]},{"id":"tomato","name":"番茄（生）","cat":"蔬菜","per100g":{"kcal":18,"protein":0.88,"carb":3.89,"fat":0.2,"fiber":1.2},"portions":[{"label":"半個","grams":62},{"label":"一個","grams":123},{"label":"兩個","grams":246}],"source":"USDA FoodData Central FDC 170457（SR Legacy·NDB 11529）：Tomatoes, red, ripe, raw, year round average｜USDA FDC foodMeasures：1 medium＝123g","custom":false,"aliases":["番茄","西紅柿","蕃茄"],"unit":{"name":"個","grams":123,"src":"USDA FDC foodMeasures：medium whole 123g"}},{"id":"cucumber","name":"青瓜（連皮·生）","cat":"蔬菜","per100g":{"kcal":15,"protein":0.65,"carb":3.63,"fat":0.11,"fiber":0.5},"portions":[{"label":"半條","grams":100},{"label":"一條","grams":200},{"label":"兩條","grams":400}],"source":"USDA FoodData Central FDC 168409（SR Legacy·NDB 11205）：Cucumber, with peel, raw","custom":false,"aliases":["青瓜","黃瓜"],"unit":{"name":"條","grams":200,"src":"一條 200g（自定·USDA 8¼吋長 301g 唔似港式青瓜）"}},{"id":"mushroom","name":"白蘑菇（生）","cat":"蔬菜","per100g":{"kcal":22,"protein":3.09,"carb":3.26,"fat":0.34,"fiber":1.0},"portions":[{"label":"細","grams":50},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"USDA FoodData Central FDC 169251（SR Legacy·NDB 11260）：Mushrooms, white, raw｜USDA FDC foodMeasures：1 medium＝18g","custom":false,"aliases":["蘑菇","菇","白蘑菇","菇類"],"unit":{"name":"粒","grams":18,"src":"USDA FDC foodMeasures：medium 18g"}},{"id":"apple","name":"蘋果（連皮）","cat":"水果","per100g":{"kcal":52,"protein":0.26,"carb":13.8,"fat":0.17,"fiber":2.4},"portions":[{"label":"細","grams":149},{"label":"中","grams":182},{"label":"大","grams":223}],"source":"USDA FoodData Central FDC 171688（SR Legacy·NDB 9003）：Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)｜USDA FDC foodMeasures：small 149／medium 182／large 223g","custom":false,"aliases":["蘋果"],"unit":{"name":"個","grams":182,"src":"USDA FDC foodMeasures：medium 182g"}},{"id":"banana","name":"香蕉","cat":"水果","per100g":{"kcal":89,"protein":1.09,"carb":22.8,"fat":0.33,"fiber":2.6},"portions":[{"label":"細","grams":101},{"label":"中","grams":118},{"label":"大","grams":136}],"source":"USDA FoodData Central FDC 173944（SR Legacy·NDB 9040）：Bananas, raw｜USDA FDC foodMeasures：small 101／medium 118／large 136g","custom":false,"aliases":["香蕉","蕉"],"unit":{"name":"隻","grams":118,"src":"USDA FDC foodMeasures：medium 118g"}},{"id":"orange","name":"橙","cat":"水果","per100g":{"kcal":47,"protein":0.94,"carb":11.8,"fat":0.12,"fiber":2.4},"portions":[{"label":"細","grams":96},{"label":"中","grams":131},{"label":"大","grams":184}],"source":"USDA FoodData Central FDC 169097（SR Legacy·NDB 9200）：Oranges, raw, all commercial varieties｜USDA FDC foodMeasures：small 96／medium 131／large 184g","custom":false,"aliases":["橙","橘子","柳橙"],"unit":{"name":"個","grams":131,"src":"USDA FDC foodMeasures：fruit 2-5/8\" 131g"}},{"id":"blueberry","name":"藍莓","cat":"水果","per100g":{"kcal":57,"protein":0.74,"carb":14.5,"fat":0.33,"fiber":2.4},"portions":[{"label":"少","grams":50},{"label":"一杯","grams":150},{"label":"多","grams":200}],"source":"USDA FoodData Central FDC 171711（SR Legacy·NDB 9050）：Blueberries, raw","custom":false,"aliases":["藍莓"]},{"id":"olive_oil","name":"食油（橄欖油計）","cat":"油脂堅果","per100g":{"kcal":884,"protein":0.0,"carb":0.0,"fat":100,"fiber":0.0},"portions":[{"label":"1茶匙","grams":4.5},{"label":"1湯匙","grams":13.5},{"label":"2湯匙","grams":27}],"source":"USDA FoodData Central FDC 171413（SR Legacy·NDB 4053）：Oil, olive, salad or cooking｜USDA 常見植物油（橄欖／芥花／大豆／花生／粟米）每 100g 皆 884 kcal·脂 100g，所以「油」一律用呢條","custom":false,"aliases":["油","橄欖油","食油","菜油","芥花油"],"unit":{"name":"湯匙","grams":13.5,"src":"USDA FDC foodMeasures：tablespoon 13.5g／tsp 4.5g"}},{"id":"peanut_butter","name":"花生醬（幼滑）","cat":"油脂堅果","per100g":{"kcal":598,"protein":22.2,"carb":22.3,"fat":51.4,"fiber":5.0},"portions":[{"label":"1茶匙","grams":8},{"label":"1湯匙","grams":16},{"label":"2湯匙","grams":32}],"source":"USDA FoodData Central FDC 174266（SR Legacy·NDB 16098）：Peanut butter, smooth style, with salt (Includes foods for USDA's Food Distribution Program)","custom":false,"aliases":["花生醬"],"unit":{"name":"湯匙","grams":16,"src":"1 湯匙 16g"}},{"id":"almond","name":"杏仁","cat":"油脂堅果","per100g":{"kcal":579,"protein":21.2,"carb":21.6,"fat":49.9,"fiber":12.5},"portions":[{"label":"10粒","grams":12},{"label":"一把","grams":28},{"label":"兩把","grams":56}],"source":"USDA FoodData Central FDC 170567（SR Legacy·NDB 12061）：Nuts, almonds｜USDA FDC foodMeasures：1 almond＝1.2g","custom":false,"aliases":["杏仁"],"unit":{"name":"粒","grams":1.2,"src":"USDA FDC foodMeasures：1 almond 1.2g"}},{"id":"coffee_black","name":"黑咖啡","cat":"飲品","per100g":{"kcal":1,"protein":0.12,"carb":0.0,"fat":0.02,"fiber":0.0},"portions":[{"label":"細杯","grams":240},{"label":"中杯","grams":350},{"label":"大杯","grams":470}],"source":"USDA FoodData Central FDC 171890（SR Legacy·NDB 14209）：Beverages, coffee, brewed, prepared with tap water","custom":false,"aliases":["黑咖啡","咖啡"],"unit":{"name":"杯","grams":240,"src":"一杯 240mL"}},{"id":"tea_black","name":"無糖茶（紅茶）","cat":"飲品","per100g":{"kcal":1,"protein":0.0,"carb":0.3,"fat":0.0,"fiber":0.0},"portions":[{"label":"細杯","grams":240},{"label":"中杯","grams":350},{"label":"大杯","grams":470}],"source":"USDA FoodData Central FDC 173227（SR Legacy·NDB 14355）：Beverages, tea, black, brewed, prepared with tap water","custom":false,"aliases":["紅茶","茶","無糖茶"],"unit":{"name":"杯","grams":240,"src":"一杯 240mL"}},{"id":"tea_green","name":"無糖綠茶","cat":"飲品","per100g":{"kcal":1,"protein":0.22,"carb":0.0,"fat":0.0,"fiber":0.0},"portions":[{"label":"細杯","grams":240},{"label":"中杯","grams":350},{"label":"大杯","grams":470}],"source":"USDA FoodData Central FDC 171917（SR Legacy·NDB 14278）：Beverages, tea, green, brewed, regular","custom":false,"aliases":["綠茶"],"unit":{"name":"杯","grams":240,"src":"一杯 240mL"}},{"id":"scallop","name":"帶子（蒸·熟）","cat":"肉類","per100g":{"kcal":111,"protein":20.5,"carb":5.41,"fat":0.84,"fiber":0.0},"portions":[{"label":"20g","grams":20},{"label":"30g","grams":30},{"label":"60g","grams":60}],"source":"USDA FoodData Central FDC 167742（SR Legacy·NDB 90240）：Mollusks, scallop, (bay and sea), cooked, steamed｜USDA 冇每粒重量，打字記錄時要自己揀克數","aliases":["帶子","扇貝","scallop"],"custom":false},{"id":"butter","name":"牛油（有鹽）","cat":"油脂堅果","per100g":{"kcal":717,"protein":0.85,"carb":0.06,"fat":81.1,"fiber":0.0},"portions":[{"label":"1 小塊","grams":5},{"label":"1 湯匙","grams":14.2},{"label":"2 湯匙","grams":28.4}],"source":"USDA FoodData Central FDC 173410（SR Legacy·NDB 1001）：Butter, salted｜USDA FDC foodMeasures：pat 5g／tbsp 14.2g","aliases":["牛油","butter"],"unit":{"name":"湯匙","grams":14.2,"src":"USDA FDC foodMeasures：tbsp 14.2g"},"custom":false},{"id":"hk_charsiu_rice","name":"叉燒飯","cat":"港式外食","per100g":{"kcal":200.0,"protein":7.3,"carb":26.0,"fat":7.1,"fiber":0},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜叉燒飯(Steamed rice with barbecued pork)｜食物編號 10400500245｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：200kcal·蛋白7.3·碳26·脂7.1·纖維Trace｜纖維標 Trace 按 0 計","aliases":["叉燒飯"],"custom":false},{"id":"hk_siuyuk_rice","name":"燒肉飯","cat":"港式外食","per100g":{"kcal":200.0,"protein":7.8,"carb":23.0,"fat":8.6,"fiber":0},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜燒肉飯(Steamed rice with roasted pork)｜食物編號 10400500249｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：200kcal·蛋白7.8·碳23·脂8.6·纖維Trace｜纖維標 Trace 按 0 計","aliases":["燒肉飯"],"custom":false},{"id":"hk_goose_rice","name":"燒鵝飯","cat":"港式外食","per100g":{"kcal":190.0,"protein":6.7,"carb":26.0,"fat":6.8,"fiber":0},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜燒鵝飯(Steamed rice with roasted goose)｜食物編號 10400500251｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：190kcal·蛋白6.7·碳26·脂6.8·纖維Trace｜纖維標 Trace 按 0 計","aliases":["燒鵝飯"],"custom":false},{"id":"hk_chicken_rice","name":"白切雞飯","cat":"港式外食","per100g":{"kcal":170.0,"protein":6.4,"carb":25.0,"fat":5.5,"fiber":0},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜白切雞飯(Steamed rice with steamed plain chicken)｜食物編號 10400500246｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：170kcal·蛋白6.4·碳25·脂5.5·纖維Trace｜纖維標 Trace 按 0 計","aliases":["白切雞飯","切雞飯"],"custom":false},{"id":"hk_hainan_chicken_rice","name":"海南雞飯","cat":"港式外食","per100g":{"kcal":198.0,"protein":6.75,"carb":21.25,"fat":9.25,"fiber":1.5},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜海南雞飯(Khao-mun-kai-tom (rice cooked in chicken broth, topped with boiled chicken))｜食物編號 084005T0059｜資料來源：泰國國立瑪希隆大學營養學學院 (Thai FCD 2025)｜每100g可食部：198kcal·蛋白6.75·碳21.25·脂9.25·纖維1.5","aliases":["海南雞飯"],"custom":false},{"id":"hk_curry_brisket_rice","name":"咖喱牛腩飯","cat":"港式外食","per100g":{"kcal":160.0,"protein":7.7,"carb":18.0,"fat":6.3,"fiber":0},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜咖喱牛腩飯(Steamed rice with curry beef brisket)｜食物編號 10400500254｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：160kcal·蛋白7.7·碳18·脂6.3·纖維Trace｜纖維標 Trace 按 0 計","aliases":["咖喱牛腩飯","咖哩牛腩飯"],"custom":false},{"id":"hk_brisket_radish_rice","name":"燜蘿蔔牛腩飯","cat":"港式外食","per100g":{"kcal":120.0,"protein":7.5,"carb":17.0,"fat":2.7,"fiber":1.5},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜燜蘿蔔牛腩飯(Steamed rice with stewed beef brisket and radish)｜食物編號 10400500240｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：120kcal·蛋白7.5·碳17·脂2.7·纖維1.5","aliases":["蘿蔔牛腩飯","牛腩飯"],"custom":false},{"id":"hk_baked_porkchop_rice","name":"焗豬扒飯","cat":"港式外食","per100g":{"kcal":190.0,"protein":7.4,"carb":20.0,"fat":8.8,"fiber":1.0},"portions":[{"label":"半碟","grams":250},{"label":"一碟","grams":450},{"label":"大碟","grams":550}],"source":"香港食物安全中心 營養資料查詢系統｜焗豬扒飯(Baked pork chop with rice)｜食物編號 10400500238｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：190kcal·蛋白7.4·碳20·脂8.8·纖維1.0","aliases":["焗豬扒飯","豬扒飯"],"custom":false},{"id":"hk_brisket_noodle_soup","name":"牛腩湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":79.0,"protein":7.5,"carb":6.6,"fat":2.5,"fiber":1.3},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜牛腩湯粗麵條(Wheat noodles (thick) in soup with stewed beef brisket)｜食物編號 10400100175｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：79kcal·蛋白7.5·碳6.6·脂2.5·纖維1.3","aliases":["牛腩麵","牛腩湯麵","牛腩粗麵"],"custom":false},{"id":"hk_fishball_noodle_soup","name":"魚蛋湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":55.0,"protein":4.8,"carb":7.3,"fat":0.78,"fiber":0},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜魚蛋湯粗麵條(Wheat noodles (thick) in soup with fish ball)｜食物編號 10400100187｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：55kcal·蛋白4.8·碳7.3·脂0.78·纖維Trace｜纖維標 Trace 按 0 計","aliases":["魚蛋麵","魚蛋粗麵","魚蛋湯麵"],"custom":false},{"id":"hk_wonton_noodle_soup","name":"雲吞麵（幼麵·連湯）","cat":"港式外食","per100g":{"kcal":71.0,"protein":5.2,"carb":7.5,"fat":2.2,"fiber":0},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜雲吞湯幼麵條(Wheat noodles (thin) in soup with wonton)｜食物編號 10400100167｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：71kcal·蛋白5.2·碳7.5·脂2.2·纖維Trace｜纖維標 Trace 按 0 計","aliases":["雲吞麵","雲吞湯麵","雲吞幼麵"],"custom":false},{"id":"hk_curry_fishball","name":"咖喱魚蛋","cat":"港式外食","per100g":{"kcal":130.0,"protein":8.7,"carb":16.0,"fat":2.8,"fiber":1.3},"portions":[{"label":"5粒","grams":100},{"label":"8粒","grams":160},{"label":"10粒","grams":200}],"source":"香港食物安全中心 營養資料查詢系統｜咖喱魚蛋(Curry fish ball)｜食物編號 10400400404｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：130kcal·蛋白8.7·碳16·脂2.8·纖維1.3","aliases":["咖喱魚蛋","咖哩魚蛋"],"custom":false},{"id":"hk_charsiu","name":"叉燒","cat":"港式外食","per100g":{"kcal":300.0,"protein":25.0,"carb":9.4,"fat":17.0,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜叉燒(Barbecued pork)｜食物編號 10060600763｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：300kcal·蛋白25·碳9.4·脂17·纖維0","aliases":["叉燒"],"custom":false},{"id":"hk_siuyuk","name":"燒肉","cat":"港式外食","per100g":{"kcal":310.0,"protein":24.0,"carb":1.1,"fat":23.0,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜燒肉(Roasted pork)｜食物編號 10060600770｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：310kcal·蛋白24·碳1.1·脂23·纖維0","aliases":["燒肉","燒腩"],"custom":false},{"id":"hk_roast_duck","name":"燒鴨","cat":"港式外食","per100g":{"kcal":290.0,"protein":22.0,"carb":1.1,"fat":22.0,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜燒鴨(Roasted duck)｜食物編號 10070600767｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：290kcal·蛋白22·碳1.1·脂22·纖維0","aliases":["燒鴨"],"custom":false},{"id":"hk_roast_goose","name":"燒鵝","cat":"港式外食","per100g":{"kcal":420.0,"protein":20.0,"carb":0.98,"fat":37.0,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜燒鵝 (2019)(Roasted goose (2019))｜食物編號 10070900769｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：420kcal·蛋白20·碳0.98·脂37·纖維0","aliases":["燒鵝"],"custom":false},{"id":"hk_congee","name":"白粥","cat":"港式外食","per100g":{"kcal":32.0,"protein":0.71,"carb":5.8,"fat":0.69,"fiber":0.0},"portions":[{"label":"半碗","grams":150},{"label":"一碗","grams":300},{"label":"大碗","grams":450}],"source":"香港食物安全中心 營養資料查詢系統｜白粥(Plain congee)｜食物編號 10400000019｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：32kcal·蛋白0.71·碳5.8·脂0.69·纖維0","aliases":["白粥","粥"],"custom":false},{"id":"hk_milk_tea","name":"港式奶茶（有糖）","cat":"飲品","per100g":{"kcal":45.0,"protein":2.3,"carb":3.6,"fat":2.4,"fiber":0},"portions":[{"label":"細杯","grams":200},{"label":"一杯","grams":250},{"label":"大杯","grams":350}],"source":"香港食物安全中心 營養資料查詢系統｜港式奶茶(Milk tea (Hong Kong style, sweetened))｜食物編號 10160100028｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：45kcal·蛋白2.3·碳3.6·脂2.4·纖維NA｜纖維標 NA 按 0 計","aliases":["奶茶","港式奶茶","凍奶茶","熱奶茶"],"custom":false},{"id":"hk_milk_tea_nosugar","name":"港式奶茶（走糖）","cat":"飲品","per100g":{"kcal":44.0,"protein":2.2,"carb":3.1,"fat":2.6,"fiber":1.1},"portions":[{"label":"細杯","grams":200},{"label":"一杯","grams":250},{"label":"大杯","grams":350}],"source":"香港食物安全中心 營養資料查詢系統｜港式奶茶(不加糖)(Milk tea (Hong Kong style, no sugar added))｜食物編號 10160100439｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：44kcal·蛋白2.2·碳3.1·脂2.6·纖維1.1","aliases":["走糖奶茶","奶茶走糖","無糖奶茶"],"custom":false},{"id":"hk_siumai","name":"燒賣","cat":"港式外食","per100g":{"kcal":200.0,"protein":11.0,"carb":10.0,"fat":13.0,"fiber":1.2},"portions":[{"label":"3粒","grams":60},{"label":"5粒","grams":100},{"label":"8粒","grams":160}],"source":"香港食物安全中心 營養資料查詢系統｜燒賣(“Siu mai” (Steamed stuffed dumpling with shrimp))｜食物編號 10400200002｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：200kcal·蛋白11·碳10·脂13·纖維1.2","aliases":["燒賣"],"custom":false},{"id":"hk_shrimp_cheungfun","name":"鮮蝦腸粉","cat":"港式外食","per100g":{"kcal":100.0,"protein":3.9,"carb":17.0,"fat":2.2,"fiber":0},"portions":[{"label":"一條","grams":60},{"label":"一籠","grams":180},{"label":"兩籠","grams":360}],"source":"香港食物安全中心 營養資料查詢系統｜鮮蝦腸粉(Steamed rice-flour roll with shrimps)｜食物編號 10400200006｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：100kcal·蛋白3.9·碳17·脂2.2·纖維Trace｜纖維標 Trace 按 0 計","aliases":["蝦腸","鮮蝦腸粉","腸粉"],"custom":false},{"id":"hk_beef_cheungfun","name":"牛肉腸粉","cat":"港式外食","per100g":{"kcal":120.0,"protein":2.6,"carb":18.0,"fat":4.1,"fiber":0},"portions":[{"label":"一條","grams":60},{"label":"一籠","grams":180},{"label":"兩籠","grams":360}],"source":"香港食物安全中心 營養資料查詢系統｜牛肉腸粉 (2021)(Steamed rice-roll with beef (2021))｜食物編號 10400200833｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：120kcal·蛋白2.6·碳18·脂4.1·纖維trace｜纖維標 trace 按 0 計","aliases":["牛腸","牛肉腸粉"],"custom":false},{"id":"hk_white_radish","name":"白蘿蔔（生）","cat":"蔬菜","per100g":{"kcal":23.0,"protein":0.9,"carb":5.0,"fat":0.1,"fiber":1.0},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"香港食物安全中心 營養資料查詢系統｜白蘿蔔[萊菔](White radish)｜食物編號 0503010411010｜資料來源：中國疾病預防控制中心轄下的營養與食品安全所 (CFC2002Ed2)｜每100g可食部：23kcal·蛋白0.9·碳5.0·脂0.1·纖維1.0","aliases":["白蘿蔔","蘿蔔"],"custom":false},{"id":"hk_lettuce","name":"唐生菜（生）","cat":"蔬菜","per100g":{"kcal":10.0,"protein":1.0,"carb":1.1,"fat":0,"fiber":0},"portions":[{"label":"細","grams":50},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜生菜(Chinese lettuce)｜食物編號 10030200316｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：10kcal·蛋白1.0·碳1.1·脂Trace·纖維Trace｜纖維標 Trace 按 0 計","aliases":["唐生菜"],"custom":false},{"id":"hk_shrimp_wonton","name":"鮮蝦雲吞","cat":"港式外食","per100g":{"kcal":110.0,"protein":7.0,"carb":7.8,"fat":5.9,"fiber":0},"portions":[{"label":"4粒","grams":100},{"label":"6粒","grams":150},{"label":"8粒","grams":200}],"source":"香港食物安全中心 營養資料查詢系統｜鮮蝦雲吞(Wonton with shrimp and pork)｜食物編號 10400200624｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g可食部：110kcal·蛋白7·碳7.8·脂5.9·纖維trace｜纖維標 trace 按 0 計","aliases":["雲吞","鮮蝦雲吞"],"custom":false},{"id":"beef_brisket","name":"牛腩（炆·連脂）","cat":"港式外食","per100g":{"kcal":213,"protein":32.9,"carb":0.0,"fat":8.01,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"USDA FoodData Central FDC 170613（SR Legacy·NDB 13369）：Beef, brisket, flat half, separable lean and fat, trimmed to 0\" fat, all grades, cooked, braised｜港式炆牛腩以此為近似","aliases":["牛腩","炆牛腩","牛腩肉"],"custom":false},{"id":"noodle_thick","name":"粗麵／油麵（熟·淨麵）","cat":"飯麵","per100g":{"kcal":138,"protein":4.54,"carb":25.2,"fat":2.07,"fiber":1.2},"portions":[{"label":"半份","grams":90},{"label":"一份","grams":180},{"label":"大份","grams":270}],"source":"USDA FoodData Central FDC 169732（SR Legacy·NDB 20110）：Noodles, egg, enriched, cooked｜港式鹼水粗麵／油麵冇官方條目，以熟蛋麵為近似","aliases":["粗麵","油麵","車仔麵","麵","幼麵","蛋麵"],"unit":{"name":"份","grams":180,"src":"一份 180g（自定）"},"custom":false},{"id":"hk_spring_roll","name":"春卷（炸）","cat":"港式外食","per100g":{"kcal":320.0,"protein":9.1,"carb":25.0,"fat":21.0,"fiber":1.7},"portions":[{"label":"1條","grams":40},{"label":"2條","grams":80},{"label":"3條","grams":120}],"source":"香港食物安全中心 營養資料查詢系統｜春卷(Spring roll)｜食物編號 10400200388｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：320kcal·蛋白9.1·碳25·脂21·纖維1.7","aliases":["春卷","春捲"],"custom":false,"unit":{"name":"條","grams":40,"src":"一條約 40g（自定）"}},{"id":"hk_beef_offal","name":"牛雜","cat":"港式外食","per100g":{"kcal":150.0,"protein":17.0,"carb":1.9,"fat":8.6,"fiber":0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜牛雜(Beef Offal)｜食物編號 10060300789｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：150kcal·蛋白17·碳1.9·脂8.6·纖維trace","aliases":["牛雜"],"custom":false},{"id":"hk_fishslice_noodle_soup","name":"魚片頭湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":55.0,"protein":4.6,"carb":7.2,"fat":0.88,"fiber":0},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜魚片湯粗麵條(Wheat noodles (thick) in soup with sliced “fish cake”)｜食物編號 10400100219｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：55kcal·蛋白4.6·碳7.2·脂0.88·纖維Trace","aliases":["魚片湯麵","魚片頭麵"],"custom":false},{"id":"hk_porkball_noodle_soup","name":"貢丸湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":62.0,"protein":4.6,"carb":6.4,"fat":2.0,"fiber":1.5},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜貢丸湯粗麵條(Wheat noodles (thick) in soup with “pork and Chinese mushroom ball”)｜食物編號 10400100203｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：62kcal·蛋白4.6·碳6.4·脂2.0·纖維1.5","aliases":["貢丸麵","貢丸湯麵"],"custom":false},{"id":"hk_tendon_noodle_soup","name":"牛筋湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":72.0,"protein":8.8,"carb":5.6,"fat":1.6,"fiber":1.2},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜牛筋湯粗麵條(Wheat noodles (thick) in soup with beef tendon)｜食物編號 10400100235｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：72kcal·蛋白8.8·碳5.6·脂1.6·纖維1.2","aliases":["牛筋麵","牛筋湯麵"],"custom":false},{"id":"hk_cuttlefishball_noodle_soup","name":"墨魚丸湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":58.0,"protein":4.5,"carb":7.0,"fat":1.3,"fiber":0},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜墨魚丸湯粗麵條(Wheat noodles (thick) in soup with cuttlefish ball)｜食物編號 10400100195｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：58kcal·蛋白4.5·碳7.0·脂1.3·纖維Trace","aliases":["墨魚丸麵","墨魚丸湯麵"],"custom":false},{"id":"hk_offal_noodle_soup","name":"牛雜湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":73.0,"protein":6.4,"carb":6.8,"fat":2.2,"fiber":0.0},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜牛雜湯粗麵條(Wheat noodles (thick) in soup with cattle offal)｜食物編號 10400100264｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：73kcal·蛋白6.4·碳6.8·脂2.2·纖維0","aliases":["牛雜麵","牛雜湯麵"],"custom":false},{"id":"hk_turnip_cake_steamed","name":"蘿蔔糕（蒸）","cat":"港式外食","per100g":{"kcal":87.0,"protein":2.3,"carb":11.0,"fat":3.6,"fiber":2.1},"portions":[{"label":"1件","grams":60},{"label":"2件","grams":120},{"label":"3件","grams":180}],"source":"香港食物安全中心 營養資料查詢系統｜蒸蘿蔔糕(Steamed turnip cake )｜食物編號 10400200053｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：87kcal·蛋白2.3·碳11·脂3.6·纖維2.1","aliases":["蒸蘿蔔糕"],"custom":false,"unit":{"name":"件","grams":60,"src":"一件約 60g（自定）"}},{"id":"hk_turnip_cake_fried","name":"蘿蔔糕（煎）","cat":"港式外食","per100g":{"kcal":130.0,"protein":3.0,"carb":15.0,"fat":5.8,"fiber":1.2},"portions":[{"label":"1件","grams":60},{"label":"2件","grams":120},{"label":"3件","grams":180}],"source":"香港食物安全中心 營養資料查詢系統｜煎蘿蔔糕 (2021)(Pan-fried turnip cake (2021))｜食物編號 10400200837｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：130kcal·蛋白3.0·碳15·脂5.8·纖維1.2","aliases":["蘿蔔糕","煎蘿蔔糕"],"custom":false,"unit":{"name":"件","grams":60,"src":"一件約 60g（自定）"}},{"id":"hk_beancurd_roll","name":"腐皮卷（煎）","cat":"港式外食","per100g":{"kcal":300.0,"protein":14.0,"carb":4.5,"fat":25.0,"fiber":2.7},"portions":[{"label":"1條","grams":40},{"label":"2條","grams":80},{"label":"3條","grams":120}],"source":"香港食物安全中心 營養資料查詢系統｜煎腐皮卷 (2015)(Pan-fried beancurd sheet roll (2015))｜食物編號 10400200600｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：300kcal·蛋白14·碳4.5·脂25·纖維2.7","aliases":["腐皮卷","腐皮"],"custom":false,"unit":{"name":"條","grams":40,"src":"一條約 40g（自定）"}},{"id":"fish_paste","name":"魚片頭／魚蛋（淨魚漿·近似）","cat":"港式外食","per100g":{"kcal":99,"protein":15.2,"carb":6.85,"fat":0.9,"fiber":0.0},"portions":[{"label":"3粒","grams":45},{"label":"5粒","grams":75},{"label":"8粒","grams":120}],"source":"USDA FoodData Central FDC 173702（SR Legacy·NDB 15109）：Fish, surimi（魚漿）｜港式魚片頭／白魚蛋冇官方條目，以魚漿為近似；炸魚片頭會高過呢個數","aliases":["魚片頭","魚片","白魚蛋","魚蛋"],"unit":{"name":"粒","grams":15,"src":"一粒約 15g（自定）"},"custom":false},{"id":"pork_ball","name":"貢丸（豬肉丸）","cat":"港式外食","per100g":{"kcal":244.0,"protein":16.6,"carb":0.0,"fat":20.3,"fiber":0.0},"portions":[{"label":"3粒","grams":60},{"label":"5粒","grams":100},{"label":"8粒","grams":160}],"source":"台灣衛福部食藥署 食品營養成分資料庫（data.gov.tw 資料集 8543·2026-08 版）｜冷凍貢丸（Meatball）｜整合編號 R5400201｜樣品狀態:冷凍包裝(豬後腿肉等); 前處理描述:混合均勻打碎｜每100g：244.0kcal·蛋白16.6·碳0.0·脂20.3｜膳食纖維無數據按 0","aliases":["貢丸","豬肉丸","肉丸"],"custom":false,"unit":{"name":"粒","grams":20,"src":"一粒約 20g（自定）"}},{"id":"fish_ball_white","name":"白魚蛋（鱈魚丸·近似）","cat":"港式外食","per100g":{"kcal":99.0,"protein":8.5,"carb":10.7,"fat":2.4,"fiber":0.0},"portions":[{"label":"3粒","grams":45},{"label":"5粒","grams":75},{"label":"8粒","grams":120}],"source":"台灣衛福部食藥署 食品營養成分資料庫（data.gov.tw 資料集 8543·2026-08 版）｜冷凍鱈魚丸（Codfish ball）｜整合編號 R6100501｜樣品狀態:冷凍包裝(鱈魚,澱粉等); 前處理描述:混合均勻打碎｜每100g：99.0kcal·蛋白8.5·碳10.7·脂2.4｜港式白魚蛋冇官方條目，以鱈魚丸近似；膳食纖維無數據按 0","aliases":["白魚蛋","魚丸"],"custom":false,"unit":{"name":"粒","grams":15,"src":"一粒約 15g（自定）"}},{"id":"pork_blood","name":"豬紅（豬血）","cat":"港式外食","per100g":{"kcal":29.0,"protein":6.3,"carb":0.5,"fat":0.3,"fiber":0.0},"portions":[{"label":"細","grams":60},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"台灣衛福部食藥署 食品營養成分資料庫（data.gov.tw 資料集 8543·2026-08 版）｜豬血（Pork: blood）｜整合編號 I0320601｜樣品狀態:生; 前處理描述:混合均勻打碎｜每100g：29.0kcal·蛋白6.3·碳0.5·脂0.3｜生豬血數，煮熟豬紅水分相近；膳食纖維按 0","aliases":["豬紅","豬血"],"custom":false},{"id":"beef_tendon","name":"牛筋（熟）","cat":"港式外食","per100g":{"kcal":147.0,"protein":35.2,"carb":0.1,"fat":0.6,"fiber":0},"portions":[{"label":"細","grams":40},{"label":"中","grams":70},{"label":"大","grams":100}],"source":"香港食物安全中心 營養資料查詢系統｜牛蹄筋(熟)(Beef, tendon, cooked)｜食物編號 0506030823060｜資料來源：中國疾病預防控制中心轄下的營養與食品安全所 (CFC2002Ed2)｜每100g：147kcal·蛋白35.2·碳0.1·脂0.6·纖維NA｜纖維標 NA 按 0","aliases":["牛筋","蹄筋","牛蹄筋"],"custom":false},{"id":"beef_tripe","name":"牛肚","cat":"港式外食","per100g":{"kcal":72.0,"protein":14.5,"carb":0.0,"fat":1.6,"fiber":0},"portions":[{"label":"細","grams":50},{"label":"中","grams":80},{"label":"大","grams":120}],"source":"香港食物安全中心 營養資料查詢系統｜牛肚(Beef, tripe)｜食物編號 0506030822030｜資料來源：中國疾病預防控制中心轄下的營養與食品安全所 (CFC2002Ed2)｜每100g：72kcal·蛋白14.5·碳0·脂1.6·纖維NA｜纖維標 NA 按 0","aliases":["牛肚","牛柏葉","牛百葉"],"custom":false},{"id":"fish_skin_dumpling","name":"魚皮餃","cat":"港式外食","per100g":{"kcal":180.0,"protein":11.0,"carb":6.6,"fat":12.0,"fiber":0},"portions":[{"label":"3隻","grams":60},{"label":"5隻","grams":100},{"label":"8隻","grams":160}],"source":"香港食物安全中心 營養資料查詢系統｜魚皮餃(“Yu pei gau” (meat dumpling with fish skin))｜食物編號 10400200620｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：180kcal·蛋白11·碳6.6·脂12·纖維trace","aliases":["魚皮餃"],"custom":false,"unit":{"name":"隻","grams":20,"src":"一隻約 20g（自定）"}},{"id":"tofu_puff","name":"豆卜（油豆腐）","cat":"港式外食","per100g":{"kcal":245.0,"protein":17.0,"carb":4.9,"fat":17.6,"fiber":0.6},"portions":[{"label":"3粒","grams":45},{"label":"5粒","grams":75},{"label":"8粒","grams":120}],"source":"香港食物安全中心 營養資料查詢系統｜油豆腐(Soybean curd, diced, deep fried)｜食物編號 0502000315060｜資料來源：中國疾病預防控制中心轄下的營養與食品安全所 (CFC2002Ed2)｜每100g：245kcal·蛋白17.0·碳4.9·脂17.6·纖維0.6","aliases":["豆卜","油豆腐","豆腐卜"],"custom":false,"unit":{"name":"粒","grams":15,"src":"一粒約 15g（自定）"}},{"id":"pork_intestine","name":"豬大腸","cat":"港式外食","per100g":{"kcal":196.0,"protein":6.9,"carb":0.0,"fat":18.7,"fiber":0},"portions":[{"label":"細","grams":50},{"label":"中","grams":80},{"label":"大","grams":120}],"source":"香港食物安全中心 營養資料查詢系統｜豬大腸(Pork, large intestine)｜食物編號 0506060811130｜資料來源：中國疾病預防控制中心轄下的營養與食品安全所 (CFC2002Ed2)｜每100g：196kcal·蛋白6.9·碳0·脂18.7·纖維NA｜纖維標 NA 按 0","aliases":["豬大腸","豬腸","大腸"],"custom":false},{"id":"chicken_feet","name":"雞腳（雞爪）","cat":"港式外食","per100g":{"kcal":254.0,"protein":23.9,"carb":2.7,"fat":16.4,"fiber":0},"portions":[{"label":"2隻","grams":60},{"label":"3隻","grams":90},{"label":"5隻","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜雞爪(Chicken, claw)｜食物編號 0507030911110｜資料來源：中國疾病預防控制中心轄下的營養與食品安全所 (CFC2002Ed2)｜每100g：254kcal·蛋白23.9·碳2.7·脂16.4·纖維NA｜纖維標 NA 按 0","aliases":["雞腳","雞爪","鳳爪"],"custom":false,"unit":{"name":"隻","grams":30,"src":"一隻約 30g（自定）"}},{"id":"luncheon_meat","name":"午餐肉","cat":"港式外食","per100g":{"kcal":229.0,"protein":9.4,"carb":12.0,"fat":15.9,"fiber":0},"portions":[{"label":"1片","grams":40},{"label":"2片","grams":80},{"label":"3片","grams":120}],"source":"香港食物安全中心 營養資料查詢系統｜午餐肉(Pork, “Luncheon meat”)｜食物編號 0506060813070｜資料來源：中國疾病預防控制中心轄下的營養與食品安全所 (CFC2002Ed2)｜每100g：229kcal·蛋白9.4·碳12.0·脂15.9·纖維NA｜纖維標 NA 按 0","aliases":["午餐肉","餐肉"],"custom":false,"unit":{"name":"片","grams":40,"src":"一片約 40g（自定）"}},{"id":"ham","name":"火腿","cat":"港式外食","per100g":{"kcal":130.0,"protein":13.0,"carb":8.5,"fat":4.8,"fiber":0},"portions":[{"label":"1片","grams":25},{"label":"2片","grams":50},{"label":"3片","grams":75}],"source":"香港食物安全中心 營養資料查詢系統｜火腿(Ham)｜食物編號 10060000023｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：130kcal·蛋白13·碳8.5·脂4.8·纖維NA｜纖維標 NA 按 0","aliases":["火腿"],"custom":false,"unit":{"name":"片","grams":25,"src":"一片約 25g（自定）"}},{"id":"hk_kale","name":"芥蘭（生）","cat":"蔬菜","per100g":{"kcal":24.0,"protein":3.0,"carb":1.8,"fat":0.6,"fiber":2.3},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"香港食物安全中心 營養資料查詢系統｜芥蘭(Chinese kale)｜食物編號 10030200289｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：24kcal·蛋白3.0·碳1.8·脂0.6·纖維2.3","aliases":["芥蘭","芥藍"],"custom":false},{"id":"hk_water_spinach","name":"通菜（生）","cat":"蔬菜","per100g":{"kcal":13.0,"protein":2.0,"carb":0.55,"fat":0.4,"fiber":2.3},"portions":[{"label":"細","grams":80},{"label":"中","grams":150},{"label":"大","grams":250}],"source":"香港食物安全中心 營養資料查詢系統｜青通菜(Water spinach (green))｜食物編號 10030200276｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：13kcal·蛋白2.0·碳0.55·脂0.4·纖維2.3","aliases":["通菜","空心菜"],"custom":false},{"id":"hk_chive","name":"韭菜（生）","cat":"蔬菜","per100g":{"kcal":20.0,"protein":2.2,"carb":1.9,"fat":0.4,"fiber":2.4},"portions":[{"label":"細","grams":50},{"label":"中","grams":100},{"label":"大","grams":150}],"source":"香港食物安全中心 營養資料查詢系統｜韭菜(Chinese chive)｜食物編號 10030200293｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：20kcal·蛋白2.2·碳1.9·脂0.4·纖維2.4","aliases":["韭菜"],"custom":false},{"id":"hk_beefball_noodle_soup","name":"牛丸湯麵（幼麵·連湯）","cat":"港式外食","per100g":{"kcal":63.0,"protein":5.3,"carb":7.4,"fat":1.3,"fiber":0},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜牛丸湯幼麵條(Wheat noodles (thin) in soup with beef ball)｜食物編號 10400100205｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：63kcal·蛋白5.3·碳7.4·脂1.3·纖維Trace","aliases":["牛丸麵","牛丸湯麵"],"custom":false},{"id":"hk_tripe_noodle_soup","name":"牛肚湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":61.0,"protein":6.0,"carb":7.0,"fat":1.0,"fiber":0},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜牛肚湯粗麵條(Wheat noodles (thick) in soup with cattle tripe)｜食物編號 10400100263｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：61kcal·蛋白6.0·碳7.0·脂1.0·纖維Trace","aliases":["牛肚麵","牛肚湯麵"],"custom":false},{"id":"hk_fishskin_noodle_soup","name":"魚皮餃湯麵（粗麵·連湯）","cat":"港式外食","per100g":{"kcal":81.0,"protein":5.0,"carb":7.4,"fat":3.5,"fiber":1.3},"portions":[{"label":"半碗","grams":300},{"label":"一碗","grams":600},{"label":"大碗","grams":750}],"source":"香港食物安全中心 營養資料查詢系統｜魚皮餃湯粗麵條(Wheat noodles (thick) in soup with “Yu pei gau” (meat dumpling with fish skin))｜食物編號 10400100227｜資料來源：食物安全中心轄下的食物研究化驗所 (FRL)｜每100g：81kcal·蛋白5.0·碳7.4·脂3.5·纖維1.3","aliases":["魚皮餃麵","魚皮餃湯麵"],"custom":false}]</script>
-<script src="sync-merge.js?v=20261108-1808"></script>
+<script src="sync-merge.js?v=20261117-0333"></script>
+<script src="meal-logic.js?v=20261117-0333"></script>
 <script>
 (function(){
   'use strict';
@@ -486,7 +513,7 @@
   var APP = 'meal';
   var SESSION_KEY = 'appSession.'+APP;
   var AUTH = SB+'/functions/v1/app-auth';
-  var APP_VER = '20261108-1808';
+  var APP_VER = '20261117-0333';
   var BUILTIN = JSON.parse(document.getElementById('builtinFoods').textContent);
   var SLOTS = ['早','午','下午','晚','宵'];
   var DEFAULT_TYPES = ['跑步機','負重','Sixpad 腹帶','伸展','其他'];
@@ -521,14 +548,16 @@
   }
 
   var state = null, lastUpdated = null, dirty = false, saveGen = 0, syncEpoch = 0, persistBusy = false, conflictHold = false, persistTimer = null, retryTimer = null, syncBase = null, ackedSync = null, filterStreak = 0, rebaseBudget = 0;
+  var fixtureMode = false, pendingPlanSeed = false;
+  var syncModel = {online:true, dirty:false, busy:false, phase:'boot', httpStatus:null, timeout:false, hasState:false, when:''};
   var tab = 'today', curDate = today(), offline = false;
   var confirmId = null, confirmTimer = null, expandedId = null;
 
   // ---------- date helpers ----------
   function pad(n){ return (n<10?'0':'')+n; }
   function fmtDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
-  function today(){ return fmtDate(new Date()); }
-  function nowTime(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function today(){ return MealLogic.hkToday(new Date()); }
+  function nowTime(){ return MealLogic.hkClock(new Date()); }
   function shiftDate(s, n){ var p=s.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]); d.setDate(d.getDate()+n); return fmtDate(d); }
   function dateLabel(s){
     var p=s.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]);
@@ -543,7 +572,7 @@
       h+='<button data-act="goday" data-d="'+ds+'" class="'+(ds===curDate?'on':'')+(ds===t?' today':'')+'"><span>'+names[i]+'</span><b>'+(+ds.slice(8))+'</b>'+(has?'<i></i>':'')+'</button>'; }
     return h;
   }
-  function slotByHour(){ var h=new Date().getHours(); return h<10?'早':h<15?'午':h<20?'晚':'宵'; }
+  function slotByHour(){ var h=+nowTime().slice(0,2); return h<10?'早':h<15?'午':h<20?'晚':'宵'; }
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function r0(x){ return Math.round(x); }
@@ -582,6 +611,8 @@
     if(!Array.isArray(s.settings.exercises)) s.settings.exercises=[];
     if(!s.settings.lastPortion) s.settings.lastPortion={};
     if(!s.meta) s.meta={};
+    var seeded=MealLogic.seedApprovedPlan(s.settings);
+    pendingPlanSeed=!!(seeded && seeded.changed);
     // 內建食物以源碼為準（來源／數字修正會自動推過去），自訂食物保留
     var custom = s.foods.filter(function(f){ return f.custom; });
     s.foods = BUILTIN.map(function(f){ return JSON.parse(JSON.stringify(f)); }).concat(custom);
@@ -597,6 +628,7 @@
     lastUpdated=nextUpdated;
   }
   function cacheSave(){
+    if(fixtureMode) return;
     try{ localStorage.setItem('mealCache', JSON.stringify(MealSync.cacheFromSession(pullSession()))); }
     catch(e){
       try{
@@ -614,13 +646,26 @@
     if(state.meta.tombstones.indexOf(key)<0) state.meta.tombstones.push(key);
   }
 
-  function setSync(cls, txt){ var el=$('sync'); el.className='sync '+(cls||''); el.textContent=txt; }
-  function setOffline(on, detail){
-    offline=!!on;
-    var el=$('offline');
-    el.className='offline'+(on?' show':'');
-    el.textContent=on?(detail||'離線，資料未同步'):'離線，資料未同步';
+  function noteSync(patch){
+    if(patch) Object.keys(patch).forEach(function(k){ syncModel[k]=patch[k]; });
+    syncModel.dirty=!!dirty;
+    syncModel.busy=!!persistBusy;
+    syncModel.hasState=!!state;
+    if(!patch || !Object.prototype.hasOwnProperty.call(patch,'online')){
+      if(typeof navigator!=='undefined' && navigator.onLine===false) syncModel.online=false;
+    }
+    var v=MealLogic.syncStatus(syncModel);
+    var el=$('sync');
+    if(el){ el.className='sync '+v.tone; el.textContent=v.chip; }
+    var banner=$('offline');
+    offline=!!(v.banner && (v.tone==='offline' || v.tone==='error' || v.tone==='pending'));
+    if(banner){
+      if(v.banner){ banner.className='offline show '+v.tone; banner.textContent=v.banner; }
+      else { banner.className='offline'; banner.textContent=''; }
+    }
   }
+  function setSync(){ noteSync(); }
+  function setOffline(on){ if(!on) noteSync({online:true, httpStatus:null, timeout:false}); else noteSync({online:false}); }
   function httpError(status){ var e=new Error('HTTP '+status); e.status=status; return e; }
   function errText(e){
     if(e && (e.timeout || e.name==='AbortError')) return '逾時';
@@ -628,8 +673,14 @@
     return '網絡錯誤';
   }
   function showSaveError(why, conflict){
-    setOffline(true, conflict?('本地改動未上傳（'+why+'）'):('離線，資料未同步（'+why+'）'));
-    setSync('err','未同步（'+why+'）');
+    var http=/^HTTP (\d+)$/.exec(why||'');
+    var timeout=why==='逾時';
+    noteSync({
+      phase: conflict ? 'retry' : 'error',
+      timeout: !!timeout,
+      httpStatus: http ? +http[1] : null,
+      online: (!timeout && !http) ? false : true
+    });
   }
   function tsMs(v){ if(!v) return null; var n=Date.parse(v); return isNaN(n)?null:n; }
   function isOlderThanLocal(updatedAt){
@@ -752,10 +803,11 @@
     persistTimer=setTimeout(function(){ persistTimer=null; persist(); }, ms);
   }
   function markDirty(){
+    if(fixtureMode){ render(); return; }
     dirty=true; conflictHold=false; saveGen++;
     state.settings.updatedAt=new Date().toISOString();
     cacheSave(); render();
-    setSync('', '儲緊…');
+    noteSync({phase:'pending', httpStatus:null, timeout:false});
     schedulePersist(600);
   }
   function failSave(e){
@@ -769,8 +821,7 @@
       persistBusy=false;
       dirty=true;
       if(state) cacheSave();
-      setSync('err','未同步·再試緊…');
-      setOffline(true, '本地改動未上傳（再試緊）');
+      noteSync({phase:'retry', online:true, httpStatus:null, timeout:false});
       schedulePersist(8000);
       return;
     }
@@ -781,14 +832,12 @@
     persistBusy=false;
     rebaseBudget++;
     if(rebaseBudget>8 || (decided.streak||0)>8){
-      setSync('err','未同步·再試緊…');
-      setOffline(true, '本地改動未上傳（再試緊）');
+      noteSync({phase:'retry', online:true, httpStatus:null, timeout:false});
       rebaseBudget=0;
       schedulePersist(8000);
       return;
     }
-    setSync('', '合併緊…');
-    setOffline(false);
+    noteSync({phase:'merging', online:true, httpStatus:null, timeout:false});
     persist(decided.action==='unversioned' ? {skipVersion:true} : null);
   }
   function finishOk(row, gen, ts){
@@ -809,12 +858,12 @@
       syncBase=MealSync.clone(state);
       dirty=false;
       cacheSave();
-      setOffline(false);
-      setSync('ok','已儲低 '+nowTime());
+      noteSync({phase:'ok', when:nowTime(), online:true, httpStatus:null, timeout:false});
       return;
     }
     dirty=true;
     cacheSave();
+    noteSync({phase:'pending', httpStatus:null, timeout:false});
     schedulePersist(400);
   }
   function adoptServer(row, epoch){
@@ -830,7 +879,7 @@
         dirty=true;
         cacheSave();
         render();
-        setSync('', '合併緊…');
+        noteSync({phase:'merging', online:true, httpStatus:null, timeout:false});
         if(!persistBusy) schedulePersist(0);
       }
       return false;
@@ -838,21 +887,25 @@
     hadMain=true;
     syncBase=MealSync.clone(row.state);
     applyState(row);
+    var seededNow=pendingPlanSeed;
+    pendingPlanSeed=false;
     dirty=false;
     ackedSync=(row.state && row.state.meta && row.state.meta.lastSync) || ackedSync;
     cacheSave();
-    setOffline(false);
+    if(seededNow && !fixtureMode){ markDirty(); return true; }
+    noteSync({phase:'ok', online:true, httpStatus:null, timeout:false, when:''});
     return true;
   }
   // 用 updated_at 做版本條件：舊版本寫入唔可以覆蓋另一部機較新嘅紀錄。
   // 未上傳嘅本機改動留喺 cache，伺服器載入唔會蓋過佢，失敗就再試直到成功。
   function persist(opts){
     opts=opts||{};
-    if(sessionDeadLock || !dirty) return;
+    if(fixtureMode || sessionDeadLock || !dirty) return;
     if(!state || !TOKEN){ if(!sessionDeadLock) schedulePersist(8000); return; }
     if(persistBusy) return;
     persistBusy=true;
     if(persistTimer){ clearTimeout(persistTimer); persistTimer=null; }
+    noteSync({phase:'syncing', httpStatus:null, timeout:false});
     var gen=saveGen;
     var base=opts.forceInsert ? null : lastUpdated;
     var ts=new Date().toISOString();
@@ -918,11 +971,15 @@
       if(sessionDeadLock) return;
       if(!res.ok) throw httpError(res.status);
       if(noRowsExpected(res.rows)){ sessionDead('讀唔到原本嘅紀錄，請再入暗號'); return; }
-      setOffline(false);
+      if(!(res.rows&&res.rows[0]&&res.rows[0].updated_at!==lastUpdated)){
+        noteSync({phase:'ok', when:syncModel.when||nowTime(), online:true, httpStatus:null, timeout:false});
+        return;
+      }
+      noteSync({online:true, httpStatus:null, timeout:false});
       if(res.rows&&res.rows[0]&&res.rows[0].updated_at!==lastUpdated){
         fetchRow(function(row, reached, err, epoch){
           if(sessionDeadLock || dirty) return;
-          if(row && adoptServer(row, epoch)){ render(); setSync('ok','已同步 '+nowTime()); return; }
+          if(row && adoptServer(row, epoch)){ render(); if(!dirty) noteSync({phase:'ok', when:nowTime(), online:true, httpStatus:null, timeout:false}); return; }
           if(!reached && epoch===syncEpoch) showSaveError(errText(err), false);
         });
       }
@@ -940,8 +997,13 @@
     pushSession(sess);
     if(!dirty && !syncBase) syncBase=MealSync.clone(state);
     if(c.updated_at) hadMain=true;
-    render();
-    setSync(dirty?'err':'', dirty?'未同步·再試緊…':'上次嘅資料·更新緊…');
+    if(pendingPlanSeed && !fixtureMode){
+      pendingPlanSeed=false;
+      markDirty();
+    } else {
+      render();
+      noteSync(dirty ? {phase:'retry'} : {phase:'cached', online:true, httpStatus:null, timeout:false});
+    }
     // 舊 cache 冇 dirty 旗時先寫低，等重開都記得未上傳；乾淨 cache 唔好阻住第一次畫面。
     if(c.dirty!==dirty) cacheSave();
     return true;
@@ -951,10 +1013,10 @@
     var live=readSession();
     if(!live){ TOKEN=''; showGate(''); return; }
     TOKEN=live.token;
-    if(!showCached() && !state) setSync('','載緊資料…');
+    if(!showCached() && !state) noteSync({phase:'load', hasState:false});
     if(dirty){
       conflictHold=false;
-      setSync('err','未同步·再試緊…');
+      noteSync({phase:'retry'});
       schedulePersist(0);
     }
     fetchRow(function(row, reached, err, epoch){
@@ -965,8 +1027,7 @@
           var decided=MealSync.onWriteMiss(pullSession(), row, filterStreak);
           filterStreak=decided.streak||0;
           if(decided.action==='stop' || decided.action==='keep'){
-            setSync('err','未同步·再試緊…');
-            setOffline(true, '本地改動未上傳（再試緊）');
+            noteSync({phase:'retry', online:true, httpStatus:null, timeout:false});
             schedulePersist(8000);
             return;
           }
@@ -974,8 +1035,7 @@
           dirty=true;
           cacheSave();
           render();
-          setSync('', '合併緊…');
-          setOffline(false);
+          noteSync({phase:'merging', online:true, httpStatus:null, timeout:false});
           schedulePersist(decided.action==='unversioned'?0:200);
           return;
         }
@@ -985,25 +1045,80 @@
       if(!row){
         if(!reached){
           if(epoch!=null && epoch!==syncEpoch) return;
-          if(!state){ applyState({state:defaultState(), updated_at:null}); render(); }
+          if(!state){ applyState({state:defaultState(), updated_at:null}); pendingPlanSeed=false; render(); }
           showSaveError(errText(err), false);
           if(retryTimer) clearTimeout(retryTimer); retryTimer=setTimeout(boot, 10000);
           return;
         }
         // 登入成功但未有 main 列：唔當暗號錯。有過雲端紀錄先會喺 fetchRow 返登入。
-        if(!state){ applyState({state:defaultState(), updated_at:null}); render(); }
-        setOffline(false); setSync('','未有雲端紀錄');
+        if(!state){ applyState({state:defaultState(), updated_at:null}); pendingPlanSeed=false; render(); }
+        noteSync({phase:'empty', online:true, httpStatus:null, timeout:false});
         return;
       }
       if(adoptServer(row, epoch)){
         if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
-        setSync('ok','已同步');
         render();
-        if(!row.state || !Array.isArray(row.state.meals)) markDirty();
+        if(!dirty) noteSync({phase:'ok', when:'', online:true, httpStatus:null, timeout:false});
+        if(!dirty && (!row.state || !Array.isArray(row.state.meals))) markDirty();
       }
     });
   }
+  function ouraDay(date){ return (state.oura && state.oura.days && state.oura.days[date]) || null; }
+  function bootFixture(){
+    fixtureMode=true;
+    $('gate').className='gate';
+    var day=today();
+    var yd=shiftDate(day,-1);
+    function item(id, name, grams){
+      var f=null;
+      for(var i=0;i<BUILTIN.length;i++) if(BUILTIN[i].id===id) f=BUILTIN[i];
+      var k=grams/100, p=f.per100g;
+      return {foodId:id, name:name, grams:grams, kcal:r0(p.kcal*k), protein:r1(p.protein*k), carb:r1(p.carb*k), fat:r1(p.fat*k), fiber:r1(p.fiber*k)};
+    }
+    applyState({state:{
+      meals:[
+        {id:'fx-b', date:day, slot:'早', time:'08:05', items:[item('oats','示範麥皮',240), item('egg','示範烚蛋',50)], note:'示範早餐'},
+        {id:'fx-l', date:day, slot:'午', time:'12:40', items:[item('chicken_breast','示範雞胸',120), item('rice_white','示範白飯',150)]}
+      ],
+      workouts:[{id:'fx-w', date:day, time:'07:30', type:'負重', minutes:35, kcal:160, note:'示範訓練，唔係真實紀錄', sets:[{exercise:'深蹲', exerciseEn:'Squat', weightKg:20, reps:8, sets:3}]}],
+      sets:[{id:'fx-set', name:'示範午餐套餐', slot:'午', items:[{foodId:'chicken_breast', grams:120},{foodId:'rice_white', grams:150}]}],
+      steps:{},
+      oura:{lastSync:day+'T01:00:00.000Z', days:{}},
+      weights:{},
+      settings:{dailyKcal:1800, restKcal:1800, proteinTarget:150, carbTarget:190, fatTarget:50, fiberTarget:30, restDays:'3,0', weightKg:70, tdee:2200, bmr:1600, deficitMode:'bmr', activitySource:'oura', neatPct:10, deficitTargetGym:500, deficitTargetRest:300, monthTarget:12000, goalKg:70, goalDate:'2026-12-20', journey:{startDate:'2026-11-01', startWeight:70, startWaist:80, startVisceral:8, targetWaist:75, visceralTarget:7}}
+    }, updated_at:day+'T01:00:00.000Z'});
+    pendingPlanSeed=false;
+    state.oura.days[day]={readiness:64, sleepScore:77, rhr:61, hrv:33, deepMin:55, remMin:70, totalSleepMin:380, efficiency:88, bedtime:'23:40', wake:'07:00', activeCal:280, totalCal:1900, steps:5400, inactiveMin:360, tempDev:0.1, base:{readiness:70, sleepScore:75, rhr:59, hrv:36, deepMin:60, totalSleepMin:400, activeCal:300, steps:6000, inactiveMin:400}};
+    state.oura.days[yd]={readiness:70, steps:5000, activeCal:240, totalSleepMin:400, deepMin:60, rhr:59, hrv:36};
+    state.steps[day]=5400;
+    curDate=day;
+    var params=new URLSearchParams(location.search);
+    var status=params.get('status')||'ok';
+    dirty=false; persistBusy=false;
+    if(status==='offline'){ dirty=true; syncModel.online=false; syncModel.phase='pending'; syncModel.httpStatus=null; syncModel.timeout=false; }
+    else if(status==='error'){ dirty=true; syncModel.online=true; syncModel.phase='error'; syncModel.httpStatus=503; syncModel.timeout=false; }
+    else if(status==='pending'){ dirty=true; syncModel.online=true; syncModel.phase='pending'; syncModel.httpStatus=null; syncModel.timeout=false; }
+    else if(status==='timeout'){ dirty=true; syncModel.online=true; syncModel.phase='error'; syncModel.timeout=true; syncModel.httpStatus=null; }
+    else { syncModel.online=true; syncModel.phase='ok'; syncModel.when='09:30'; syncModel.httpStatus=null; syncModel.timeout=false; }
+    render();
+    noteSync();
+    if(!$('fixtureBanner')){
+      var banner=document.createElement('div');
+      banner.className='demo';
+      banner.id='fixtureBanner';
+      banner.textContent='示範畫面 · 假數據 · 唔會上傳，亦唔係任何人嘅真實健康紀錄';
+      $('view').parentNode.insertBefore(banner, $('datenav'));
+    }
+    var sheet=params.get('sheet');
+    var want=params.get('tab');
+    if(want){ tab=want; render(); }
+    if(sheet==='settings') openSettings();
+    else if(sheet==='edit') openEditItem('fx-b', 0, null);
+    else if(sheet==='add') openAdd('午');
+    else if(sheet==='sets'){ setMgrFrom='add'; openSetList(); }
+  }
   function start(){
+    if(/[?&]fixture=1(?:&|$)/.test(location.search)){ bootFixture(); return; }
     dropOldKey();
     var live=readSession();
     if(!live){ TOKEN=''; showGate(''); return; }
@@ -1094,8 +1209,8 @@
   function useOura(date){ return state.settings.activitySource!=='estimate' && ouraActive(date)!=null; }
   function dayBurn(date){ if(useOura(date)) return ouraActive(date); return dayWorkoutBurn(date)+stepsKcal(walkSteps(date)); }
   // 赤字兩種計法：tdee＝TDEE＋運動＋步行−攝取；bmr＝BMR＋消化熱(攝取×10%)＋運動＋步行−攝取
-  function isRestDay(date){ var ov=(state.dayType||{})[date]; if(ov) return ov==='rest';
-    var p=date.split('-'); var dow=new Date(+p[0],+p[1]-1,+p[2]).getDay(); var rd=String(state.settings.restDays||'').split(',').map(function(x){return parseInt(x,10);}); return rd.indexOf(dow)>=0; }
+  function isRestDay(date){ return MealLogic.isRestDay(date, state.settings, state.dayType); }
+  function goalFor(date){ return MealLogic.targetFor(state.settings, date, state.dayType); }
   function dayDeficitTarget(date){ var st=state.settings; return isRestDay(date)?(+st.deficitTargetRest||300):(+st.deficitTargetGym||+st.deficitTarget||600); }
   function weekDeficit(date){ // 本週（一至日）到 date 為止有記錄日嘅平均
     var p=date.split('-'); var d0=new Date(+p[0],+p[1]-1,+p[2]); var dow=(d0.getDay()+6)%7; var mon=shiftDate(date,-dow);
@@ -1339,26 +1454,97 @@
     var sub = !target ? label : (floor ? (done ? label+' ✓ 達標' : label+' · 差 '+r0(target-val)+'g') : (over ? label+' · 超 '+r0(val-target)+'g' : label+' · 剩 '+r0(target-val)+'g'));
     return '<div class="mrow '+cls+(over&&!floor?' over':'')+(done?' done':'')+'"><div class="mring">'+(target?miniRing(val/target):'')+'<span>'+(done?'✓':emoji)+'</span></div><div class="t"><b class="num">'+r0(val)+(target?' <small>/ '+target+'g</small>':'<small>g</small>')+'</b><span>'+sub+'</span></div></div>';
   }
+  function activityCard(){
+    var o=ouraDay(curDate);
+    var ws=state.workouts.filter(function(w){ return w.date===curDate; });
+    var mins=ws.reduce(function(a,w){ return a+(+w.minutes||0); },0);
+    var h='<div class="card context"><div class="sech"><h2>活動同恢復</h2><button class="edit" data-act="gotab" data-tab="workout">運動</button></div>';
+    if(ws.length) h+='<button class="contextrow" data-act="gotab" data-tab="workout"><b>'+ws.length+' 項運動 · '+mins+' 分鐘</b><span>撳入去改紀錄</span></button>';
+    else h+='<button class="contextrow" data-act="addwk"><b>未記運動</b><span>撳呢度加</span></button>';
+    if(o && (o.readiness!=null || o.steps!=null || o.activeCal!=null || o.totalSleepMin!=null)){
+      var sleep=o.totalSleepMin!=null ? (Math.floor(o.totalSleepMin/60)+' 小時 '+(o.totalSleepMin%60)+' 分') : '未有';
+      var bits=[];
+      if(o.steps!=null) bits.push(Number(o.steps).toLocaleString('en-US')+' 步');
+      if(o.activeCal!=null) bits.push('活動 '+r0(o.activeCal).toLocaleString()+' kcal');
+      bits.push('睡眠 '+sleep);
+      h+='<button class="contextrow" data-act="gotab" data-tab="oura"><b>Oura'+(o.readiness!=null?(' 準備度 '+o.readiness):'')+'</b><span>'+esc(bits.join(' · '))+'</span></button>';
+      h+='<div class="hint">戒指讀數只供參考，唔係診斷，亦唔等於今日熱量目標。</div>';
+    } else if(state.oura && state.oura.days && Object.keys(state.oura.days).length){
+      h+='<div class="hint">呢日未有 Oura 讀數。未同步唔等於零。</div>';
+    } else h+='<div class="hint">未有 Oura 讀數。未同步唔等於零。</div>';
+    return h+'</div>';
+  }
+  function scheduleCard(){
+    var view=MealLogic.scheduleView(state.settings, curDate);
+    var h='<div class="card schedule"><div class="sech"><h2>目標日程</h2><button class="edit" data-act="settings">改</button></div>';
+    if(!view.ok) return h+'<div class="hint warnx">'+esc(view.summary)+'</div></div>';
+    h+='<ul class="sched">';
+    view.rows.forEach(function(r){
+      h+='<li class="'+(r.active?'on':'')+'"><b>'+esc(r.when)+'</b><span>'+esc(r.label)+(r.active?' · 睇緊呢日':'')+'</span></li>';
+    });
+    h+='</ul><div class="hint">香港時間午夜自動轉。已經記低嘅餐唔會因為改目標而重計。</div></div>';
+    return h;
+  }
   function renderToday(){
     var t=totals(dayItems(curDate)), s=state.settings, h='';
-    var oU=useOura(curDate);
-    var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), tmSteps=treadmillSteps(curDate), wSteps=walkSteps(curDate), stepK=stepsKcal(wSteps), tdee=+s.tdee||2300, deficit=dayDeficit(curDate, t.kcal), modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
-    var rest=isRestDay(curDate); var target=(rest&&+s.restKcal>0)?+s.restKcal:(+s.dailyKcal||0), over=target&&t.kcal>target, pct=target?t.kcal/target:0;
+    var oU=useOura(curDate), oDay=ouraDay(curDate);
+    var burn=dayBurn(curDate), net=t.kcal-burn, steps=daySteps(curDate), showSteps=steps||(oDay&&oDay.steps>0?+oDay.steps:0), tmSteps=treadmillSteps(curDate), wSteps=walkSteps(curDate), stepK=stepsKcal(wSteps), tdee=+s.tdee||2300, deficit=dayDeficit(curDate, t.kcal), modeB=(s.deficitMode==='bmr'&&+s.bmr>0);
+    var rest=isRestDay(curDate);
+    var goal=goalFor(curDate);
+    var stand=MealLogic.intakeStanding(t.kcal, goal);
+    var over=stand.status==='over';
+    var pct=MealLogic.ringFraction(t.kcal, goal);
     h+='<div class="card budget"><div class="bh"><div class="daytype"><button data-act="daytype" data-v="gym" class="'+(rest?'':'on')+'">🏋️ 運動日</button><button data-act="daytype" data-v="rest" class="'+(rest?'on':'')+'">😴 休息日</button></div><button class="edit" data-act="settings">✎ 目標</button></div><div class="bgrid">';
-    h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'" data-act="settings">'+ringSvg(target?pct:0)+'<div class="c">';
-    if(target){ h+='<small>'+(over?'超出':'剩餘')+'</small><b class="num">'+r0(Math.abs(target-t.kcal)).toLocaleString()+'</b><em>kcal</em>'; }
-    else { h+='<small>已食</small><b class="num">'+r0(t.kcal).toLocaleString()+'</b><em>kcal</em>'; }
-    h+='</div></div>'+(target?'<div class="goal">'+(rest?'休息日目標 ':'目標 ')+target.toLocaleString()+' − 攝取 '+r0(t.kcal).toLocaleString()+'</div>':'<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>')+'</div>';
+    h+='<div class="ringbox"><div class="ring'+(over?' over':'')+'" data-act="settings">'+ringSvg(goal.upper?pct:0)+'<div class="c">';
+    h+='<small>已食</small><b class="num">'+r0(t.kcal).toLocaleString()+'</b><em>kcal</em>';
+    h+='</div></div></div><div class="goaltxt">';
+    if(goal.upper==null) h+='<button class="setgoal" data-act="settings">設定每日可攝取 kcal ›</button>';
+    else {
+      var when=goal.window ? (MealLogic.shortDate(goal.window.start)+'–'+(goal.window.end?MealLogic.shortDate(goal.window.end):'之後')) : '原本目標';
+      h+='<div class="gl"><span>目標</span><b>'+esc(goal.label)+'</b></div>';
+      h+='<div class="gl"><span>'+(over?'超出':'剩餘')+'</span><b>'+esc(stand.statusLine)+'</b></div>';
+      if(stand.detail) h+='<div class="goal">'+esc(stand.detail)+'</div>';
+      h+='<div class="goal">'+(rest?'休息日':'運動日')+' · '+esc(when)+'</div>';
+    }
+    h+='</div></div>';
     h+='<div class="mrows">'+mrow('蛋白質',t.protein,+s.proteinTarget||0,'p','🍗',true)+mrow('纖維',t.fiber,+s.fiberTarget||0,'fb','🥬',true)+mrow('碳水',t.carb,+s.carbTarget||0,'c','🌾',false)+mrow('脂肪',t.fat,+s.fatTarget||0,'f','🥑',false)+'</div>';
-    h+='</div>';
-    if(oU) h+='<div class="steps"><span class="ic">💍</span><b class="num" style="font-size:18px">'+steps.toLocaleString()+'</b><span class="sk">步 · 跟 Oura · '+esc((state.oura.lastSync||'').slice(11,16))+'</span></div>';
-    else h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?(tmSteps?'扣跑步機 '+tmSteps.toLocaleString()+' 步 → ':'')+'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'戒指總步數 → 自動扣跑步機再估')+'</span></div>';
+    if(oU) h+='<div class="steps"><span class="ic">💍</span><b class="num" style="font-size:18px">'+showSteps.toLocaleString()+'</b><span class="sk">步 · Oura 量度 · '+esc(hkStamp(state.oura.lastSync))+'</span></div>';
+    else h+='<div class="steps"><span class="ic">👟</span><input type="number" inputmode="numeric" id="stepsIn" placeholder="'+(curDate===today()?'今日':curDate.slice(5).replace('-','/'))+'步數" value="'+(steps||'')+'"><span class="sk">'+(steps?(s.weightKg?(tmSteps?'扣跑步機 '+tmSteps.toLocaleString()+' 步 → ':'')+'≈ '+r0(stepK)+' kcal（估）':'要體重先估到'):'未有 Oura 步數，可以自己填')+'</span></div>';
     var yd=shiftDate(curDate,-1);
-    if(curDate===today() && !daySteps(yd)){
+    if(curDate===today() && !daySteps(yd) && !(ouraDay(yd)&&ouraDay(yd).steps)){
       h+='<div class="steps y"><span class="ic">🌙</span><input type="number" inputmode="numeric" id="stepsYIn" placeholder="琴日步數" data-d="'+yd+'"><span class="lbl">琴晚忘記填？補返呢度</span></div>';
     }
+    h+='</div>';
+    h+=activityCard();
+    h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
+    SLOTS.forEach(function(slot){
+      var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
+      h+='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">'+SLOT_EMOJI[slot]+'</div><div><b>'+(slot==='下午'?'下午':slot+(slot==='宵'?'夜':'餐'))+'</b><span>'+(m&&m.time?esc(m.time):'')+(items.length?(m&&m.time?' · ':'')+r0(st.kcal)+' kcal · 蛋白 '+r0(st.protein)+'g':'未記')+'</span></div></div>';
+      h+='<button class="addbtn" data-act="add" data-slot="'+slot+'" aria-label="加'+slot+'餐">＋</button></div>';
+      if(items.length){
+        h+='<ul class="items">';
+        items.forEach(function(it, idx){
+          var cid=m.id+':'+idx, conf=confirmId===cid;
+          if(it.parts){
+            var open=expandedId===cid;
+            h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?' · 收埋明細':' · 睇明細')+'</span></div>';
+          } else
+          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+portionOf(it)+' · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+'</span></div>';
+          h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
+          if(it.parts) h+='<button class="editbtn" data-act="toggleparts" data-cid="'+cid+'">'+(open?'收':'明細')+'</button>';
+          else h+='<button class="editbtn" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'">改</button>';
+          h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
+          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+portionOf(p)+' · 改</span><span>'+p.kcal+'</span></li>'; }); h+='<li class="tap" data-act="toggleparts" data-cid="'+cid+'" style="justify-content:center;color:var(--muted);padding-top:6px"><span>▲ 收埋明細</span></li></ul></li>'; }
+        });
+        h+='</ul>';
+        h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
+        h+='<button class="savebtn" data-act="mealset-save" data-meal="'+m.id+'">儲呢餐做套餐 ›</button>';
+      }
+      h+='</div>';
+    });
+    h+=scheduleCard();
     var wkB=dayWorkoutBurn(curDate);
-    h+='<div class="ledger">';
+    h+='<div class="card"><h2>能量帳</h2><div class="ledger">';
     if(modeB){
       h+='<div class="r"><span class="op"></span><span class="lb">基礎代謝 BMR<small>設定可改</small></span><span class="nm num">'+(+s.bmr).toLocaleString()+'</span></div>';
       if(!oU) h+='<div class="r"><span class="op">＋</span><span class="lb">日常活動（企／家務）<small>BMR × '+(+s.neatPct||0)+'%·估·設定可改</small></span><span class="nm num">'+r0((+s.bmr)*((+s.neatPct||0)/100)).toLocaleString()+'</span></div>';
@@ -1366,7 +1552,7 @@
     } else
     h+='<div class="r"><span class="op"></span><span class="lb">每日總消耗 TDEE<small>設定可改（已包日常活動）</small></span><span class="nm num">'+tdee.toLocaleString()+'</span></div>';
     if(oU){
-      h+='<div class="r"><span class="op">＋</span><span class="lb">活動消耗（Oura 量）<small>已包步行 '+(steps?steps.toLocaleString()+' 步':'')+'、跑步機、負重、日常郁動 · '+esc((state.oura.lastSync||'').slice(11,16))+' 更新</small></span><span class="nm num">'+r0(burn).toLocaleString()+'</span></div>';
+      h+='<div class="r"><span class="op">＋</span><span class="lb">活動消耗（Oura 量）<small>已包步行 '+(showSteps?showSteps.toLocaleString()+' 步':'')+'、跑步機、負重、日常郁動 · '+esc(hkStamp(state.oura.lastSync))+' 更新</small></span><span class="nm num">'+r0(burn).toLocaleString()+'</span></div>';
     } else {
     h+='<div class="r"><span class="op">＋</span><span class="lb">運動消耗<small>手錶／估算</small></span><span class="nm num">'+r0(wkB).toLocaleString()+'</span></div>';
     h+='<div class="r"><span class="op">＋</span><span class="lb">步行消耗<small>'+(steps?(tmSteps?steps.toLocaleString()+' − 跑步機 '+tmSteps.toLocaleString()+' ＝ '+wSteps.toLocaleString()+' 步':steps.toLocaleString()+' 步')+' × ACSM':'未填步數')+'</small></span><span class="nm num">'+r0(stepK).toLocaleString()+'</span></div>';
@@ -1382,45 +1568,22 @@
     for(var i=0;i<left;i++){ if(isRestDay(dd)) rLeft++; else gLeft++; dd=shiftDate(dd,1); }
     var short=mt-md.sum, unit=(gLeft*2+rLeft)>0?short/(gLeft*2+rLeft):0, hit=md.sum>=mt;
     h+='<div class="r sub"><span class="op"></span><span class="lb">'+md.month+' 月累計 '+r0(md.sum).toLocaleString()+' / '+mt.toLocaleString()+'（'+(md.sum/7700).toFixed(2)+' / '+(mt/7700).toFixed(1)+' kg）<small>'+(hit?'已達標 ✓ 超出 '+r0(md.sum-mt).toLocaleString():'仲爭 '+r0(short).toLocaleString()+' · 餘 '+left+' 日每日要 運動 '+r0(unit*2)+'／休息 '+r0(unit))+'</small></span><span class="nm num" style="color:'+(hit?'var(--ink)':'var(--warn)')+'">'+(hit?'✓':r0(short).toLocaleString())+'</span></div>';
+    h+='</div>';
     h+=sodiumLine(curDate);
-    h+=suggestCard(t, target);
-    h+='<div class="sech"><h2>攝入</h2><span>'+r0(t.kcal).toLocaleString()+' kcal · '+SLOTS.reduce(function(a,sl){var m=getMeal(curDate,sl,false);return a+(m?m.items.length:0);},0)+' 項</span></div>';
-    SLOTS.forEach(function(slot){
-      var m=getMeal(curDate, slot, false), items=m?m.items:[], st=totals(items);
-      h+='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">'+SLOT_EMOJI[slot]+'</div><div><b>'+(slot==='下午'?'下午':slot+(slot==='宵'?'夜':'餐'))+'</b><span>'+(m&&m.time?esc(m.time):'')+(items.length?(m&&m.time?' · ':'')+r0(st.kcal)+' kcal · 蛋白 '+r0(st.protein)+'g':'未記')+'</span></div></div>';
-      h+='<button class="addbtn" data-act="add" data-slot="'+slot+'">＋</button></div>';
-      if(items.length){
-        h+='<ul class="items">';
-        items.forEach(function(it, idx){
-          var cid=m.id+':'+idx, conf=confirmId===cid;
-          if(it.parts){
-            var open=expandedId===cid;
-            h+='<li><div class="thumb">🍱</div><div class="n tap" data-act="toggleparts" data-cid="'+cid+'"><b>'+esc(it.name)+'</b><span>'+it.parts.length+' 項 · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+(open?' · 撳收埋':' · 撳睇明細')+'</span></div>';
-          } else
-          h+='<li><div class="thumb">'+thumbOf(it)+'</div><div class="n tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'"><b>'+esc(it.name)+'</b><span>'+portionOf(it)+' · 蛋白 '+r1(it.protein)+' · 碳 '+r1(it.carb)+' · 脂 '+r1(it.fat)+' · 纖 '+r1(it.fiber)+' · 撳改</span></div>';
-          h+='<div class="kc num">'+it.kcal+'<small>kcal</small></div>';
-          h+='<button class="x'+(conf?' confirm':'')+'" data-act="del" data-meal="'+m.id+'" data-idx="'+idx+'">'+(conf?'確定刪除':'✕')+'</button></li>';
-          if(it.parts&&expandedId===cid){ h+='<li style="border:0;padding:0"><ul class="sub" style="flex:1">'; it.parts.forEach(function(p,pi){ h+='<li class="tap" data-act="edititem" data-meal="'+m.id+'" data-idx="'+idx+'" data-part="'+pi+'"><span>'+esc(p.name)+' '+portionOf(p)+' ✎</span><span>'+p.kcal+'</span></li>'; }); h+='<li class="tap" data-act="toggleparts" data-cid="'+cid+'" style="justify-content:center;color:var(--muted);padding-top:6px"><span>▲ 收埋明細</span></li></ul></li>'; }
-        });
-        h+='</ul>';
-        h+='<input class="note-in" data-act="note" data-meal="'+m.id+'" placeholder="備註（可留空）" value="'+esc(m.note||'')+'">';
-        h+='<button class="savebtn" data-act="mealset-save" data-meal="'+m.id+'">儲呢餐做套餐 ›</button>';
-      }
-      h+='</div>';
-    });
+    h+='</div>';
+    h+=suggestCard(t, goal);
     return h;
   }
   function renderWorkout(){
     var ws=state.workouts.filter(function(w){ return w.date===curDate; }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
     var h='<div class="card meal"><div class="mh"><div class="mt"><div class="memo">🏋️</div><div><b>運動</b><span>'+(ws.length?ws.reduce(function(a,w){return a+(+w.minutes||0);},0)+' 分鐘 · 消耗 '+dayBurn(curDate)+' kcal':'未記')+'</span></div></div><button class="addbtn" data-act="addwk">＋</button></div>';
-    if(!ws.length) h+='<div class="empty">未記</div>';
+    if(!ws.length) h+='<div class="empty">未記。撳右上 ＋ 加一項，加咗之後可以撳「改」。</div>';
     ws.forEach(function(w){
       var conf=confirmId===w.id;
       h+='<div class="wk"><div class="n tap" data-act="editwk" data-id="'+w.id+'"><b>'+esc(w.type)+'</b> <span class="m">'+esc(w.time||'')+' · '+(+w.minutes||0)+' 分鐘'+(w.kcal?' · 消耗 '+w.kcal+' kcal'+(w.kcalSrc==='MET估'?'（估）':''):'')+(w.type==='跑步機'?' · '+(w.steps?w.steps.toLocaleString()+' 步':'約 '+r0((+w.minutes||0)*CADENCE).toLocaleString()+' 步（估）'):'')+(w.level!=null&&w.level!==''?' · 強度 '+w.level+' 級':'')+'</span>';
       if(w.sets&&w.sets.length){ h+='<div class="sets">'; w.sets.forEach(function(s){ var repTxt=s.repsList&&s.repsList.length>1?s.repsList.join(' / ')+' 下（'+s.repsList.length+' 組）':((s.reps||'—')+(s.sets?' × '+s.sets+' 組':'')); h+='<div>'+esc(s.exercise||'')+(s.exerciseEn?' <span class="m">'+esc(s.exerciseEn.replace(/（.*?）/,''))+'</span>':'')+' · '+(s.weightKg!=null&&s.weightKg!==''?s.weightKg+'kg':'—')+' × '+repTxt+'</div>'; }); h+='</div>'; }
       if(w.note) h+='<div class="m">'+esc(w.note)+'</div>';
-      h+='<div class="hintedit">撳一下改</div>';
-      h+='</div><button class="x'+(conf?' confirm':'')+'" data-act="delwk" data-id="'+w.id+'">'+(conf?'確定刪除':'✕')+'</button></div>';
+      h+='</div><button class="editbtn" data-act="editwk" data-id="'+w.id+'">改</button><button class="x'+(conf?' confirm':'')+'" data-act="delwk" data-id="'+w.id+'">'+(conf?'確定刪除':'✕')+'</button></div>';
     });
     h+='</div>';
     return h;
@@ -1537,11 +1700,14 @@
   }
   // ---------- 而家仲食得乜 ----------
   function slotNow(){ var hh=+nowTime().slice(0,2); return hh<10?'早':(hh<15?'午':(hh<17?'下午':'晚')); }
-  function suggestCard(t, target){
-    if(curDate!==today()||!target) return '';
-    var s=state.settings, remK=target-t.kcal, remP=(+s.proteinTarget||150)-t.protein, remF=(+s.fatTarget||50)-t.fat;
-    var h='<div class="card"><h2>而家仲食得乜<span>剩 '+r0(remK)+' kcal · 蛋白爭 '+r0(Math.max(0,remP))+' g · 脂肪剩 '+r0(remF)+' g</span></h2>';
-    if(remK<120){ h+='<div class="hint">今日額度已經用晒'+(remK<0?'（超出 '+r0(-remK)+'）':'')+'。真係肚餓就揀零脂肪高蛋白：蝦、帶子、雞胸、蛋白粉，加灼菜。</div></div>'; return h; }
+  function suggestCard(t, goal){
+    if(curDate!==today()||!goal||goal.upper==null) return '';
+    var stand=MealLogic.intakeStanding(t.kcal, goal);
+    var s=state.settings, remK=stand.roomToUpper, remP=(+s.proteinTarget||150)-t.protein, remF=(+s.fatTarget||50)-t.fat;
+    var head=stand.statusLine+(stand.detail?' · '+stand.detail:'');
+    var h='<div class="card"><h2>而家仲食得乜<span>'+esc(head)+' · 蛋白爭 '+r0(Math.max(0,remP))+' g · 脂肪剩 '+r0(remF)+' g</span></h2>';
+    if(stand.status==='over'){ h+='<div class="hint">已經超出上限 '+r0(stand.overBy)+' kcal。唔再建議加餐。</div></div>'; return h; }
+    if(remK<120){ h+='<div class="hint">距上限少過 120 kcal。真係肚餓就揀蛋白質高、脂肪低嘅食物，例如蝦、帶子、雞胸，加灼菜。</div></div>'; return h; }
     var cands=state.sets.map(function(st){ var its=setItems(st); if(!its.length) return null; return {st:st, tt:totals(its)}; }).filter(Boolean)
       .filter(function(x){ return x.tt.kcal<=remK+60 && x.tt.kcal>=100; });
     cands.forEach(function(x){ var pFill=Math.min(x.tt.protein, Math.max(remP,0)); x.fOver=Math.max(0,x.tt.fat-remF); x.kOver=Math.max(0,x.tt.kcal-remK); x.score=pFill*3 - x.fOver*4 - x.kOver*0.5 + (x.st.out?0:2); });
@@ -1610,7 +1776,7 @@
     var h='<div class="ocard"><div class="lb"><span>Refeed 訊號（7 日 vs 前 7 日）</span><span class="tag '+st+'">'+tag+'</span></div>';
     var rows=[['體溫偏離', (temp!=null?(temp>0?'+':'')+temp.toFixed(2)+'°C':'—')+'（≤ −0.3 算訊號）', c1?'bad':'ok'],['HRV', r0(hrv)+' vs 前 7 日 '+r0(hrvP)+'（跌 5% 算訊號）', c2?'bad':'ok'],['準備度', r0(rdy)+'（< 75 算訊號）', c3?'bad':'ok']];
     h+='<div class="r90rows">'+rows.map(function(r){ return '<div class="r90r"><i class="'+r[2]+'"></i><span class="k">'+r[0]+'</span><span>'+r[1]+'</span></div>'; }).join('')+'</div>';
-    h+='<div class="ex"><span class="k">解釋</span>長期赤字之下，體溫持續偏低＋HRV 跌＋準備度低，三樣一齊出現係代謝下調嘅典型組合；一樣單獨出現多數係正常波動。</div>';
+    h+='<div class="ex"><span class="k">解釋</span>三樣一齊偏低先值得留意；單獨一樣多數係正常波動。呢個係戒指趨勢，唔係診斷。</div>';
     h+='<div class="ex"><span class="k">行動</span>'+(st==='bad'?'安排 1–2 日 refeed：熱量食到維持水平（約 2,300），加嘅係碳水唔係脂肪，蛋白照舊，之後照返計劃。':(st==='mid'?'未使郁，下星期再睇；第三樣都出現就 refeed。':'照計劃行，唔使 refeed。'))+'</div></div>';
     return h;
   }
@@ -1704,7 +1870,8 @@
   }
   function renderTrend(){
     var days=[], t=shiftDate(today(),-trendOffset); for(var i=13;i>=0;i--) days.push(shiftDate(t,-i));
-    var s=state.settings, target=+s.dailyKcal||0, tdee=+s.tdee||2300;
+    var s=state.settings, tdee=+s.tdee||2300;
+    var dayTargets=days.map(function(d){ return MealLogic.targetFor(s, d, state.dayType); });
     var kc=days.map(function(d){ return totals(dayItems(d)); });
     var steps=days.map(function(d){ return daySteps(d); });
     var deficit=days.map(function(d,i){ var logged=kc[i].kcal>0; return logged? dayDeficit(d, kc[i].kcal) : null; });
@@ -1723,20 +1890,28 @@
         lo=Math.min.apply(null,nums); hi=Math.max.apply(null,nums);
         sp0=(hi-lo)||1; lo=lo-sp0*0.25; hi=hi+sp0*0.25;
       } else {
-        lo=Math.min.apply(null,nums.concat([0, targetV||0])); hi=Math.max.apply(null,nums.concat([targetV||0,1]));
+        var targetVals=[];
+        if(opt.targets) opt.targets.forEach(function(tg){ if(tg && tg.upper!=null){ targetVals.push(tg.lower, tg.upper); } });
+        lo=Math.min.apply(null,nums.concat([0]).concat(targetVals.length?targetVals:[targetV||0])); hi=Math.max.apply(null,nums.concat(targetVals.length?targetVals:[targetV||0,1]));
         if(!allowNeg) lo=0; sp0=(hi-lo)||1; hi=hi+sp0*0.15; if(allowNeg) lo=lo-sp0*0.15;
       }
       var span=(hi-lo)||1;
       var X=function(i){ return padL+(n===1?0:(i/(n-1)))*(W-padL-padR); }, Y=function(v){ return padT+(1-(v-lo)/span)*(Hh-padT-padB); };
       var h='<div class="lchart"><svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">';
-      if(targetV&&!allowNeg) h+='<line class="tgt" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+Y(targetV).toFixed(1)+'" y2="'+Y(targetV).toFixed(1)+'"/><text class="tl" x="'+(W-padR)+'" y="'+(Y(targetV)-4).toFixed(1)+'" text-anchor="end">目標 '+targetV+unit+'</text>';
+      if(opt.targets && !allowNeg){
+        var up=[], loL=[];
+        opt.targets.forEach(function(tg,i){ if(tg && tg.upper!=null){ up.push(X(i).toFixed(1)+','+Y(tg.upper).toFixed(1)); loL.push(X(i).toFixed(1)+','+Y(tg.lower).toFixed(1)); } });
+        if(loL.length>1 && loL.join('|')!==up.join('|')) h+='<polyline class="tgt" points="'+loL.join(' ')+'"/>';
+        if(up.length>1) h+='<polyline class="tgt" points="'+up.join(' ')+'"/>';
+        h+='<text class="tl" x="'+(W-padR)+'" y="12" text-anchor="end">'+esc(MealLogic.rangeCaption(opt.targets))+'</text>';
+      } else if(targetV&&!allowNeg) h+='<line class="tgt" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+Y(targetV).toFixed(1)+'" y2="'+Y(targetV).toFixed(1)+'"/><text class="tl" x="'+(W-padR)+'" y="'+(Y(targetV)-4).toFixed(1)+'" text-anchor="end">目標 '+targetV+unit+'</text>';
       if(allowNeg) h+='<line class="zero" x1="'+padL+'" x2="'+(W-padR)+'" y1="'+Y(0).toFixed(1)+'" y2="'+Y(0).toFixed(1)+'"/>';
       var pts=[]; vals.forEach(function(v,i){ if(v!=null) pts.push(X(i).toFixed(1)+','+Y(v).toFixed(1)); });
       if(pts.length>1) h+='<polyline class="ln'+(cls==='df'?' df':'')+'" points="'+pts.join(' ')+'"/>';
       if(opt.extra) h+=opt.extra(X,Y);
       vals.forEach(function(v,i){
         var x=X(i);
-        if(v!=null){ var y=Y(v); var over=(targetV&&v>targetV&&cls==='kc')||(allowNeg&&v<0);
+        if(v!=null){ var y=Y(v); var dayT=opt.targets?opt.targets[i]:null; var capN=dayT&&dayT.upper!=null?dayT.upper:targetV; var over=(capN&&v>capN&&cls==='kc')||(allowNeg&&v<0);
           h+='<circle class="pt'+(over?' over':'')+'" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.5"/>';
           h+='<text class="vl'+(over?' over':'')+'" x="'+x.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle">'+(opt.fmt?opt.fmt(v):(allowNeg?(v>=0?'−':'+')+r0(Math.abs(v)).toLocaleString():r0(v).toLocaleString()))+'</text>'; }
         h+='<text class="xl" x="'+x.toFixed(1)+'" y="'+(Hh-4)+'" text-anchor="middle">'+(+days[i].slice(8))+'</text>';
@@ -1756,8 +1931,8 @@
       '<div class="stat"><div><b>'+(defAvg>=0?'−':'+')+Math.abs(defAvg).toLocaleString()+'</b><span>日均</span></div><div><b>'+(defSum>=0?'−':'+')+Math.abs(defSum).toLocaleString()+'</b><span>14 日累計</span></div><div><b>'+(s.weightKg||'—')+'</b><span>體重 kg</span></div></div></div>';
     h+='<div class="card tpan"><h2>行路步數<span>14 日</span></h2>'+chart(steps.map(function(v){return v>0?v:null;}),'st',0,'',false)+
       '<div class="stat"><div><b>'+(stDays?r0(stTot/stDays).toLocaleString():0)+'</b><span>有記錄日均</span></div><div><b>'+stDays+'</b><span>有記錄日數</span></div><div><b>'+r0(stepsKcal(stDays?stTot/stDays:0))+'</b><span>日均步行 kcal（估）</span></div></div></div>';
-    h+='<div class="card tpan"><h2>卡路里攝取（唔扣運動）<span>14 日</span></h2>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',target,'',false)+
-      '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+(target||'—')+'</b><span>目標</span></div></div></div>';
+    h+='<div class="card tpan"><h2>卡路里攝取（唔扣運動）<span>14 日</span></h2><div class="hint" style="margin:-4px 0 4px">每點用返當日目標。舊日期保持原本 kcal；有範圍就畫下限同上限，唔會取中間數。呢段：'+esc(MealLogic.rangeCaption(dayTargets))+'</div>'+chart(kc.map(function(x){return x.kcal>0?x.kcal:null;}),'kc',0,'',false,{targets:dayTargets})+
+      '<div class="stat"><div><b>'+avgK.toLocaleString()+'</b><span>有記錄日均</span></div><div><b>'+logged.length+'</b><span>有記錄日數</span></div><div><b>'+esc((dayTargets[dayTargets.length-1]&&dayTargets[dayTargets.length-1].label)||'—')+'</b><span>最新一日目標</span></div></div></div>';
     // ---------- 月度累積赤字（橫線＝月目標，爬升線＝逐日累積）----------
     (function(){
       var ym=t.slice(0,7), yy=+ym.slice(0,4), mm=+ym.slice(5,7);
@@ -1828,11 +2003,11 @@
     var s=state.settings, logged=rows.filter(function(r){return r.intake>0;});
     var avg=function(arr,k){ var v=arr.map(function(r){return r[k];}).filter(function(x){return x!=null&&!isNaN(x);}); return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null; };
     var wts=rows.filter(function(r){return r.weight;}); var wchg=wts.length>1?(wts[wts.length-1].weight-wts[0].weight):null;
-    var h='<div class="ecg"></div><h1 style="margin-top:14px">飲食記錄 · '+from.slice(5).replace('-','/')+' – '+to.slice(5).replace('-','/')+'</h1><div class="sub">Franki · '+s.weightKg+' kg · 目標 '+(s.dailyKcal||'—')+' kcal／蛋白 ≥'+(s.proteinTarget||'—')+'g／纖維 ≥'+(s.fiberTarget||'—')+'g／碳水 ≤'+(s.carbTarget||'—')+'g／脂肪 ≤'+(s.fatTarget||'—')+'g · 赤字計法：'+(s.deficitMode==='bmr'?'BMR '+s.bmr+' ＋ 食物×10% ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+s.tdee+' ＋ 活動 − 食物')+' · 匯出 '+new Date().toLocaleString('zh-HK',{hour12:false})+'</div>';
+    var h='<div class="ecg"></div><h1 style="margin-top:14px">飲食記錄 · '+from.slice(5).replace('-','/')+' – '+to.slice(5).replace('-','/')+'</h1><div class="sub">'+s.weightKg+' kg · 熱量日程：'+esc(MealLogic.scheduleView(s, to).summary)+'／蛋白 ≥'+(s.proteinTarget||'—')+'g／纖維 ≥'+(s.fiberTarget||'—')+'g／碳水 ≤'+(s.carbTarget||'—')+'g／脂肪 ≤'+(s.fatTarget||'—')+'g · 赤字計法：'+(s.deficitMode==='bmr'?'BMR '+s.bmr+' ＋ 食物×10% ＋ 活動（'+(s.activitySource!=='estimate'?'Oura 量':'估算')+'） − 食物':'TDEE '+s.tdee+' ＋ 活動 − 食物')+' · 每餐營養值唔會因改目標而重計 · 匯出 '+new Date().toLocaleString('zh-HK',{timeZone:'Asia/Hong_Kong',hour12:false})+'</div>';
     h+='<div class="kpis"><div class="kpi"><b>'+(avg(logged,'intake')!=null?r0(avg(logged,'intake')).toLocaleString():'—')+'</b><span>日均攝取 kcal（'+logged.length+' 日有記錄）</span></div><div class="kpi"><b>'+(avg(logged,'deficit')!=null?((avg(logged,'deficit')>=0?'−':'+')+r0(Math.abs(avg(logged,'deficit'))).toLocaleString()):'—')+'</b><span>日均赤字 kcal</span></div><div class="kpi"><b>'+(avg(logged,'p')!=null?r0(avg(logged,'p')):'—')+'g</b><span>日均蛋白（目標 '+(s.proteinTarget||'—')+'）</span></div><div class="kpi"><b>'+(avg(rows.filter(function(r){return r.steps>0;}),'steps')!=null?r0(avg(rows.filter(function(r){return r.steps>0;}),'steps')).toLocaleString():'—')+'</b><span>日均步數（Oura）</span></div></div>';
     h+='<div class="kpis"><div class="kpi"><b>'+(wts.length?wts[0].weight+' → '+wts[wts.length-1].weight:'—')+'</b><span>體重 kg'+(wchg!=null?'（'+(wchg>0?'+':'')+r1(wchg)+'）':'')+'</span></div><div class="kpi"><b>'+(avg(logged,'fb')!=null?r0(avg(logged,'fb')):'—')+'g</b><span>日均纖維（目標 '+(s.fiberTarget||'—')+'）</span></div><div class="kpi"><b>'+(avg(rows.filter(function(r){return r.oura.readiness;}).map(function(r){return {v:r.oura.readiness};}),'v')!=null?r0(avg(rows.filter(function(r){return r.oura.readiness;}).map(function(r){return {v:r.oura.readiness};}),'v')):'—')+'</b><span>日均準備度（Oura）</span></div><div class="kpi"><b>'+(avg(rows.filter(function(r){return r.oura.rhr;}).map(function(r){return {v:r.oura.rhr};}),'v')!=null?r0(avg(rows.filter(function(r){return r.oura.rhr;}).map(function(r){return {v:r.oura.rhr};}),'v')):'—')+'</b><span>日均靜止心率</span></div></div>';
     h+='<h2>每日總覽</h2><table><tr><th>日期</th><th>攝取</th><th>蛋白</th><th>碳水</th><th>脂肪</th><th>纖維</th><th>活動</th><th>赤字</th><th>步數</th><th>準備度</th><th>睡眠</th><th>深層</th><th>RHR</th><th>HRV</th><th>體重</th></tr>';
-    rows.forEach(function(r){ var o=r.oura; h+='<tr><td>'+r.date.slice(5).replace('-','/')+'</td><td>'+(r.intake?r0(r.intake).toLocaleString():'—')+'</td><td>'+(r.intake?r0(r.p):'—')+'</td><td>'+(r.intake?r0(r.c):'—')+'</td><td>'+(r.intake?r0(r.f):'—')+'</td><td>'+(r.intake?r0(r.fb):'—')+'</td><td>'+(r.burn?r0(r.burn):'—')+'</td><td>'+(r.deficit!=null?((r.deficit>=0?'−':'+')+r0(Math.abs(r.deficit))):'—')+'</td><td>'+(r.steps?r.steps.toLocaleString():'—')+'</td><td>'+(o.readiness||'—')+'</td><td>'+(o.totalSleepMin?Math.floor(o.totalSleepMin/60)+'h'+(o.totalSleepMin%60):'—')+'</td><td>'+(o.deepMin||'—')+'</td><td>'+(o.rhr||'—')+'</td><td>'+(o.hrv||'—')+'</td><td>'+(r.weight||'—')+'</td></tr>'; });
+    rows.forEach(function(r){ var o=r.oura; var goal=MealLogic.targetFor(s, r.date, state.dayType); h+='<tr><td>'+r.date.slice(5).replace('-','/')+'</td><td>'+(r.intake?r0(r.intake).toLocaleString():'—')+' <span style="color:#8A876A">/'+esc(goal.label||'—')+'</span></td><td>'+(r.intake?r0(r.p):'—')+'</td><td>'+(r.intake?r0(r.c):'—')+'</td><td>'+(r.intake?r0(r.f):'—')+'</td><td>'+(r.intake?r0(r.fb):'—')+'</td><td>'+(r.burn?r0(r.burn):'—')+'</td><td>'+(r.deficit!=null?((r.deficit>=0?'−':'+')+r0(Math.abs(r.deficit))):'—')+'</td><td>'+(r.steps?r.steps.toLocaleString():'—')+'</td><td>'+(o.readiness||'—')+'</td><td>'+(o.totalSleepMin?Math.floor(o.totalSleepMin/60)+'h'+(o.totalSleepMin%60):'—')+'</td><td>'+(o.deepMin||'—')+'</td><td>'+(o.rhr||'—')+'</td><td>'+(o.hrv||'—')+'</td><td>'+(r.weight||'—')+'</td></tr>'; });
     h+='</table>';
     h+='<h2>每餐明細</h2><div class="meals">';
     rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; h+='<div class="day"><b>'+r.date.slice(5).replace('-','/')+' · '+r0(r.intake)+' kcal</b>'; r.meals.forEach(function(m){ h+='<div><span>'+m.slot+(m.time?' '+m.time:'')+'</span> '+esc(fmtItems(m.items))+'</div>'; }); r.workouts.forEach(function(w){ h+='<div><span>運動</span> '+esc(w.type)+' '+w.minutes+'分'+(w.level!=null&&w.level!==''?'·強度'+w.level:'')+(w.sets&&w.sets[0]?' · '+esc(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?' · '+esc(w.note):'')+'</div>'; }); h+='</div>'; });
@@ -1842,9 +2017,9 @@
   }
   function reportText(rows,from,to){
     var s=state.settings, L=[];
-    L.push('# 飲食記錄 '+from+' 至 '+to); L.push('體重 '+s.weightKg+' kg · 目標 '+s.dailyKcal+' kcal · 蛋白≥'+s.proteinTarget+' 纖維≥'+s.fiberTarget+' 碳≤'+s.carbTarget+' 脂≤'+s.fatTarget+' · 赤字＝BMR '+s.bmr+'＋攝取×10%＋活動（Oura）−攝取'); L.push('');
+    L.push('# 飲食記錄 '+from+' 至 '+to); L.push('體重 '+s.weightKg+' kg · 熱量日程：'+MealLogic.scheduleView(s, to).summary+' · 蛋白≥'+s.proteinTarget+' 纖維≥'+s.fiberTarget+' 碳≤'+s.carbTarget+' 脂≤'+s.fatTarget+' · 赤字＝BMR '+s.bmr+'＋攝取×10%＋活動（Oura）−攝取 · 餐單營養值沒有因目標改寫'); L.push('');
     L.push('| 日期 | 攝取kcal | 蛋白g | 碳水g | 脂肪g | 纖維g | 活動kcal | 赤字 | 步數 | 準備度 | 睡眠分鐘 | 深層分鐘 | RHR | HRV | 體重kg |'); L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
-    rows.forEach(function(r){ var o=r.oura; L.push('| '+r.date+' | '+(r.intake?r0(r.intake):'')+' | '+(r.intake?r0(r.p):'')+' | '+(r.intake?r0(r.c):'')+' | '+(r.intake?r0(r.f):'')+' | '+(r.intake?r0(r.fb):'')+' | '+(r.burn?r0(r.burn):'')+' | '+(r.deficit!=null?r0(r.deficit):'')+' | '+(r.steps||'')+' | '+(o.readiness||'')+' | '+(o.totalSleepMin||'')+' | '+(o.deepMin||'')+' | '+(o.rhr||'')+' | '+(o.hrv||'')+' | '+(r.weight||'')+' |'); });
+    rows.forEach(function(r){ var o=r.oura; var goal=MealLogic.targetFor(s, r.date, state.dayType); L.push('| '+r.date+' 目標'+goal.label+' | '+(r.intake?r0(r.intake):'')+' | '+(r.intake?r0(r.p):'')+' | '+(r.intake?r0(r.c):'')+' | '+(r.intake?r0(r.f):'')+' | '+(r.intake?r0(r.fb):'')+' | '+(r.burn?r0(r.burn):'')+' | '+(r.deficit!=null?r0(r.deficit):'')+' | '+(r.steps||'')+' | '+(o.readiness||'')+' | '+(o.totalSleepMin||'')+' | '+(o.deepMin||'')+' | '+(o.rhr||'')+' | '+(o.hrv||'')+' | '+(r.weight||'')+' |'); });
     L.push(''); L.push('## 每餐明細');
     rows.forEach(function(r){ if(!r.meals.length&&!r.workouts.length) return; L.push('### '+r.date+'（'+r0(r.intake)+' kcal）'); r.meals.forEach(function(m){ L.push('- '+m.slot+(m.time?' '+m.time:'')+'：'+fmtItems(m.items)); }); r.workouts.forEach(function(w){ L.push('- 運動：'+w.type+' '+w.minutes+'分'+(w.level!=null&&w.level!==''?'（強度 '+w.level+' 級）':'')+(w.sets&&w.sets[0]?' '+(w.sets[0].exercise||'')+' '+(w.sets[0].weightKg||'')+'kg×'+(w.sets[0].reps||'')+'×'+(w.sets[0].sets||'')+'組':'')+(w.note?'（'+w.note+'）':'')); }); });
     return L.join('\n');
@@ -2027,15 +2202,21 @@
     var ouraDef = d.totalCal ? (d.totalCal - intake) : null;
     // 頂部四詞
     var stR=statusOf(d.readiness,b.readiness,false,5,12), stD=statusOf(d.deepMin,b.deepMin,false,15,30), stS=statusOf(d.steps,b.steps,false,0,0)==='ok'?'ok':'mid', stH=statusOf(d.rhr,b.rhr,true,4,8);
-    var words=[[stR, d.readiness>=b.readiness-3?'恢復正常':(d.readiness>=b.readiness-10?'恢復一般':'恢復差')],[stD, d.deepMin>=60?'深層夠':'深層瞓少'],[d.steps>=b.steps?'ok':'mid', d.steps>=b.steps?'郁得夠':'郁得少'],[stH, d.rhr<=b.rhr+2?'心率正常':'心率偏高']];
-    ['readiness','deepMin','steps','rhr'].forEach(function(k,i){if(d[k]==null) words[i]=['mid','未有資料'];else if(b[k]==null) words[i]=['mid','未有基線'];});
+    var words=[
+      [d.readiness==null?'mid':stR, d.readiness==null?'準備度未有':('準備度 '+d.readiness)],
+      [d.deepMin==null?'mid':stD, d.deepMin==null?'深層未有':('深層 '+d.deepMin+' 分')],
+      [d.steps==null?'mid':(b.steps==null?'mid':(d.steps>=b.steps?'ok':'mid')), d.steps==null?'步數未有':(Number(d.steps).toLocaleString('en-US')+' 步')],
+      [d.rhr==null?'mid':stH, d.rhr==null?'心率未有':('心率 '+d.rhr)]
+    ];
+    if(d.readiness!=null && b.readiness==null) words[0]=['mid','準備度 '+d.readiness];
+    if(d.deepMin!=null && b.deepMin==null) words[1]=['mid','深層 '+d.deepMin+' 分'];
     h+='<div class="ostrip">'+words.map(function(w){return '<span><i class="'+w[0]+'"></i>'+w[1]+'</span>';}).join('')+'</div>';
     if(od.demo) h+='<div class="demo">示範數據 · Oura 接通後自動換真數</div>';
-    else h+='<div class="demo">Oura 最後同步 '+esc((state.oura.lastSync||'').replace('T',' '))+' · 每 15 分鐘自動；Oura app 要先同戒指同步，API 先有新數</div>';
+    else h+='<div class="demo">Oura 最後同步 '+esc(hkStamp(state.oura.lastSync))+'（香港時間）· 約每 15 分鐘自動。Oura app 要先同戒指同步，呢度先有新數</div>';
     // 體重
     var wk=state.weights[curDate]||'';
     h+='<div class="wrow"><span style="font-size:20px">⚖️</span><div class="t"><b>體重（每星期磅一次）</b>校準基礎代謝用，唔使日日</div><input type="number" inputmode="decimal" step="0.1" id="weightIn" placeholder="'+(s.weightKg||'75')+'" value="'+wk+'"><span class="u">kg</span></div>';
-    h+='<div class="wrow"><span style="font-size:20px">📏</span><div class="t"><b>腰圍（每星期一次）</b>朝早如廁後、呼氣末、放鬆唔收腹、平繞肚臍</div><input type="number" inputmode="decimal" step="0.1" id="waistIn" placeholder="89" value="'+(state.waist[curDate]||'')+'"><span class="u">cm</span></div>';
+    h+='<div class="wrow"><span style="font-size:20px">📏</span><div class="t"><b>腰圍（每星期一次）</b>朝早如廁後、呼氣末、放鬆唔收腹、平繞肚臍</div><input type="number" inputmode="decimal" step="0.1" id="waistIn" placeholder="例如 80" value="'+(state.waist[curDate]||'')+'"><span class="u">cm</span></div>';
     h+='<div class="wrow"><span style="font-size:20px">🤏</span><div class="t"><b>捏厚（每星期一次）</b>肚臍側兩吋，捏起皮摺量厚度</div><input type="number" inputmode="decimal" step="0.1" id="pinchIn" placeholder="2.0" value="'+((state.pinch||{})[curDate]||'')+'"><span class="u">cm</span></div>';
     (function(){ var wk2=Object.keys(state.waist||{}).sort(), pk=Object.keys(state.pinch||{}).sort(); var lw=wk2.length?wk2[wk2.length-1]:null; var ago=lw?dnum(curDate)-dnum(lw):null; var msgs=[];
       if(ago==null) msgs.push('未量過腰圍'); else if(ago>=7) msgs.push('腰圍上次係 '+lw.slice(5).replace('-','/')+'（'+ago+' 日前），今星期未量');
@@ -2092,19 +2273,19 @@
     // 準備度
     h+=ocard({label:'準備度 Readiness', requiresBaseline:true, missing:d.readiness==null, value:d.readiness, unit:'／100', delta:b.readiness!=null?d.readiness-b.readiness:null, base:b.readiness, st:stR, spark:spark(d.hist&&d.hist.readiness,b.readiness),
       explain:'Oura 綜合你昨晚睡眠、靜止心率、HRV、體溫，畀出「今日身體承受得幾多」。85 以上係好，70–84 一般，70 以下要輕手。',
-      means: d.readiness>=85?'<b>今日可以照常訓練同保持赤字。</b>':(d.readiness>=70?'<b>可以照常，唔要加碼。</b>低過 7 日平均 '+Math.abs(d.readiness-b.readiness)+' 分，今日赤字大過 700 嘅話第二朝多數更攰。':'<b>身體要休息。</b>今日赤字唔要超過 500，訓練改輕。')});
+      means: d.readiness>=85?'<b>準備度 85 或以上。</b>呢個係戒指綜合分，只供參考，唔係診斷。':(d.readiness>=70?'<b>準備度 70–84。</b>同你近期比較，只供參考，唔係診斷。':'<b>準備度低過 70。</b>呢個係戒指綜合分，只供參考，唔係診斷。')});
     h+=r90Card(d);
     // 深層睡眠
     h+=ocard({label:'深層睡眠', missing:d.deepMin==null, value:d.deepMin, unit:'分鐘', delta:b.deepMin!=null?d.deepMin-b.deepMin:null, deltaUnit:'分', base:b.deepMin, st:stD, spark:spark(d.hist&&d.hist.deepMin,b.deepMin),
       explain:'身體修補肌肉、清理腦部代謝廢物嘅時段，主要喺上半夜。成年人一般 60–110 分。',
-      means: d.deepMin<60?'<b>深層瞓少，係「瞓夠但冇精神」最常見嘅原因。</b>長期赤字、太夜食、瞓前睇機都會壓低深層。你連續 5 個月赤字，呢格最值得留意。':'<b>深層夠，修復正常。</b>'});
+      means: d.deepMin<60?'<b>深層少過 60 分鐘。</b>戒指咁樣計，只係趨勢參考，唔係診斷。':'<b>深層有 60 分鐘或以上。</b>只供參考，唔係診斷。'});
     h+=ocard({label:'總睡眠', missing:d.totalSleepMin==null, value:Math.floor(d.totalSleepMin/60)+'h '+(d.totalSleepMin%60), unit:'分', delta:b.totalSleepMin!=null?r0((d.totalSleepMin-b.totalSleepMin)):null, deltaUnit:'分', base:b.totalSleepMin, st:statusOf(d.totalSleepMin,b.totalSleepMin,false,5,12),
       explain:'實際瞓着嘅時間（唔計瞓前瞓後醒住）。效率 '+d.efficiency+'%，上床 '+d.bedtime+'。',
       means: d.totalSleepMin<390?'<b>少過 6.5 小時。</b>睡眠唔夠嗰日，飢餓感同對甜食嘅渴求會升，赤字更難守。':'<b>時長正常。</b>質素睇上面深層嗰格。'});
     // 靜止心率
     h+=ocard({label:'靜止心率', requiresBaseline:true, missing:d.rhr==null, value:d.rhr, unit:'次/分', delta:b.rhr!=null?d.rhr-b.rhr:null, base:b.rhr, st:stH, spark:spark(d.hist&&d.hist.rhr,b.rhr),
       explain:'瞓覺時心臟最慢嘅速度，反映身體有幾多「未清嘅賬」（壓力、訓練、赤字、病）。',
-      means: d.rhr>b.rhr+3?'<b>高於你基線 '+(d.rhr-b.rhr)+' 下。</b>連續 3 日咁樣＝身體處理緊壓力：赤字太大、瞓唔夠或者開始病，三選一。呢個訊號通常比磅同精神早一至兩星期。':'<b>喺你基線範圍。</b>身體頂得順而家嘅赤字同訓練。'});
+      means: d.rhr>b.rhr+3?'<b>高過你基線 '+(d.rhr-b.rhr)+' 下。</b>只係同你自己近期比較，唔係診斷。':'<b>貼近你近期基線。</b>只供參考，唔係診斷。'});
     // HRV
     h+=ocard({label:'HRV 心率變異', requiresBaseline:true, missing:d.hrv==null, value:d.hrv, unit:'ms', delta:b.hrv!=null?d.hrv-b.hrv:null, base:b.hrv, st:statusOf(d.hrv,b.hrv,false,8,15), spark:spark(d.hist&&d.hist.hrv,b.hrv),
       explain:'心跳之間嘅微細變化。越高＝神經系統越鬆、恢復越好。每個人數值唔同，只同自己比。',
@@ -2112,7 +2293,7 @@
     // 活動
     h+=ocard({label:'今日活動消耗（Oura 量）', missing:d.activeCal==null, value:r0(d.activeCal).toLocaleString(), unit:'kcal', delta:b.activeCal!=null?r0(d.activeCal-b.activeCal):null, base:b.activeCal, st:'ok', tag:'≈ '+r1(d.activeCal/180)+' 碗白飯',
       explain:'Oura 用心率同動作量出你今日「額外」燒嘅，唔包基礎代謝。步行 '+r0(stepsKcal(Math.max(0,d.steps-treadmillSteps(curDate))))+' ＋ 運動 '+r0(dayWorkoutBurn(curDate))+' ＋ 企／家務其餘。',
-      means:'<b>你一日嘅努力就係呢個數。</b>1,800 目標入面有 '+r0(d.activeCal)+' 係郁返嚟嘅，其餘 '+r0(1800-d.activeCal)+' 靠基礎代謝。'});
+      means:'<b>呢個係戒指量到嘅活動消耗。</b>攝取目標係 '+esc(goalFor(curDate).label||'未設定')+' kcal，兩樣分開計，活動消耗唔會改寫餐單。'});
     h+=ocard({label:'步數', requiresBaseline:true, missing:d.steps==null, value:d.steps==null?null:d.steps.toLocaleString(), unit:'步', delta:b.steps!=null?r0(d.steps-b.steps):null, base:b.steps, st:'ok', tag:d.steps>=b.steps?'多過平時':'少過平時', spark:spark(d.hist&&d.hist.steps,b.steps),
       explain:'全日步數（Oura 戒指）。扣跑步機 '+treadmillSteps(curDate).toLocaleString()+' 步後，日常行路 '+Math.max(0,d.steps-treadmillSteps(curDate)).toLocaleString()+' 步。',
       means:b.steps==null?'尚未有 7 日步數基線，不作比較。':'<b>日常行路係你全日消耗第二大嘅一格，比 gym 更大。</b>7 日平均 '+(b.steps==null?'—':b.steps.toLocaleString())+'，今日'+(d.steps>=b.steps?'多':'少')+' '+Math.abs(d.steps-b.steps).toLocaleString()+'。'});
@@ -2141,11 +2322,32 @@
     flush(); return out.join('<br>').replace(/(<br>){3,}/g,'<br><br>');
   }
   function hkTime(iso){ try{ return new Date(iso).toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Hong_Kong'}); }catch(e){ return String(iso).slice(11,16); } }
+  function hkStamp(iso){ if(!iso) return ''; try{ return new Date(iso).toLocaleString('zh-HK',{timeZone:'Asia/Hong_Kong',hour12:false,month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return String(iso).replace('T',' ').slice(0,16); } }
+  function actLabel(a){ if(a && typeof a==='object' && a.type==='set_kcal_plan') return '更新分段熱量目標'; return String(a); }
+  function absorbPlanActions(rows){
+    if(fixtureMode || !state || !rows) return;
+    if(!state.meta || typeof state.meta!=='object') state.meta={};
+    if(!Array.isArray(state.meta.appliedKcalActions)) state.meta.appliedKcalActions=[];
+    var applied=state.meta.appliedKcalActions, grew=false, changed=false;
+    rows.forEach(function(r){
+      if(!r || r.id==null) return;
+      (r.actions||[]).forEach(function(a, idx){
+        if(!a || typeof a!=='object' || a.type!=='set_kcal_plan') return;
+        var key=String(r.id)+':'+idx;
+        if(applied.indexOf(key)>=0) return;
+        applied.push(key); grew=true;
+        var res=MealLogic.applyPlanMutation(state.settings, a);
+        if(res.ok && res.changed){ state.settings=res.settings; changed=true; }
+      });
+    });
+    if(applied.length>200) state.meta.appliedKcalActions=applied.slice(-200);
+    if(changed || grew) markDirty();
+  }
   function chatHTML(){
     var h='';
     chatRows.forEach(function(r){
       if(r.role==='user') h+='<div class="cb u">'+(r.thumb?'<img src="'+esc(r.thumb)+'" alt="">':'')+esc(r.text).replace(/\n/g,'<br>')+'<span class="tm">'+hkTime(r.created_at)+'</span></div>';
-      else { var acts=r.actions||[]; h+='<div class="cb e'+(r.status==='error'?' err':'')+'">'+mdLite(r.text)+(acts.length?'<div class="act">✓ 已改 app：'+esc(acts.join('；'))+'</div>':'')+'<span class="tm">'+hkTime(r.created_at)+'</span></div>'; }
+      else { var acts=r.actions||[]; h+='<div class="cb e'+(r.status==='error'?' err':'')+'">'+mdLite(r.text)+(acts.length?'<div class="act">✓ 已改 app：'+esc(acts.map(actLabel).join('；'))+'</div>':'')+'<span class="tm">'+hkTime(r.created_at)+'</span></div>'; }
     });
     var last=chatRows[chatRows.length-1];
     if(last&&last.role==='user'&&last.status!=='error') h+='<div class="typing">Eva 諗緊…（大約 20–60 秒）</div>';
@@ -2161,10 +2363,12 @@
         rows=rows.reverse(); var newEva=rows.filter(function(r){ return r.role==='eva' && r.id>chatLastSeen && r.actions && r.actions.length; });
         if(rows.length) chatLastSeen=Math.max(chatLastSeen, rows[rows.length-1].id);
         chatRows=rows; chatPaint();
+        absorbPlanActions(rows);
         if(newEva.length) setTimeout(refreshIfChanged, 400);
       }).catch(function(e){ if(isAuth(e)||sessionDeadLock) return; var el=$('chatlog'); if(el&&!chatRows.length) el.innerHTML='<div class="hint">連唔到 Eva（網絡問題）。</div>'; });
   }
   function openChat(){
+    if(fixtureMode){ openSheet('<div class="hd"><h2>問 Eva</h2><button class="close" data-act="close">✕</button></div><div class="hint">示範模式唔會連接對話，亦唔會改資料。</div>'); return; }
     chatOpen=true;
     openSheet('<div class="hd"><h2>問 Eva</h2><button class="close" data-act="close">✕</button></div><div class="chatlog" id="chatlog"><div class="hint">載入緊…</div></div><div id="chatPrev"></div><div class="chatin"><button class="ib" data-act="chat-cam" aria-label="影相">📷</button><button class="ib" data-act="chat-pick" aria-label="揀相">🖼</button><textarea id="chatIn" rows="1" placeholder="例：晚餐加 1 隻煎蛋"></textarea><button data-act="chat-send">送出</button></div><input type="file" id="chatCam" accept="image/*" capture="environment" hidden><input type="file" id="chatPickIn" accept="image/*" hidden><div class="hint" style="margin-top:6px">Eva 可以入數、改數、答問題；改 app 版面要返 Claude Code 主 session。</div>');
     chatFetch(); if(chatTimer) clearInterval(chatTimer); chatTimer=setInterval(function(){ if(!chatOpen||!$('chatlog')){ clearInterval(chatTimer); chatTimer=null; chatOpen=false; return; } chatFetch(); }, 3000);
@@ -2228,6 +2432,7 @@
       var warn=miss.length?'<em style="font-style:normal;color:#F0C9A0">　⚠️ 有 '+miss.length+' 項食物已失蹤，未計入</em>':'';
       var rule=conf?setAutoRule(st):null; if(rule) warn+='<em style="font-style:normal;color:#F0C9A0">　⚠️ 刪咗之後，'+rule.label+'會搵唔到呢個套餐</em>';
       return '<div class="sb"><button class="t" data-act="mealset-add" data-set="'+esc(st.id)+'"><b>'+esc(st.name)+'</b><span>'+from+its.length+' 項 · '+r0(tt.kcal)+' kcal · 蛋白 '+r0(tt.protein)+'g'+warn+'</span></button>'+
+        '<button class="editbtn" data-act="set-edit" data-from="add" data-set="'+esc(st.id)+'">改</button>'+
         '<button class="x'+(conf?' confirm':'')+'" data-act="mealset-del" data-set="'+esc(st.id)+'">'+(conf?'確定刪除':'✕')+'</button></div>';
     }
     if(mine.length){
@@ -2470,11 +2675,41 @@
     }
     editRef=null; markDirty(); closeSheet();
   }
+  function planField(v){ return v==null||v==='' ? '' : esc(String(v)); }
+  function planRowsHtml(plan){
+    var rows=Array.isArray(plan)?plan:[];
+    if(!rows.length) return '<div class="hint" id="planEmpty">未有分段。冇分段就全日用下面嘅每日目標同休息日目標。</div>';
+    return rows.map(function(w){
+      var gym=w.gym||{}, rest=w.rest||{};
+      return '<div class="planrow" data-planrow>'+
+        '<div class="g2"><div><label>開始（包含）</label><input type="date" data-k="start" value="'+planField(w.start)+'"></div><div><label>結束（包含）</label><input type="date" data-k="end" value="'+planField(w.end)+'"></div></div>'+
+        '<div class="g2"><div><label>下限 kcal</label><input type="number" inputmode="numeric" data-k="lower" value="'+planField(w.lower)+'"></div><div><label>上限 kcal</label><input type="number" inputmode="numeric" data-k="upper" value="'+planField(w.upper)+'"></div></div>'+
+        '<div class="g2"><div><label>運動日下限（可留空）</label><input type="number" inputmode="numeric" data-k="gymLower" value="'+planField(gym.lower)+'"></div><div><label>運動日上限</label><input type="number" inputmode="numeric" data-k="gymUpper" value="'+planField(gym.upper)+'"></div></div>'+
+        '<div class="g2"><div><label>休息日下限（可留空）</label><input type="number" inputmode="numeric" data-k="restLower" value="'+planField(rest.lower)+'"></div><div><label>休息日上限</label><input type="number" inputmode="numeric" data-k="restUpper" value="'+planField(rest.upper)+'"></div></div>'+
+        '<button class="btn ghost" data-act="plan-rm" type="button">刪除呢段</button></div>';
+    }).join('');
+  }
+  function readPlanDraft(){
+    return [].map.call(document.querySelectorAll('[data-planrow]'), function(row){
+      function val(k){ var el=row.querySelector('[data-k="'+k+'"]'); return el?el.value:''; }
+      var o={start:val('start'), end:val('end')||null, lower:val('lower'), upper:val('upper')};
+      if(val('gymLower')!=='' || val('gymUpper')!=='') o.gym={lower:val('gymLower'), upper:val('gymUpper')};
+      if(val('restLower')!=='' || val('restUpper')!=='') o.rest={lower:val('restLower'), upper:val('restUpper')};
+      return o;
+    });
+  }
   function openSettings(){
     var s=state.settings, h='<div class="hd"><h2>設定</h2><button class="close" data-act="close">✕</button></div><div class="frm">';
+    var shown=Array.isArray(s.kcalPlan)?s.kcalPlan:[];
+    var checked=MealLogic.validatePlan(shown);
+    h+='<div class="sec">分段熱量目標</div><div id="planBox">'+planRowsHtml(checked.ok?checked.windows:shown)+'</div>';
+    h+='<button class="btn ghost" data-act="plan-add" type="button">＋ 加一段</button>';
+    h+='<button class="btn ghost" data-act="plan-approved" type="button">填回 11/17–12/15 已核准日程</button>';
+    h+='<div class="hint">每段要同時有下限同上限，例如 2000 同 2100。畫面顯示成範圍，唔會取中間數。運動日／休息日留空就兩邊一樣。刪晒所有段，就全日返下面嘅原本目標。11/17 之前同最後一段之後都用原本目標。香港時間午夜自動轉。</div>';
+    h+='<div class="hint warnx" id="planErr">'+(checked.ok?'':esc(checked.errors.join(' ')))+'</div>';
     h+='<label>每月赤字目標 kcal</label><input id="s_mt" type="number" inputmode="numeric" value="'+(s.monthTarget||16000)+'"><div class="hint">16,000 ≈ 2.0 kg 脂肪（÷7,700）。下面兩個日型目標由佢倒推。</div>';
     h+='<div class="g3"><div><label>運動日赤字目標</label><input id="s_dtg" type="number" inputmode="numeric" value="'+(s.deficitTargetGym||600)+'"></div><div><label>休息日赤字目標</label><input id="s_dtr" type="number" inputmode="numeric" value="'+(s.deficitTargetRest||300)+'"></div><div><label>休息日可攝取 kcal</label><input id="s_rk" type="number" inputmode="numeric" value="'+(s.restKcal||'')+'" placeholder="例 1800"></div></div>';
-    h+='<label>休息日（星期幾，逗號分隔：0＝日，1＝一…6＝六）</label><input id="s_rd" value="'+esc(s.restDays||'')+'" placeholder="例 3,0"><div class="hint">休息日圓環用休息日目標；其他日用每日目標。</div>';
+    h+='<label>休息日（星期幾，逗號分隔：0＝日，1＝一…6＝六）</label><input id="s_rd" value="'+esc(s.restDays||'')+'" placeholder="例 3,0"><div class="hint">冇分段覆蓋嗰日：休息日用休息日目標，其他日用每日目標。兩邊而家都係原本目標；12/16 起會返用呢度。</div>';
     h+='<div class="g2"><div><label>每日可攝取 kcal 目標</label><input id="s_k" type="number" inputmode="numeric" value="'+(s.dailyKcal||'')+'"></div><div><label>體重 kg</label><input id="s_w" type="number" inputmode="decimal" step="0.1" value="'+(s.weightKg||'')+'"></div></div>';
     var isB=(s.deficitMode==='bmr');
     h+='<div hidden><input id="s_stride" type="number" value="'+(s.strideM||0.8)+'"></div>';
@@ -2497,7 +2732,13 @@
     openSheet(h);
   }
   function saveSettings(){
+    var draft=readPlanDraft();
+    var checked=MealLogic.validatePlan(draft);
+    var err=$('planErr');
+    if(!checked.ok){ if(err) err.textContent=checked.errors.join(' '); return; }
+    if(err) err.textContent='';
     var s=state.settings;
+    s.kcalPlan=checked.windows;
     s.dailyKcal=parseInt($('s_k').value,10)||null; s.proteinTarget=parseInt($('s_p').value,10)||null; s.weightKg=parseFloat($('s_w').value)||null; s.tdee=parseInt($('s_tdee').value,10)||2300; s.strideM=parseFloat($('s_stride').value)||0.8; s.bmr=parseInt($('s_bmr').value,10)||null; s.monthTarget=parseInt($('s_mt').value,10)||16000; s.deficitTargetGym=parseInt($('s_dtg').value,10)||600; s.deficitTargetRest=parseInt($('s_dtr').value,10)||300; s.restKcal=parseInt($('s_rk').value,10)||null; s.restDays=($('s_rd').value||'').replace(/[^0-9,]/g,''); s.neatPct=parseInt($('s_neat').value,10); if(isNaN(s.neatPct)) s.neatPct=10; var dm=document.querySelector('#dmode button.on'); s.deficitMode=dm?dm.getAttribute('data-m'):'tdee'; var am=document.querySelector('#asrc button.on'); s.activitySource=am?am.getAttribute('data-m'):'oura'; if(s.deficitMode==='bmr'&&!s.bmr){ alert('計法 B 要填 BMR'); s.deficitMode='tdee'; } s.carbTarget=parseInt($('s_c').value,10)||null; s.fatTarget=parseInt($('s_f').value,10)||null; s.fiberTarget=parseInt($('s_fb').value,10)||null; s.goalKg=parseFloat($('s_goal').value)||71; s.journey=s.journey||{}; s.journey.targetWaist=parseFloat($('s_jw').value)||85; s.journey.startWeight=parseFloat($('s_jsw').value)||80; s.journey.startWaist=parseFloat($('s_jsa').value)||98; s.goalDate=$('s_gdate').value||'2026-12-01'; s.cycleMin=parseInt($('s_cyc').value,10)||85;
     var t=($('s_t').value||'').split(/[,，、]/).map(function(x){return x.trim();}).filter(Boolean); if(t.length) s.workoutTypes=t;
     markDirty(); closeSheet();
@@ -2523,7 +2764,11 @@
     else if(act==='mealset-del'){ var sid='set:'+b.getAttribute('data-set'); if(confirmId===sid){ tombstone(b.getAttribute('data-set')); state.sets=state.sets.filter(function(x){return x.id!==b.getAttribute('data-set');}); confirmId=null; markDirty(); openAdd(addSlot); } else { confirmId=sid; openAdd(addSlot); clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ confirmId=null; },3000); } }
     else if(act==='sets-manage'||act==='sets-manage-s'){ setMgrFrom=act==='sets-manage'?'add':'settings'; confirmId=null; openSetList(); }
     else if(act==='sets-back'){ confirmId=null; if(setMgrFrom==='settings') openSettings(); else openAdd(addSlot); }
-    else if(act==='set-edit'){ confirmId=null; openSetEdit(b.getAttribute('data-set')); }
+    else if(act==='gotab'){ tab=b.getAttribute('data-tab')||'today'; closeSheet(); render(); }
+    else if(act==='plan-add'){ var box=$('planBox'); if(!box) return; if(!box.querySelector('[data-planrow]')) box.innerHTML=''; box.insertAdjacentHTML('beforeend', planRowsHtml([{start:'',end:'',lower:'',upper:''}])); }
+    else if(act==='plan-rm'){ var row=b.closest('[data-planrow]'); if(row) row.remove(); var box2=$('planBox'); if(box2 && !box2.querySelector('[data-planrow]')) box2.innerHTML=planRowsHtml([]); }
+    else if(act==='plan-approved'){ var box3=$('planBox'); if(box3) box3.innerHTML=planRowsHtml(MealLogic.APPROVED_WINDOWS); var pe=$('planErr'); if(pe) pe.textContent=''; }
+    else if(act==='set-edit'){ confirmId=null; var from=b.getAttribute('data-from'); if(from) setMgrFrom=from; openSetEdit(b.getAttribute('data-set')); }
     else if(act==='set-new'){ confirmId=null; openSetEdit(null); }
     else if(act==='set-cancel'){ if(setDraftChanged() && !confirm('未儲嘅改動會唔見，確定返回？')) return; setDraft=null; setOrig=null; openSetList(); }
     else if(act==='set-save') saveSetEdit();
@@ -2653,9 +2898,11 @@
       location.replace(location.pathname+'?v='+encodeURIComponent(m[1]));
     }).catch(function(){});
   }
-  if('serviceWorker' in navigator){
+  if('serviceWorker' in navigator && !/[?&]fixture=1(?:&|$)/.test(location.search)){
     navigator.serviceWorker.register('sw.js', {scope:'./', updateViaCache:'none'}).catch(function(){});
   }
+  window.addEventListener('online', function(){ if(fixtureMode) return; noteSync({online:true}); if(dirty) schedulePersist(0); });
+  window.addEventListener('offline', function(){ if(fixtureMode) return; noteSync({online:false}); });
   $('upd').addEventListener('click', function(){ location.replace(location.pathname+'?v='+Date.now()); });
   setTimeout(checkUpdate, 3000); setInterval(checkUpdate, 10*60*1000);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) checkUpdate(); });
