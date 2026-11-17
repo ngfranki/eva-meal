@@ -1,7 +1,6 @@
 /* Assumed intake for deficit, standing calorie targets, and sync labels.
    Assumed intake never rewrites meals, macros, or diary totals.
-   On an assumption day the expenditure is that date's own activity.
-   A stored TDEE is not reused as the day's burn. */
+   Expenditure is the pre-change formula. Only the intake number changes. */
 (function(root, factory){
   var api = factory();
   if(typeof module==='object' && module.exports) module.exports = api;
@@ -336,95 +335,48 @@
     var n=Math.round(value);
     return balanceFrom(0, -n, -n);
   }
-  function phaseOf(spec){
-    if(isDate(spec.date) && isDate(spec.today)){
-      if(spec.date>spec.today) return 'future';
-      if(spec.date<spec.today) return 'past';
-      return 'today';
-    }
-    if(spec.isToday===true) return 'today';
-    return 'unknown';
-  }
-  function positive(v){
-    var n=+v;
-    return isFinite(n) && n>0 ? n : 0;
-  }
-  function neatKcal(spec, bmr){
-    if(bmr==null) return 0;
-    var pct=spec.neatPct==null || spec.neatPct==='' ? 0 : Number(spec.neatPct);
-    if(!isFinite(pct) || pct<0) pct=0;
-    return bmr*pct/100;
-  }
-  function componentActivity(spec){
-    var hasParts=('stepsKcal' in spec) || ('workoutKcal' in spec);
-    if(!hasParts) return {total:positive(spec.burn)};
-    var steps=positive(spec.stepsKcal);
-    if(spec.stepsAlreadyNet!==true) steps=Math.max(0, steps-positive(spec.treadmillStepsKcal));
-    return {total:steps+positive(spec.workoutKcal)};
-  }
-  function resolveExpenditure(spec){
+  function originalParts(spec, intake){
     spec=spec||{};
-    var phase=phaseOf(spec);
-    var preferOura=spec.activitySource!=='estimate';
-    var ouraTotal=preferOura?kcalNum(spec.ouraTotal):null;
-    var ouraActive=preferOura?kcalNum(spec.ouraActive):null;
-    var bmr=kcalNum(spec.bmr);
-    var parts=componentActivity(spec);
-    var soFar=ouraActive!=null?ouraActive:parts.total;
-    function pack(kcal, source, measured, forecast, label, note){
-      return {kcal:kcal==null?null:Math.round(kcal), soFar:Math.round(soFar), forecast:!!forecast, measured:!!measured, source:source, label:label, note:note, phase:phase};
-    }
-    if(phase==='future') return pack(null, 'future', false, false, '未有當日活動', '未來日子未有可計的當日活動，所以未計已完成赤字。設定入面嘅固定 TDEE 唔會填上呢一日。');
-    if(phase==='unknown') return pack(null, 'unknown', false, false, '未能判斷日子完結未', '未有香港日期可以分辨今日、過去定未來，所以唔當已完成消耗，亦唔用固定 TDEE。');
-    if(phase==='past'){
-      if(ouraTotal!=null) return pack(ouraTotal, 'oura-total', true, false, 'Oura 全日總消耗', '已完結。用 Oura 當日總消耗一次，已包含基礎代謝同活動，唔再加活動卡、步數或手動運動。');
-      if(ouraActive!=null && bmr!=null) return pack(bmr+ouraActive, 'bmr-plus-oura-active', false, false, 'BMR 加 Oura 活動', 'Oura 呢日冇全日總消耗。活動卡已包步行同運動，唔再加步數或手動項目。BMR 係公式，所以成個數係估算，唔係戒指的全日量度。');
-      if(ouraActive!=null) return pack(null, 'insufficient', false, false, '資料不足', '只有 Oura 活動卡，冇全日總消耗，亦冇 BMR。活動卡唔等於全日消耗，所以未計赤字，亦唔當 0。');
-      if(bmr!=null){
-        var quiet=parts.total<=0;
-        return pack(bmr+neatKcal(spec, bmr)+parts.total, 'components', false, false, quiet?'BMR 加日常活動%':'BMR、步數同運動估算', (quiet?'當日冇步數同運動。估算＝BMR 加日常活動%，唔係量度。':'估算：BMR 加日常活動%，再加步行同運動。')+(preferOura?' Oura 呢日冇數，先至用呢個估算。':' 活動來源揀咗自己估，所以唔用 Oura 總消耗。')+' 跑步機步數只計一次。固定 TDEE 冇用。');
-      }
-      return pack(null, 'insufficient', false, false, '資料不足', '未有 Oura 全日總消耗，亦未有 BMR。有活動都唔會當成全日消耗，亦唔用設定入面嘅固定 TDEE，所以未計赤字。');
-    }
-    if(ouraTotal!=null) return pack(ouraTotal, 'oura-total-forecast', false, true, 'Oura 全日總消耗預測', '今日未完結。Oura 總消耗由日初已計入全日基礎代謝，係預測，唔係已經燒完的量度。唔再加活動卡、步數或手動運動，亦唔用固定 TDEE。');
-    if(bmr!=null){
-      var activity=ouraActive!=null?ouraActive:parts.total;
-      var neat=ouraActive!=null?0:neatKcal(spec, bmr);
-      return pack(bmr+neat+activity, 'partial-estimate', false, true, '全日 BMR 加截至而家的活動', '今日未完結，Oura 未有全日總消耗。呢個數係 BMR 加截至而家的活動，餘下時間未計，所以偏低，唔可以當成已完成的全日消耗。'+(ouraActive!=null?' Oura 活動已包步行同運動，唔再加。':' 跑步機步數只計一次。'));
-    }
-    return pack(null, 'insufficient', false, false, '資料不足', '今日未有 Oura 全日總消耗，亦未有 BMR。截至而家的活動唔等於全日消耗，所以未計赤字，亦唔當 0。');
-  }
-  var STATUS_LABEL={completed:'已完結', estimate:'估算', partial:'預測 · 未完結', future:'未來 · 未有活動', insufficient:'資料不足', unknown:'未能判斷日子完結未'};
-  function actualPointDeficit(spec){
-    var intake=+spec.actualKcal||0;
+    intake=+intake||0;
     var burn=+spec.burn||0;
     var bmr=+spec.bmr||0;
-    if(spec.mode==='bmr' && bmr>0){
-      var neat=spec.useOura ? 0 : bmr*((+spec.neatPct||0)/100);
-      return bmr + neat + intake*0.10 + burn - intake;
-    }
-    var tdee=(+spec.tdee>0)?+spec.tdee:2300;
-    return tdee + burn - intake;
+    var modeB=spec.mode==='bmr' && bmr>0;
+    var neat=modeB && !spec.useOura ? bmr*((+spec.neatPct||0)/100) : 0;
+    var tef=modeB ? intake*0.10 : 0;
+    var base=modeB ? bmr : ((+spec.tdee>0)?+spec.tdee:2300);
+    var expenditure=base+neat+tef+burn;
+    var label=modeB
+      ? (spec.useOura?'計法 B：BMR＋消化熱＋Oura 活動':'計法 B：BMR＋日常活動%＋消化熱＋步行＋運動')
+      : (spec.useOura?'計法 A：TDEE＋Oura 活動':'計法 A：TDEE＋步行＋運動');
+    var note=modeB
+      ? (spec.useOura
+        ? '同改版前一樣：BMR 加消化熱（攝取 × 10%）加 Oura 活動卡，唔再加日常活動%。Oura 全日總消耗唔入呢條數。'
+        : '同改版前一樣：BMR 加日常活動% 加消化熱（攝取 × 10%）加步行同運動。Oura 全日總消耗唔入呢條數。')
+      : '同改版前一樣：設定 TDEE（未填就用 2,300）加活動，再減攝取。Oura 全日總消耗唔入呢條數。';
+    return {mode:modeB?'bmr':'tdee', base:base, bmr:modeB?bmr:0, tdee:modeB?0:base, neat:neat, tef:tef, burn:burn, useOura:!!spec.useOura, expenditure:expenditure, intake:intake, deficit:expenditure-intake, label:label, note:note, kcal:expenditure};
+  }
+  function originalDeficit(spec, intake){
+    return originalParts(spec, intake).deficit;
+  }
+  function actualPointDeficit(spec){
+    return originalDeficit(spec, +spec.actualKcal||0);
   }
   function dayBalance(spec){
     spec=spec||{};
     var actual=Math.round(+spec.actualKcal||0);
     var assumption=assumedIntakeFor(spec.settings, spec.date);
     if(assumption){
-      var exp=resolveExpenditure(spec);
-      var status=exp.phase==='future'?'future':(exp.phase==='unknown'?'unknown':(exp.kcal==null?'insufficient':(exp.phase==='today'?'partial':(exp.measured?'completed':'estimate'))));
-      var balance=null, point=null;
-      if(exp.kcal!=null){
-        balance=assumption.lower===assumption.upper?pointBalance(exp.kcal-assumption.lower):balanceFrom(exp.kcal, assumption.lower, assumption.upper);
-        if((status==='completed'||status==='estimate') && assumption.lower===assumption.upper) point=Math.round(exp.kcal-assumption.lower);
-      }
-      return {usesAssumption:true, include:status==='completed'||status==='estimate', status:status, statusLabel:STATUS_LABEL[status], actualKcal:actual, assumption:assumption, expenditure:exp, tdee:exp, balance:balance, point:point};
+      var future=isDate(spec.date)&&isDate(spec.today)&&spec.date>spec.today;
+      var atLower=originalParts(spec, assumption.lower);
+      var atUpper=assumption.lower===assumption.upper?atLower:originalParts(spec, assumption.upper);
+      var balance=balanceFrom(0, -atLower.deficit, -atUpper.deficit);
+      return {usesAssumption:true, include:!future, status:future?'future':'same', statusLabel:future?'未到':'計法同之前一樣', actualKcal:actual, assumption:assumption, expenditure:atLower, tdee:null, balance:balance, point:assumption.lower===assumption.upper?Math.round(atLower.deficit):null};
     }
     if(!spec.hasDiary){
       return {usesAssumption:false, include:false, actualKcal:actual, assumption:null, tdee:null, balance:null, point:null};
     }
     var point=actualPointDeficit(spec);
-    return {usesAssumption:false, include:true, actualKcal:actual, assumption:null, tdee:null, balance:pointBalance(point), point:Math.round(point)};
+    return {usesAssumption:false, include:true, actualKcal:actual, assumption:null, tdee:null, expenditure:originalParts(spec, actual), balance:pointBalance(point), point:Math.round(point)};
   }
   function assumptionSchedule(settings, date){
     var s=settings||{};
@@ -580,7 +532,8 @@
     seedApprovedPlan: seedApprovedPlan,
     migrateKnownTargetSeed: migrateKnownTargetSeed,
     assumedIntakeFor: assumedIntakeFor,
-    resolveExpenditure: resolveExpenditure,
+    originalDeficit: originalDeficit,
+    originalParts: originalParts,
     balanceFrom: balanceFrom,
     dayBalance: dayBalance,
     assumptionSchedule: assumptionSchedule,
