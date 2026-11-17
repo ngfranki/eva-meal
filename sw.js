@@ -13,7 +13,7 @@ self.addEventListener('fetch', function(event){
   if(!shell) return;
   event.respondWith(fetch(req, {cache:'no-store'}).then(function(res){
     var copy=res.clone();
-    caches.open('meal-shell-20261117-0333').then(function(cache){ cache.put(req, copy); }).catch(function(){});
+    caches.open('meal-shell-20261117-0435').then(function(cache){ cache.put(req, copy); }).catch(function(){});
     return res;
   }).catch(function(){ return caches.match(req); }));
 });
