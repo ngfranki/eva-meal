@@ -28,9 +28,9 @@ function baseSettings(){
       check(d+' '+kind+' target stays 1800', t.lower===1800 && t.upper===1800 && t.source==='baseline' && t.kind==='point' && t.label==='1,800');
     });
   });
-  check('Nov 17 assumption is 2000-2100', (function(){ var a=Logic.assumedIntakeFor(s,'2026-11-17'); return a && a.lower===2000 && a.upper===2100 && a.source==='default'; })());
-  check('Nov 30 still inside first assumption', Logic.assumedIntakeFor(s,'2026-11-30').upper===2100);
-  check('Dec 1 travel assumption is 2300-2400', Logic.assumedIntakeFor(s,'2026-12-01').lower===2300 && Logic.assumedIntakeFor(s,'2026-12-15').upper===2400);
+  check('Nov 17 assumption is exactly 2100', (function(){ var a=Logic.assumedIntakeFor(s,'2026-11-17'); return a && a.lower===2100 && a.upper===2100 && a.source==='default'; })());
+  check('Nov 30 still inside first assumption', Logic.assumedIntakeFor(s,'2026-11-30').lower===2100 && Logic.assumedIntakeFor(s,'2026-11-30').upper===2100);
+  check('Dec 1 travel assumption is exactly 2400', Logic.assumedIntakeFor(s,'2026-12-01').lower===2400 && Logic.assumedIntakeFor(s,'2026-12-15').upper===2400);
   check('Nov 16 and Dec 16 have no assumption', Logic.assumedIntakeFor(s,'2026-11-16')===null && Logic.assumedIntakeFor(s,'2026-12-16')===null);
 })();
 
@@ -43,7 +43,7 @@ function baseSettings(){
   check('HK date before Dec 16', Logic.hkToday(new Date('2026-12-15T15:59:59.000Z'))==='2026-12-15');
   check('HK date at Dec 16', Logic.hkToday(new Date('2026-12-15T16:00:00.000Z'))==='2026-12-16');
   check('instant before HK midnight has no assumption', Logic.assumedIntakeFor(s, new Date('2026-11-16T15:59:59.000Z'))===null);
-  check('instant at HK midnight starts assumption', Logic.assumedIntakeFor(s, new Date('2026-11-16T16:00:00.000Z')).lower===2000);
+  check('instant at HK midnight starts assumption', Logic.assumedIntakeFor(s, new Date('2026-11-16T16:00:00.000Z')).lower===2100);
   check('Dec 15 instant still assumed travel intake', Logic.assumedIntakeFor(s, new Date('2026-12-15T15:59:59.000Z')).upper===2400);
   check('Dec 16 instant returns to actual intake', Logic.assumedIntakeFor(s, new Date('2026-12-15T16:00:00.000Z'))===null);
   check('targets do not switch at the boundary', Logic.resolveTarget(s, new Date('2026-11-16T16:00:00.000Z'), false).label==='1,800');
@@ -152,44 +152,65 @@ function baseSettings(){
 
 (function assumedDeficit(){
   var s=baseSettings();
-  var nov=Logic.dayBalance({date:'2026-11-17', settings:s, actualKcal:641, hasDiary:true, mode:'tdee', tdee:2500, burn:400});
-  check('partial diary is not added to assumption', nov.usesAssumption && nov.actualKcal===641 && nov.assumption.lower===2000 && nov.assumption.upper===2100);
-  check('TDEE 2500 minus 2000-2100 is deficit 400-500', nov.balance.lower===400 && nov.balance.upper===500 && nov.balance.kind==='deficit' && nov.balance.text==='赤字 400–500');
-  check('assumption has no invented macros', nov.assumption.protein==null && nov.assumption.carb==null);
-  check('running burn is not the full-day source', nov.tdee.source==='setting' && nov.tdee.measured===false && nov.tdee.note.indexOf('唔係截至而家')>=0);
-  var travel=Logic.dayBalance({date:'2026-12-08', settings:s, actualKcal:900, hasDiary:true, mode:'tdee', tdee:2200, burn:50});
-  check('travel surplus is 100-200 and not zeroed', travel.balance.kind==='surplus' && travel.balance.lower===-200 && travel.balance.upper===-100 && travel.balance.text==='盈餘 100–200');
-  check('empty travel day still uses assumption', Logic.dayBalance({date:'2026-12-01', settings:s, actualKcal:0, hasDiary:false, mode:'tdee', tdee:2200}).include===true);
-  var prior=Logic.dayBalance({date:'2026-11-16', settings:s, actualKcal:1700, hasDiary:true, mode:'tdee', tdee:1800, burn:0});
+  function done(extra){
+    var spec={date:'2026-11-18', today:'2026-11-20', settings:s, actualKcal:641, hasDiary:true, mode:'tdee', tdee:9999, bmr:1600, neatPct:10, activitySource:'oura'};
+    Object.keys(extra||{}).forEach(function(k){ spec[k]=extra[k]; });
+    return Logic.dayBalance(spec);
+  }
+  var nov=done({date:'2026-11-17', ouraTotal:2500, ouraActive:400, workoutKcal:300, stepsKcal:200, stepsAlreadyNet:true});
+  check('intake is exactly 2100 and diary is not added', nov.usesAssumption && nov.actualKcal===641 && nov.assumption.lower===2100 && nov.assumption.upper===2100 && nov.balance.text==='赤字 400');
+  check('completed Oura total is used once', nov.include && nov.status==='completed' && nov.expenditure.kcal===2500 && nov.expenditure.source==='oura-total' && nov.expenditure.measured===true && nov.point===400);
+  check('Oura total does not add the same workouts or steps', nov.expenditure.kcal!==2500+400+300+200 && nov.expenditure.note.indexOf('唔再加')>=0);
+  check('stored TDEE does not override that day', nov.expenditure.source!=='setting' && nov.expenditure.kcal!==9999);
+  check('assumption has no invented macros', nov.assumption.protein==null && nov.assumption.carb==null && nov.assumption.fat==null);
+  var activeOnly=done({ouraTotal:0, ouraActive:400, workoutKcal:300, stepsKcal:200});
+  check('Oura active plus BMR drops duplicate workouts', activeOnly.expenditure.kcal===2000 && activeOnly.expenditure.source==='bmr-plus-oura-active' && activeOnly.status==='estimate' && activeOnly.balance.text==='盈餘 100');
+  var quiet=done({ouraTotal:0, ouraActive:0, stepsKcal:0, workoutKcal:0});
+  check('zero steps and exercise stay an estimate', quiet.expenditure.kcal===1760 && quiet.status==='estimate' && quiet.include && quiet.balance.text==='盈餘 340' && quiet.expenditure.note.indexOf('冇步數')>=0);
+  var walk=done({ouraTotal:0, ouraActive:0, stepsKcal:100, workoutKcal:0, stepsAlreadyNet:true});
+  var walkMore=done({ouraTotal:0, ouraActive:0, stepsKcal:400, workoutKcal:80, stepsAlreadyNet:true});
+  check('more steps and exercise change the deficit', walk.expenditure.kcal===1860 && walk.point===1860-2100 && walkMore.expenditure.kcal===2240 && walkMore.point===140 && walkMore.point-walk.point===380);
+  var gross=done({ouraTotal:0, ouraActive:0, stepsKcal:300, treadmillStepsKcal:120, workoutKcal:150, stepsAlreadyNet:false});
+  check('treadmill steps are removed once', gross.expenditure.kcal===Math.round(1600+160+(300-120)+150) && gross.expenditure.kcal!==Math.round(1600+160+300+150));
+  var noOura=done({ouraTotal:0, ouraActive:0, bmr:0, stepsKcal:180, workoutKcal:90, tdee:2200});
+  check('missing Oura and BMR is not a zero or the stored TDEE', noOura.include===false && noOura.balance===null && noOura.status==='insufficient' && noOura.expenditure.kcal==null);
+  var estimateSource=done({activitySource:'estimate', ouraTotal:3000, ouraActive:800, stepsKcal:100, workoutKcal:0, stepsAlreadyNet:true});
+  check('estimate source ignores Oura instead of adding it', estimateSource.expenditure.source==='components' && estimateSource.expenditure.kcal===1860 && estimateSource.expenditure.kcal!==3000);
+  var live=Logic.dayBalance({date:'2026-11-17', today:'2026-11-17', settings:s, actualKcal:641, hasDiary:true, tdee:2200, bmr:1600, ouraTotal:1900, ouraActive:280, workoutKcal:160, stepsKcal:90, activitySource:'oura'});
+  check('today Oura total is a forecast not a finished day', live.status==='partial' && live.include===false && live.point==null && live.expenditure.source==='oura-total-forecast' && live.expenditure.measured===false && live.expenditure.forecast===true && live.expenditure.kcal===1900 && live.expenditure.soFar===280 && live.balance.text==='盈餘 200');
+  var partial=Logic.dayBalance({date:'2026-11-17', today:'2026-11-17', settings:s, tdee:2200, bmr:1600, neatPct:10, ouraTotal:0, ouraActive:0, stepsKcal:100, workoutKcal:50, activitySource:'oura', actualKcal:10, hasDiary:true});
+  check('today without Oura total is an unfinished estimate', partial.status==='partial' && partial.include===false && partial.expenditure.source==='partial-estimate' && partial.expenditure.kcal===1910 && partial.expenditure.note.indexOf('未完結')>=0);
+  var later=Logic.dayBalance({date:'2026-12-08', today:'2026-11-17', settings:s, actualKcal:0, hasDiary:false, tdee:2200, bmr:1600, ouraTotal:3000, ouraActive:400});
+  check('future day has no measured deficit', later.assumption.upper===2400 && later.status==='future' && later.include===false && later.balance===null && later.expenditure.kcal==null);
+  var travel=done({date:'2026-12-08', today:'2026-12-20', ouraTotal:2200, ouraActive:100, workoutKcal:50, stepsKcal:40});
+  check('travel surplus uses that day and is not zeroed', travel.assumption.lower===2400 && travel.balance.kind==='surplus' && travel.balance.text==='盈餘 200' && travel.include===true);
+  check('Dec 1 and Dec 15 stay on 2400', done({date:'2026-12-01', today:'2026-12-20', ouraTotal:2600}).balance.text==='赤字 200' && done({date:'2026-12-15', today:'2026-12-20', ouraTotal:2400}).balance.text==='打和');
+  var prior=Logic.dayBalance({date:'2026-11-16', today:'2026-11-20', settings:s, actualKcal:1700, hasDiary:true, mode:'tdee', tdee:1800, burn:0, ouraTotal:5000, ouraActive:400});
   check('16 Nov uses actual intake deficit', !prior.usesAssumption && prior.point===100 && prior.balance.text==='赤字 100');
-  var after=Logic.dayBalance({date:'2026-12-16', settings:s, actualKcal:1700, hasDiary:true, mode:'tdee', tdee:1800, burn:200});
-  check('16 Dec returns to actual formula', !after.usesAssumption && after.point===300);
-  check('blank prior day is not invented', Logic.dayBalance({date:'2026-11-10', settings:s, actualKcal:0, hasDiary:false, mode:'tdee', tdee:1800}).include===false);
-  var missing=Logic.dayBalance({date:'2026-11-17', settings:s, actualKcal:100, hasDiary:true, mode:'tdee', tdee:0, bmr:0, ouraTotal:0, burn:80});
-  check('absent TDEE does not become zero deficit', missing.include===false && missing.balance===null && missing.tdee.source==='missing');
-  var forecast=Logic.dayBalance({date:'2026-11-18', settings:s, actualKcal:10, hasDiary:true, mode:'bmr', tdee:0, bmr:0, ouraTotal:2500, burn:120});
-  check('Oura total is a labelled forecast', forecast.tdee.source==='oura-forecast' && forecast.tdee.measured===false && forecast.balance.text==='赤字 400–500');
-  var base=Logic.dayBalance({date:'2026-11-19', settings:s, actualKcal:10, hasDiary:false, mode:'bmr', tdee:0, bmr:1600, neatPct:10, ouraTotal:0, burn:300});
-  check('BMR baseline ignores partial burn', base.tdee.kcal===1760 && base.tdee.source==='bmr-baseline' && base.balance.kind==='surplus' && base.balance.text==='盈餘 240–340');
+  var after=Logic.dayBalance({date:'2026-12-16', today:'2026-12-20', settings:s, actualKcal:1700, hasDiary:true, mode:'tdee', tdee:1800, burn:200, ouraTotal:5000});
+  check('16 Dec returns to actual diaries', !after.usesAssumption && after.point===300 && after.point!==5000-1700);
+  check('blank prior day is not invented', Logic.dayBalance({date:'2026-11-10', today:'2026-11-20', settings:s, actualKcal:0, hasDiary:false, mode:'tdee', tdee:1800}).include===false);
+  check('a day without today is not called complete', Logic.dayBalance({date:'2026-11-18', settings:s, ouraTotal:2500, bmr:1600, actualKcal:1, hasDiary:true}).include===false);
   var custom=baseSettings();
   custom.assumedDays={'2026-11-17':{useActual:true}};
-  var used=Logic.dayBalance({date:'2026-11-17', settings:custom, actualKcal:641, hasDiary:true, mode:'tdee', tdee:2500, burn:0});
+  var used=Logic.dayBalance({date:'2026-11-17', today:'2026-11-20', settings:custom, actualKcal:641, hasDiary:true, mode:'tdee', tdee:2500, burn:0, ouraTotal:1900});
   check('explicit actual override does not add assumption', !used.usesAssumption && used.point===1859);
   custom.assumedDays={'2026-11-20':{lower:1800, upper:1900}};
-  var own=Logic.dayBalance({date:'2026-11-20', settings:custom, actualKcal:50, hasDiary:true, mode:'tdee', tdee:2500, burn:0});
-  check('explicit day range replaces default', own.assumption.source==='day' && own.balance.text==='赤字 600–700');
-  var sumLo=nov.balance.lower+travel.balance.lower, sumHi=nov.balance.upper+travel.balance.upper;
-  check('cumulative keeps both ends', sumLo===200 && sumHi===400);
+  var own=Logic.dayBalance({date:'2026-11-20', today:'2026-11-21', settings:custom, actualKcal:50, hasDiary:true, mode:'tdee', tdee:2500, ouraTotal:2500, ouraActive:100, workoutKcal:80, stepsKcal:40, bmr:1600});
+  check('explicit day range replaces default', own.assumption.source==='day' && own.balance.text==='赤字 600–700' && own.expenditure.kcal===2500);
+  check('two different days do not share one burn', nov.point+travel.point===200);
   var sched=Logic.assumptionSchedule(s, '2026-11-17');
-  check('schedule names assumption not target', sched.rows.filter(function(r){return r.active;})[0].label.indexOf('預設已攝取 2,000–2,100')===0);
+  check('schedule names the exact intake', sched.rows.filter(function(r){return r.active;})[0].label==='預設已攝取 2,100');
   check('goal ring against 1800 still sees actual overage', Logic.intakeStanding(1801, Logic.targetFor(s,'2026-11-16',{})).status==='over');
+  var again=Logic.resolveExpenditure({date:'2026-11-18', today:'2026-11-20', activitySource:'oura', ouraTotal:2500, ouraActive:400, workoutKcal:300, stepsKcal:200, bmr:1600, tdee:9999});
+  check('expenditure helper matches the day balance', again.kcal===nov.expenditure.kcal && again.source===nov.expenditure.source);
 })();
 
 (function sharedTarget(){
   var s=baseSettings();
   var goal=Logic.targetFor(s, '2026-11-17', {});
   check('standing target is not the assumption', goal.label==='1,800');
-  check('assumption label keeps both ends', Logic.assumedIntakeFor(s,'2026-11-17').label==='2,000–2,100');
+  check('assumption label is the single intake', Logic.assumedIntakeFor(s,'2026-11-17').label==='2,100' && Logic.assumedIntakeFor(s,'2026-12-01').label==='2,400');
 })();
 
 (function syncCopy(){
@@ -221,6 +242,9 @@ function baseSettings(){
   check('page resolves intake with the shared standing', html.indexOf('MealLogic.intakeStanding')>=0 && html.indexOf('MealLogic.ringFraction')>=0);
   check('charts receive the dated targets', html.indexOf('targets:dayTargets')>=0);
   check('service worker shells the logic file', fs.readFileSync(path.join(__dirname,'sw.js'),'utf8').indexOf('meal-logic\\.js')>=0);
+  check('today, history, charts and report share diaryBalance', html.indexOf('function diaryBalance')>=0 && html.indexOf('function balanceOf')>=0 && html.split('diaryBalance(').length>=8);
+  check('balance receives that day activity fields', html.indexOf('today:today()')>=0 && html.indexOf('ouraActive:')>=0 && html.indexOf('stepsKcal:')>=0 && html.indexOf('workoutKcal:')>=0 && html.indexOf('stepsAlreadyNet:true')>=0);
+  check('page names 2100 and 2400', html.indexOf('2,100')>=0 && html.indexOf('2,400')>=0 && html.indexOf('2,000–2,100')<0 && html.indexOf('2,300–2,400')<0);
 })();
 
 if(failed){
